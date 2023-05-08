@@ -1,11 +1,11 @@
 module token
 
 pub struct Token {
-	pub mut:
-	 typ Typ
-	 literal string
-	 line int
-	 pos int
+pub mut:
+	typ     Typ
+	literal string
+	line    int
+	pos     int
 }
 
 pub enum Typ {
@@ -49,6 +49,7 @@ pub enum Typ {
 	_left_braces
 	_right_braces
 	_integer
+	_string
 	_float
 	_atom
 }
