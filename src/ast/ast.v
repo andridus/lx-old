@@ -1,129 +1,276 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
+
 module ast
 
-// import token
+import types
+import token
 
-interface Node {
-	token_literal() string
+pub type Expr = ArrayInit
+	| AssignExpr
+	| BinaryExpr
+	| BoolLiteral
+	| CallExpr
+	| FloatLiteral
+	| Ident
+	| IfExpr
+	| IndexExpr
+	| IntegerLiteral
+	| MethodCallExpr
+	| PostfixExpr
+	| PrefixExpr
+	| SelectorExpr
+	| StringLiteral
+	| StructInit
+	| UnaryExpr
+
+pub type Stmt = ExprStmt
+	| FnDecl
+	| ForCStmt
+	| ForInStmt
+	| ForStmt
+	| Import
+	| Module
+	| Return
+	| StructDecl
+	| VarDecl
+
+fn (expr Expr) msg() string {
+	return 'OK'
 }
 
-interface Statement {
-	Node
-	statement_node()
-	get_ident() Identifier
-	get_expr() Expression
-	get_ex_ast() string
-}
-
-interface Expression {
-	Node
-	expression_node() LiteralType
-}
-
-pub struct Program {
-pub mut:
-	statements []Statement
-	is_error   bool
-	errors     []string
-}
-
-fn (p Program) token_literal() string {
-	if p.statements.len > 0 {
-		return p.statements[0].token_literal()
-	} else {
-		return ''
-	}
-}
-
-pub struct AssignStatement {
-	ident Identifier
-	expr  Expression
-	pos   []int
-	line  []int
-}
-
-pub fn (stmt AssignStatement) get_ident() Identifier {
-	return stmt.ident
-}
-
-pub fn (stmt AssignStatement) get_expr() Expression {
-	return stmt.expr
-}
-
-pub fn (stmt AssignStatement) get_ex_ast() string {
-	left_node := stmt.get_ident().expression_node()
-	right_node := stmt.get_expr().expression_node()
-	return parse_to_ex('=', left_node, right_node)
-}
-
-fn (stmt AssignStatement) statement_node() {}
-
-fn (stmt AssignStatement) token_literal() string {
-	return 'ok'
-}
-
-pub struct ErrorStatement {
+pub struct ExprStmt {
 pub:
-	message string
-	pos     []int
-	line    []int
+	expr Expr
+	ti   types.TypeIdent
 }
 
-pub fn (stmt ErrorStatement) get_ident() Identifier {
-	return Identifier{
-		value: '_'
+pub struct IntegerLiteral {
+pub:
+	val int
+}
+
+pub struct FloatLiteral {
+pub:
+	val string
+}
+
+pub struct StringLiteral {
+pub:
+	val string
+}
+
+pub struct BoolLiteral {
+pub:
+	val bool
+}
+
+pub struct SelectorExpr {
+pub:
+	expr  Expr
+	field string
+}
+
+pub struct Module {
+pub:
+	name string
+	path string
+	expr Expr
+}
+
+pub struct Field {
+pub:
+	name string
+	ti   types.TypeIdent
+}
+
+pub struct StructDecl {
+pub:
+	name   string
+	fields []Field
+	is_pub bool
+}
+
+pub struct StructInit {
+pub:
+	ti     types.TypeIdent
+	fields []string
+	exprs  []Expr
+}
+
+pub struct Import {
+pub:
+	mods map[string]string
+}
+
+pub struct Arg {
+pub:
+	ti   types.TypeIdent
+	name string
+}
+
+pub struct FnDecl {
+pub:
+	name     string
+	stmts    []Stmt
+	ti       types.TypeIdent
+	args     []Arg
+	is_pub   bool
+	receiver Field
+}
+
+pub struct CallExpr {
+pub:
+	name       string
+	args       []Expr
+	is_unknown bool
+	tok        token.Token
+}
+
+pub struct MethodCallExpr {
+pub:
+	expr       Expr
+	name       string
+	args       []Expr
+	is_unknown bool
+	tok        token.Token
+}
+
+pub struct Return {
+pub:
+	exprs []Expr
+}
+
+pub struct VarDecl {
+pub:
+	name string
+	expr Expr
+	ti   types.TypeIdent
+}
+
+pub struct File {
+pub:
+	stmts []Stmt
+}
+
+pub struct Ident {
+pub:
+	name     string
+	tok_kind token.Kind
+	value    string
+}
+
+pub struct BinaryExpr {
+pub:
+	op    token.Kind
+	left  Expr
+	right Expr
+}
+
+pub struct UnaryExpr {
+pub:
+	op   token.Kind
+	left Expr
+}
+
+pub struct PostfixExpr {
+pub:
+	op   token.Kind
+	expr Expr
+}
+
+pub struct PrefixExpr {
+pub:
+	op    token.Kind
+	right Expr
+}
+
+pub struct IndexExpr {
+pub:
+	left  Expr
+	index Expr
+}
+
+pub struct IfExpr {
+pub:
+	tok_kind   token.Kind
+	cond       Expr
+	stmts      []Stmt
+	else_stmts []Stmt
+	ti         types.TypeIdent
+	left       Expr
+}
+
+pub struct ForStmt {
+pub:
+	cond  Expr
+	stmts []Stmt
+}
+
+pub struct ForInStmt {
+pub:
+	var   string
+	cond  Expr
+	stmts []Stmt
+}
+
+pub struct ForCStmt {
+pub:
+	init  Stmt // i := 0;
+	cond  Expr // i < 10;
+	inc   Stmt // i++;
+	stmts []Stmt
+}
+
+pub struct ReturnStmt {
+	tok_kind token.Kind // or pos
+	results  []Expr
+}
+
+pub struct AssignExpr {
+pub:
+	left Expr
+	val  Expr
+	op   token.Kind
+}
+
+pub struct ArrayInit {
+pub:
+	exprs []Expr
+	ti    types.TypeIdent
+}
+
+pub fn (x Expr) str() string {
+	match x {
+		BinaryExpr {
+			return '(${x.left.str()} ${x.op.str()} ${x.right.str()})'
+		}
+		UnaryExpr {
+			return x.left.str() + x.op.str()
+		}
+		IntegerLiteral {
+			return x.val.str()
+		}
+		else {
+			return ''
+		}
 	}
 }
 
-pub fn (stmt ErrorStatement) get_expr() Expression {
-	return Expr{
-		ast: Nil{}
+pub fn (node Stmt) str() string {
+	match node {
+		VarDecl {
+			return node.name + ' = ' + node.expr.str()
+		}
+		ExprStmt {
+			return node.expr.str()
+		}
+		FnDecl {
+			return 'fn ${node.name}() { ${node.stmts.len} stmts }'
+		}
+		else {
+			return '[unhandled stmt str]'
+		}
 	}
-}
-
-pub fn (stmt ErrorStatement) get_ex_ast() string {
-	return '{}'
-}
-
-fn (stmt ErrorStatement) statement_node() {}
-
-fn (stmt ErrorStatement) token_literal() string {
-	return 'ok'
-}
-
-pub struct Identifier {
-	ast   LiteralType
-	value string
-}
-
-pub fn (id Identifier) get_value() string {
-	return id.value
-}
-
-pub fn (stmt Identifier) expression_node() LiteralType {
-	return stmt.ast
-}
-
-fn (id Identifier) token_literal() string {
-	return 'id.ast.get_value()'
-}
-
-// {atom, metadata, args}
-// {atom, metadata, [
-// 	{atom, metadata, args},
-// 	{atom, metadata, args}
-// ]}
-pub struct Expr {
-	ast          LiteralType //[][]token.Token
-	dependencies []Identifier
-}
-
-pub fn (stmt Expr) expression_node() LiteralType {
-	return stmt.ast
-}
-
-fn (stmt Expr) token_literal() string {
-	return 'ok'
-}
-
-fn (stmt Expr) reduce_to_literal() {
 }

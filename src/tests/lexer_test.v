@@ -16,27 +16,27 @@ fn test_plus_terms() {
 	a.generate_tokens()
 	assert [
 		token.Token{
-			typ: token.Typ._integer
-			literal: '5'
-			line: 1
+			kind: .integer
+			lit: '5'
+			line_nr: 1
 			pos: 1
 		},
 		token.Token{
-			typ: token.Typ._plus_op
-			literal: '+'
-			line: 1
+			kind: .plus
+			lit: '+'
+			line_nr: 1
 			pos: 2
 		},
 		token.Token{
-			typ: token.Typ._integer
-			literal: '5'
-			line: 1
+			kind: .integer
+			lit: '5'
+			line_nr: 1
 			pos: 3
 		},
 		token.Token{
-			typ: token.Typ._eof
-			literal: '$'
-			line: 1
+			kind: .eof
+			lit: '\0'
+			line_nr: 1
 			pos: 3
 		},
 	] == a.tokens
@@ -48,51 +48,51 @@ fn test_line_break() {
 	assert 2 == a.lines
 	assert [
 		token.Token{
-			typ: ._integer
-			literal: '5'
-			line: 1
+			kind: .integer
+			lit: '5'
+			line_nr: 1
 			pos: 1
 		},
 		token.Token{
-			typ: ._plus_op
-			literal: '+'
-			line: 1
+			kind: .plus
+			lit: '+'
+			line_nr: 1
 			pos: 2
 		},
 		token.Token{
-			typ: ._integer
-			literal: '5'
-			line: 1
+			kind: .integer
+			lit: '5'
+			line_nr: 1
 			pos: 3
 		},
 		token.Token{
-			typ: ._linebreak
-			literal: '\\n'
-			line: 1
+			kind: .newline
+			lit: '\\n'
+			line_nr: 1
 			pos: 4
 		},
 		token.Token{
-			typ: ._integer
-			literal: '6'
-			line: 2
+			kind: .integer
+			lit: '6'
+			line_nr: 2
 			pos: 1
 		},
 		token.Token{
-			typ: ._plus_op
-			literal: '+'
-			line: 2
+			kind: .plus
+			lit: '+'
+			line_nr: 2
 			pos: 2
 		},
 		token.Token{
-			typ: ._integer
-			literal: '2'
-			line: 2
+			kind: .integer
+			lit: '2'
+			line_nr: 2
 			pos: 3
 		},
 		token.Token{
-			typ: ._eof
-			literal: '$'
-			line: 2
+			kind: .eof
+			lit: '\0'
+			line_nr: 2
 			pos: 7
 		},
 	] == a.tokens

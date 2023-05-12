@@ -29,25 +29,61 @@ pub fn (mut l Lexer) generate_one_token() token.Token {
 pub fn (mut l Lexer) generate_tokens() {
 	for l.pos < l.total {
 		tok := l.parse_token()
-		l.tokens << tok
+		if tok.kind !in [.newline, .ignore] {
+			l.tokens << tok
+		}
 	}
 	if l.tokens.len > 0 {
 		l.tokens << l.new_token_eof()
 	}
 }
 
-fn has_next(i int, total int) bool {
+//// private functions
+fn has_next_char(i int, total int) bool {
 	return i < total
 }
 
-fn (l Lexer) match_next_char(u u8) bool {
+fn (l Lexer) peek_next_char() u8 {
 	pos := l.pos + 1
-	return has_next(pos, l.total) && u == l.input[pos]
+	return l.input[pos]
+}
+
+fn (mut l Lexer) match_next_char(u u8) bool {
+	if has_next_char(l.pos, l.total) && u == l.peek_next_char() {
+		l.advance(1)
+		return true
+	} else {
+		return false
+	}
+}
+
+fn (l Lexer) match_next_char_ignore_space(u u8) (bool, int) {
+	mut pos := l.pos + 1
+	mut ls := 1
+	for has_next_char(pos, l.total) && l.input[pos] == 32 {
+		pos++
+		ls++
+	}
+	if has_next_char(pos, l.total) && u == l.input[pos] {
+		return true, ls
+	} else {
+		return false, 0
+	}
 }
 
 fn (l Lexer) match_next_space_or_nil() bool {
 	pos := l.pos + 1
-	return has_next(pos, l.total) && 32 == l.input[pos]
+	return has_next_char(pos, l.total) && 32 == l.input[pos]
+}
+
+fn (mut l Lexer) advance(qtd int) {
+	l.pos += qtd
+	l.pos_inline += qtd
+}
+
+fn (mut l Lexer) skip_space() token.Token {
+	l.advance(1)
+	return l.parse_token()
 }
 
 fn (mut l Lexer) parse_token() token.Token {
@@ -55,48 +91,25 @@ fn (mut l Lexer) parse_token() token.Token {
 		return l.new_token_eof()
 	}
 	u := l.input[l.pos]
-	if u == ` ` {
-		l.pos++
-		return l.parse_token()
-	}
-
-	tok := match u {
-		`a` {
-			if l.match_next_char(`n`) {
-				if l.match_next_char(`d`) {
-					if l.match_next_space_or_nil() {
-						l.new_token('and', ._and, 4)
-					} else {
-						l.match_else()
-					}
-				} else {
-					l.match_else()
-				}
-			} else {
+	return match u {
+		32 {
+			l.skip_space()
+		}
+		`#` {
+			if l.match_next_char(`{`) {
 				l.match_else()
+			} else {
+				l.get_token_comment(u)
 			}
 		}
-		`d` {
-			if l.match_next_char(`e`) {
-				if l.match_next_char(`f`) {
-					if l.match_next_space_or_nil() {
-						l.new_token('def', ._def, 4)
-					} else {
-						l.match_else()
-					}
-				} else {
-					l.match_else()
-				}
-			} else {
-				l.match_else()
-			}
-		}
-		`e` {
-			if l.match_next_char(`l`) {
-				if l.match_next_char(`s`) {
-					if l.match_next_char(`e`) {
-						if l.match_next_space_or_nil() {
-							l.new_token('else', ._else, 5)
+		`@` {
+			if l.match_next_char(`d`) {
+				if l.match_next_char(`o`) {
+					if l.match_next_char(`c`) {
+						pass, qtd := l.match_next_char_ignore_space(`"`)
+						if pass {
+							l.advance(qtd)
+							l.get_text_delim(token.Kind.doc, '"""', '"""')
 						} else {
 							l.match_else()
 						}
@@ -106,27 +119,35 @@ fn (mut l Lexer) parse_token() token.Token {
 				} else {
 					l.match_else()
 				}
-			} else if l.match_next_char(`n`) {
-				if l.match_next_char(`d`) {
-					if l.match_next_space_or_nil() {
-						l.new_token('end', ._end, 4)
-					} else {
-						l.match_else()
-					}
-				} else {
-					l.match_else()
-				}
-			} else {
-				l.match_else()
-			}
-		}
-		`f` {
-			if l.match_next_char(`a`) {
-				if l.match_next_char(`l`) {
-					if l.match_next_char(`s`) {
-						if l.match_next_char(`e`) {
-							if l.match_next_space_or_nil() {
-								l.new_token('false', ._false, 6)
+			} else if l.match_next_char(`m`) {
+				if l.match_next_char(`o`) {
+					if l.match_next_char(`d`) {
+						if l.match_next_char(`u`) {
+							if l.match_next_char(`l`) {
+								if l.match_next_char(`e`) {
+									if l.match_next_char(`d`) {
+										if l.match_next_char(`o`) {
+											if l.match_next_char(`c`) {
+												pass, qtd := l.match_next_char_ignore_space(`"`)
+												if pass {
+													l.advance(qtd)
+													l.get_text_delim(token.Kind.moduledoc,
+														'"""', '"""')
+												} else {
+													l.match_else()
+												}
+											} else {
+												l.match_else()
+											}
+										} else {
+											l.match_else()
+										}
+									} else {
+										l.match_else()
+									}
+								} else {
+									l.match_else()
+								}
 							} else {
 								l.match_else()
 							}
@@ -140,55 +161,14 @@ fn (mut l Lexer) parse_token() token.Token {
 					l.match_else()
 				}
 			} else {
-				l.match_else()
+				l.new_token('@', .arrob, 1)
 			}
 		}
-		`n` {
-			if l.match_next_char(`i`) {
-				if l.match_next_char(`l`) {
-					if l.match_next_space_or_nil() {
-						l.new_token('nil', ._nil, 4)
-					} else {
-						l.match_else()
-					}
-				} else {
-					l.match_else()
-				}
-			} else {
-				l.match_else()
-			}
-		}
-		`t` {
-			if l.match_next_char(`r`) {
-				if l.match_next_char(`u`) {
-					if l.match_next_char(`e`) {
-						if l.match_next_space_or_nil() {
-							l.new_token('true', ._true, 5)
-						} else {
-							l.match_else()
-						}
-					} else {
-						l.match_else()
-					}
-				} else {
-					l.match_else()
-				}
-			} else {
-				l.match_else()
-			}
-		}
-		`w` {
-			if l.match_next_char(`h`) {
-				if l.match_next_char(`e`) {
-					if l.match_next_char(`n`) {
-						if l.match_next_space_or_nil() {
-							l.new_token('when', ._when, 5)
-						} else {
-							l.match_else()
-						}
-					} else {
-						l.match_else()
-					}
+		`"` {
+			if l.match_next_char(`"`) {
+				if l.match_next_char(`"`) {
+					l.advance(-2) // return to first occurence of \"
+					l.get_text_delim(token.Kind.multistring, '"""', '"""')
 				} else {
 					l.match_else()
 				}
@@ -199,125 +179,139 @@ fn (mut l Lexer) parse_token() token.Token {
 		`=` {
 			if l.match_next_char(`=`) {
 				if l.match_next_char(`=`) {
-					l.new_token('===', ._eq_op, 3)
+					l.new_token('===', .eq, 3)
 				} else {
-					l.new_token('==', ._eq_op, 2)
+					l.new_token('==', .eq, 2)
 				}
 			} else if l.match_next_char(`>`) {
-				l.new_token('=>', ._right_double_arrow, 2)
+				l.new_token('=>', .arrow, 2)
 			} else if l.match_next_char(`~`) {
-				l.new_token('=~', ._eq_op, 2)
+				l.new_token('=~', .eq, 2)
 			} else {
-				l.new_token('=', ._assign, 1)
+				l.new_token('=', .assign, 1)
 			}
 		}
 		`!` {
 			if l.match_next_char(`=`) {
 				if l.match_next_char(`=`) {
-					l.new_token('!==', ._neq_op, 3)
+					l.new_token('!==', .ne, 3)
 				} else {
-					l.new_token('!=', ._neq_op, 2)
+					l.new_token('!=', .ne, 2)
 				}
 			} else {
-				l.new_token('!', ._bang_op, 1)
+				l.new_token('!', .bang, 1)
 			}
 		}
 		`&` {
 			if l.match_next_char(`&`) {
 				if l.match_next_char(`&`) {
-					l.new_token('&&&', ._and, 3)
+					l.new_token('&&&', .and, 3)
 				} else {
-					l.new_token('&&', ._and, 2)
+					l.new_token('&&', .and, 2)
 				}
 			} else {
-				l.new_token('&', ._capture_op, 1)
+				l.new_token('&', .capture, 1)
+			}
+		}
+		`~` {
+			ch, pass := l.get_next_alpha()
+			if pass {
+				l.new_token('~${ch}', .sigil, 2)
+			} else {
+				l.new_token('~', .bit_not, 1)
 			}
 		}
 		`|` {
 			if l.match_next_char(`|`) {
 				if l.match_next_char(`|`) {
-					l.new_token('|||', ._or_op, 3)
+					l.new_token('|||', .logical_or, 3)
 				} else {
-					l.new_token('||', ._or_op, 2)
+					l.new_token('||', .logical_or, 2)
 				}
 			} else {
-				l.new_token('|', ._pipe_op, 1)
+				l.new_token('|', .pipe, 1)
 			}
 		}
 		`+` {
 			if l.match_next_char(`+`) {
 				if l.match_next_char(`+`) {
-					l.new_token('+++', ._concat_op, 3)
+					l.new_token('+++', .plus_concat, 3)
 				} else {
-					l.new_token('++', ._concat_op, 2)
+					l.new_token('++', .plus_concat, 2)
 				}
 			} else {
-				l.new_token('+', ._plus_op, 1)
+				l.new_token('+', .plus, 1)
 			}
 		}
 		`-` {
 			if l.match_next_char(`-`) {
 				if l.match_next_char(`-`) {
-					l.new_token('---', ._concat_op, 3)
+					l.new_token('---', .minus_concat, 3)
 				} else {
-					l.new_token('--', ._concat_op, 2)
+					l.new_token('--', .minus_concat, 2)
 				}
 			} else {
-				l.new_token('-', ._minus_op, 1)
+				l.new_token('-', .minus, 1)
 			}
 		}
 		`<` {
 			if l.match_next_char(`-`) {
-				l.new_token('<-', ._left_arrow, 2)
+				l.new_token('<-', .left_arrow, 2)
 			} else if l.match_next_char(`=`) {
-				l.new_token('<=', ._elt_op, 2)
+				l.new_token('<=', .le, 2)
 			} else if l.match_next_char(`>`) {
-				l.new_token('<>', ._concat_op, 2)
+				l.new_token('<>', .string_concat, 2)
 			} else {
-				l.new_token('<', ._lt_op, 1)
+				l.new_token('<', .lt, 1)
 			}
 		}
 		`>` {
 			if l.match_next_char(`=`) {
-				l.new_token('>=', ._egt_op, 2)
+				l.new_token('>=', .ge, 2)
 			} else {
-				l.new_token('>', ._gt_op, 1)
+				l.new_token('>', .gt, 1)
 			}
 		}
 		`.` {
 			if l.match_next_char(`.`) {
-				l.new_token('..', ._range_op, 2)
+				l.new_token('..', .range, 2)
 			} else {
-				l.new_token('.', ._dot, 1)
+				l.new_token('.', .dot, 1)
 			}
 		}
 		`:` {
 			if l.match_next_char(`:`) {
-				l.new_token('::', ._type, 2)
+				l.new_token('::', .typedef, 2)
 			} else {
-				l.new_token(':', ._type, 1)
+				l.new_token(':', .typedef, 1)
 			}
 		}
 		`*` {
-			l.new_token('*', ._mult_op, 1)
+			l.new_token('*', .mul, 1)
 		}
 		`,` {
-			l.new_token(',', ._comma, 1)
+			l.new_token(',', .comma, 1)
 		}
 		`/` {
-			l.new_token(',', ._div_op, 1)
+			l.new_token(',', .div, 1)
 		}
 		`(` {
-			l.new_token('(', ._left_parens, 1)
+			l.new_token('(', .lpar, 1)
 		}
 		`)` {
-			l.new_token(')', ._right_parens, 1)
+			l.new_token(')', .rpar, 1)
 		}
 		`{` {
-			l.new_token('{', ._left_braces, 1)
+			l.new_token('{', .lcbr, 1)
 		}
 		`}` {
-			l.new_token('}', ._right_braces, 1)
+			l.new_token('}', .rcbr, 1)
+		}
+		`[` {
+			l.new_token('[', .rsbr, 1)
+		}
+		`]` {
+			l.new_token(']', .rsbr, 1)
 		}
 		10 {
 			l.new_token_new_line()
@@ -326,65 +320,119 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.match_else()
 		}
 	}
-	return tok
 }
 
 fn (mut l Lexer) new_token_new_line() token.Token {
+	l.advance(1)
 	l.lines++
-	l.pos++
 	l.pos_inline = 0
 	return token.Token{
-		typ: ._linebreak
-		literal: '\\n'
-		line: l.lines - 1
+		kind: .newline
+		lit: '\\n'
+		line_nr: l.lines - 1
 		pos: l.pos
 	}
 }
 
 fn (mut l Lexer) new_token_eof() token.Token {
 	return token.Token{
-		typ: ._eof
-		literal: '$'
-		line: l.lines
-		pos: l.pos
+		kind: .eof
+		lit: '\0'
+		line_nr: l.lines
+		pos: l.pos_inline
 	}
 }
 
-fn (mut l Lexer) new_token(key string, typ token.Typ, forward int) token.Token {
-	l.pos += forward
-	l.pos_inline += forward
+fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token {
+	l.advance(forward)
 	return token.Token{
-		typ: typ
-		literal: key
-		line: l.lines
+		kind: kind
+		lit: lit
+		line_nr: l.lines
 		pos: l.pos_inline
 	}
 }
 
 fn (mut l Lexer) match_else() token.Token {
 	s := l.input[l.pos].ascii_str()
-	return l.get_token_word(s) or { l.get_token_integer(s) or { l.new_token('[i]', ._ignore, 1) } }
+	return l.get_token_word(s) or { l.get_token_integer(s) or { l.new_token('[i]', .ignore, 1) } }
 }
 
 fn (mut l Lexer) get_token_word(cch string) !token.Token {
-	term := l.get_word(cch)
+	term, is_capital := l.get_word(cch)
 	if term.len > 0 {
-		return l.new_token(term, ._atom, term.len)
+		if is_capital {
+			return l.new_token(term, token.Kind.modl, term.len)
+		} else {
+			return l.new_token(term, token.key_to_token(term), term.len)
+		}
 	} else {
 		return error('not have a word')
 	}
 }
 
 fn (mut l Lexer) get_token_integer(cch string) !token.Token {
-	term, typ := l.get_number(cch)
+	term, kind := l.get_number(cch)
 	if term.len > 0 {
-		return l.new_token(term, typ, term.len)
+		return l.new_token(term, kind, term.len)
 	} else {
 		return error('not have a integer')
 	}
 }
 
-fn (l Lexer) get_word(cch string) string {
+fn (mut l Lexer) get_token_comment(bt u8) token.Token {
+	mut str := ''
+	mut current := bt
+	mut count := l.pos
+	for (current != 10 && count < l.total) {
+		str += current.ascii_str()
+		current = l.input[count]
+		count++
+	}
+	return l.new_token(str, token.Kind.line_comment, str.len)
+}
+
+fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end string) token.Token {
+	if l.input[l.pos..(l.pos + delim_start.len)] == delim_start.bytes() {
+		l.pos += delim_start.len
+		mut str := ''
+		mut current := l.input[l.pos]
+		for (l.pos < l.total) {
+			mut m := 0
+			if current == delim_end[0] {
+				mut x := 1
+				for x < delim_end.len {
+					if delim_end[x] == l.input[l.pos + x - 1] {
+						m++
+					}
+					x++
+				}
+				if m == delim_end.len - 1 {
+					break
+				}
+			}
+			str += current.ascii_str()
+			current = l.input[l.pos]
+			l.pos++
+		}
+		return l.new_token(str.trim('\n').trim(' '), kind, 0)
+	} else {
+		return l.new_token('', .ignore, 1)
+	}
+}
+
+fn (l Lexer) get_next_alpha() (string, bool) {
+	if has_next_char(1, l.total) {
+		current_ch := l.input[l.pos + 1].ascii_str()
+		if is_letter(current_ch) {
+			return current_ch, true
+		}
+	}
+	return '', false
+}
+
+fn (l Lexer) get_word(cch string) (string, bool) {
+	is_first_capital := is_capital(cch)
 	mut str := ''
 	mut current_ch := cch
 	mut pos := l.pos + 1
@@ -393,18 +441,18 @@ fn (l Lexer) get_word(cch string) string {
 		current_ch = l.input[pos].ascii_str()
 		pos += 1
 	}
-	return str
+	return str, is_first_capital
 }
 
-fn (mut l Lexer) get_number(cch string) (string, token.Typ) {
+fn (mut l Lexer) get_number(cch string) (string, token.Kind) {
 	mut str := ''
 	mut current_ch := cch
 	mut pos := l.pos + 1
-	mut typ := token.Typ._integer
+	mut typ := token.Kind.integer
 	for (is_digit(current_ch) && pos <= l.total)
 		|| (str.len > 0 && current_ch in ['.', '_'] && pos <= l.total) {
 		if current_ch == '.' {
-			typ = ._float
+			typ = .float
 		}
 		str += current_ch
 		current_ch = l.input[pos].ascii_str()
@@ -415,6 +463,10 @@ fn (mut l Lexer) get_number(cch string) (string, token.Typ) {
 
 fn is_letter(a string) bool {
 	return (a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || a == '_'
+}
+
+fn is_capital(a string) bool {
+	return a >= 'A' && a <= 'Z'
 }
 
 fn is_digit(a string) bool {
