@@ -173,7 +173,8 @@ fn (mut l Lexer) parse_token() token.Token {
 					l.match_else()
 				}
 			} else {
-				l.match_else()
+				// l.advance(-2) // return to first occurence of \"
+				l.get_text_delim(token.Kind.str, '"', '"')
 			}
 		}
 		`=` {
@@ -345,11 +346,22 @@ fn (mut l Lexer) new_token_eof() token.Token {
 
 fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token {
 	l.advance(forward)
+	mut value := token.LiteralValue{}
+	if kind == .integer {
+
+		value = token.LiteralValue{ival: lit.int()}
+	} else if kind == .float {
+		println(lit)
+		value = token.LiteralValue{fval: lit.f32()}
+	} else if kind == .float {
+		value = token.LiteralValue{sval: lit}
+	}
 	return token.Token{
 		kind: kind
 		lit: lit
 		line_nr: l.lines
 		pos: l.pos_inline
+		value: value
 	}
 }
 
@@ -395,7 +407,7 @@ fn (mut l Lexer) get_token_comment(bt u8) token.Token {
 fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end string) token.Token {
 	if l.input[l.pos..(l.pos + delim_start.len)] == delim_start.bytes() {
 		l.pos += delim_start.len
-		mut str := ''
+		start_pos := l.pos
 		mut current := l.input[l.pos]
 		for (l.pos < l.total) {
 			mut m := 0
@@ -411,11 +423,10 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 					break
 				}
 			}
-			str += current.ascii_str()
 			current = l.input[l.pos]
 			l.pos++
 		}
-		return l.new_token(str.trim('\n').trim(' '), kind, 0)
+		return l.new_token(l.input[start_pos..(l.pos-delim_end.len)].bytestr(), kind, 0)
 	} else {
 		return l.new_token('', .ignore, 1)
 	}

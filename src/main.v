@@ -3,6 +3,7 @@ import os
 import lexer
 import repl
 import time
+// import token
 
 fn main() {
 	if os.args.len >= 2 {
@@ -22,6 +23,11 @@ fn main() {
 					println('\nRead file `${path}` at ${elapsed}ms')
 					mut le := lexer.new(content)
 					le.generate_tokens()
+					// for t in le.tokens {
+					// 	if t.kind == token.Kind.str {
+					// 		println(t)
+					// 	}
+					// }
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {
 					println('File is need to lexer')
