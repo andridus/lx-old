@@ -348,13 +348,18 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 	l.advance(forward)
 	mut value := token.LiteralValue{}
 	if kind == .integer {
-
-		value = token.LiteralValue{ival: lit.int()}
+		value = token.LiteralValue{
+			ival: lit.int()
+		}
 	} else if kind == .float {
 		println(lit)
-		value = token.LiteralValue{fval: lit.f32()}
+		value = token.LiteralValue{
+			fval: lit.f32()
+		}
 	} else if kind == .float {
-		value = token.LiteralValue{sval: lit}
+		value = token.LiteralValue{
+			sval: lit
+		}
 	}
 	return token.Token{
 		kind: kind
@@ -366,11 +371,11 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 }
 
 fn (mut l Lexer) match_else() token.Token {
-	s := l.input[l.pos].ascii_str()
+	s := l.input[l.pos]
 	return l.get_token_word(s) or { l.get_token_integer(s) or { l.new_token('[i]', .ignore, 1) } }
 }
 
-fn (mut l Lexer) get_token_word(cch string) !token.Token {
+fn (mut l Lexer) get_token_word(cch u8) !token.Token {
 	term, is_capital := l.get_word(cch)
 	if term.len > 0 {
 		if is_capital {
@@ -383,7 +388,7 @@ fn (mut l Lexer) get_token_word(cch string) !token.Token {
 	}
 }
 
-fn (mut l Lexer) get_token_integer(cch string) !token.Token {
+fn (mut l Lexer) get_token_integer(cch u8) !token.Token {
 	term, kind := l.get_number(cch)
 	if term.len > 0 {
 		return l.new_token(term, kind, term.len)
@@ -393,14 +398,14 @@ fn (mut l Lexer) get_token_integer(cch string) !token.Token {
 }
 
 fn (mut l Lexer) get_token_comment(bt u8) token.Token {
-	mut str := ''
 	mut current := bt
-	mut count := l.pos
-	for (current != 10 && count < l.total) {
-		str += current.ascii_str()
-		current = l.input[count]
-		count++
+	mut pos := l.pos
+	start_pos := pos
+	for (current != 10 && pos < l.total) {
+		current = l.input[pos]
+		pos++
 	}
+	str := l.input[start_pos..pos - 1].bytestr()
 	return l.new_token(str, token.Kind.line_comment, str.len)
 }
 
@@ -426,7 +431,8 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 			current = l.input[l.pos]
 			l.pos++
 		}
-		return l.new_token(l.input[start_pos..(l.pos-delim_end.len)].bytestr(), kind, 0)
+		return l.new_token(l.input[start_pos..(l.pos - delim_end.len)].bytestr(), kind,
+			0)
 	} else {
 		return l.new_token('', .ignore, 1)
 	}
@@ -434,52 +440,55 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 
 fn (l Lexer) get_next_alpha() (string, bool) {
 	if has_next_char(1, l.total) {
-		current_ch := l.input[l.pos + 1].ascii_str()
+		current_ch := l.input[l.pos + 1]
 		if is_letter(current_ch) {
-			return current_ch, true
+			return current_ch.ascii_str(), true
 		}
 	}
 	return '', false
 }
 
-fn (l Lexer) get_word(cch string) (string, bool) {
+fn (l Lexer) get_word(cch u8) (string, bool) {
 	is_first_capital := is_capital(cch)
-	mut str := ''
 	mut current_ch := cch
 	mut pos := l.pos + 1
+	start_pos := pos
 	for is_letter(current_ch) && pos < l.total {
-		str += current_ch
-		current_ch = l.input[pos].ascii_str()
+		current_ch = l.input[pos]
 		pos += 1
 	}
-	return str, is_first_capital
+	return l.input[start_pos..pos].bytestr(), is_first_capital
 }
 
-fn (mut l Lexer) get_number(cch string) (string, token.Kind) {
-	mut str := ''
+fn (mut l Lexer) get_number(cch u8) (string, token.Kind) {
 	mut current_ch := cch
-	mut pos := l.pos + 1
+	mut pos := l.pos
+	start_pos := pos
 	mut typ := token.Kind.integer
 	for (is_digit(current_ch) && pos <= l.total)
-		|| (str.len > 0 && current_ch in ['.', '_'] && pos <= l.total) {
-		if current_ch == '.' {
+		|| (pos > start_pos && current_ch in [`.`, `_`] && pos <= l.total) {
+		if current_ch == `.` {
 			typ = .float
 		}
-		str += current_ch
-		current_ch = l.input[pos].ascii_str()
+		current_ch = l.input[pos]
 		pos += 1
 	}
-	return str.replace('_', ''), typ
+	if pos > start_pos {
+		str := l.input[start_pos..pos - 1].bytestr()
+		return str.replace('_', ''), typ
+	} else {
+		return '', typ
+	}
 }
 
-fn is_letter(a string) bool {
-	return (a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || a == '_'
+fn is_letter(a u8) bool {
+	return (a >= `a` && a <= `z`) || (a >= `A` && a <= `Z`) || a == `_`
 }
 
-fn is_capital(a string) bool {
-	return a >= 'A' && a <= 'Z'
+fn is_capital(a u8) bool {
+	return a >= `A` && a <= `Z`
 }
 
-fn is_digit(a string) bool {
-	return a >= '0' && a <= '9'
+fn is_digit(a rune) bool {
+	return a >= `0` && a <= `9`
 }

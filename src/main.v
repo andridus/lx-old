@@ -24,7 +24,7 @@ fn main() {
 					mut le := lexer.new(content)
 					le.generate_tokens()
 					// for t in le.tokens {
-					// 	if t.kind == token.Kind.str {
+					// 	if t.kind == token.Kind.line_comment {
 					// 		println(t)
 					// 	}
 					// }
