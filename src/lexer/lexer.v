@@ -12,10 +12,10 @@ pub mut:
 	tokens     []token.Token
 }
 
-pub fn new(input string) Lexer {
+pub fn new(input string) &Lexer {
 	mut bytes := input.bytes()
 	bytes << 0
-	mut l := Lexer{
+	mut l := &Lexer{
 		input: bytes
 		total: input.len
 	}
@@ -94,6 +94,9 @@ fn (mut l Lexer) parse_token() token.Token {
 	return match u {
 		32 {
 			l.skip_space()
+		}
+		10 {
+			l.new_token_new_line()
 		}
 		`#` {
 			if l.match_next_char(`{`) {
@@ -314,9 +317,7 @@ fn (mut l Lexer) parse_token() token.Token {
 		`]` {
 			l.new_token(']', .rsbr, 1)
 		}
-		10 {
-			l.new_token_new_line()
-		}
+
 		else {
 			l.match_else()
 		}
@@ -352,7 +353,6 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 			ival: lit.int()
 		}
 	} else if kind == .float {
-		println(lit)
 		value = token.LiteralValue{
 			fval: lit.f32()
 		}
@@ -451,11 +451,11 @@ fn (l Lexer) get_next_alpha() (string, bool) {
 fn (l Lexer) get_word(cch u8) (string, bool) {
 	is_first_capital := is_capital(cch)
 	mut current_ch := cch
-	mut pos := l.pos + 1
+	mut pos := l.pos
 	start_pos := pos
 	for is_letter(current_ch) && pos < l.total {
-		current_ch = l.input[pos]
 		pos += 1
+		current_ch = l.input[pos]
 	}
 	return l.input[start_pos..pos].bytestr(), is_first_capital
 }

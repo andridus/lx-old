@@ -394,6 +394,7 @@ pub const (
 pub const (
 	void_ti   = new_builtin_ti(.void, 0)
 	int_ti    = new_builtin_ti(.int, 0)
+	float_ti    = new_builtin_ti(.f32, 0)
 	string_ti = new_builtin_ti(.string, 0)
 	bool_ti   = new_builtin_ti(.bool, 0)
 )

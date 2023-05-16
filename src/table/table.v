@@ -1,6 +1,7 @@
 // Copyright (c) 2023 Helder de Sousa. All rights reserved/
 // Use of this source code is governed by a MIT license
 // that can be found in the LICENSE file
+
 module table
 
 import types
@@ -30,9 +31,9 @@ pub:
 	return_ti types.TypeIdent
 }
 
-pub fn new_table() Table {
-	mut t := Table{}
-	t.types << types.Type{}
+pub fn new_table() &Table {
+	mut t := &Table{}
+	t.types << types.Void{}
 	t.type_idxs['dummy_type_at_idx'] = 0
 	return t
 }

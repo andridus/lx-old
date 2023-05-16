@@ -7,7 +7,8 @@ module ast
 import types
 import token
 
-pub type Expr = ArrayInit
+pub type Expr = EmptyExpr
+	|	ArrayInit
 	| AssignExpr
 	| BinaryExpr
 	| BoolLiteral
@@ -46,6 +47,8 @@ pub:
 	ti   types.TypeIdent
 }
 
+pub struct EmptyExpr {}
+
 pub struct IntegerLiteral {
 pub:
 	val int
@@ -53,7 +56,7 @@ pub:
 
 pub struct FloatLiteral {
 pub:
-	val string
+	val f32
 }
 
 pub struct StringLiteral {
@@ -164,6 +167,7 @@ pub:
 pub struct BinaryExpr {
 pub:
 	op    token.Kind
+	op_precedence int
 	left  Expr
 	right Expr
 }

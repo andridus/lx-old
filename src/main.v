@@ -1,8 +1,9 @@
 // import parser
 import os
-import lexer
+import parser
 import repl
 import time
+import table
 // import token
 
 fn main() {
@@ -16,18 +17,11 @@ fn main() {
 			'build' {
 				if os.args.len == 3 {
 					path := os.args[2]
-					content := os.read_file(path) or {
-						panic("File '${path}' not exists on root dir")
-					}
+					t := &table.Table{}
+					p := parser.parse_file(path, t)
+					println(p)
 					elapsed := sw.elapsed().milliseconds()
 					println('\nRead file `${path}` at ${elapsed}ms')
-					mut le := lexer.new(content)
-					le.generate_tokens()
-					// for t in le.tokens {
-					// 	if t.kind == token.Kind.line_comment {
-					// 		println(t)
-					// 	}
-					// }
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {
 					println('File is need to lexer')

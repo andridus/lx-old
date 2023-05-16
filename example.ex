@@ -1,7 +1,2 @@
-defmodule Test do
-  def sum(a, b) do
-    a + b
-  end
-end
-value = Test.sum(5,1)
-assert 6 = value
+1+1*2+(1/2+5-5*8+5)/5
+6/8-9+(8*5)*9

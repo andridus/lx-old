@@ -13,6 +13,7 @@ pub:
 	value LiteralValue
 }
 pub union LiteralValue {
+	pub:
 		sval string
 		ival int
 		fval f32
@@ -109,6 +110,7 @@ pub enum Kind {
 	// keywords
 	keyword_beging
 	key_def
+	key_defmodule
 	key_do
 	key_end
 	key_else
@@ -161,7 +163,7 @@ const (
 	assign_tokens = [Kind.assign, .plus_assign, .minus_assign, .mult_assign,
 	.div_assign, .xor_assign, .mod_assign, .or_assign, .and_assign,
 	.righ_shift_assign, .left_shift_assign]
-	nr_tokens = 128
+	nr_tokens = 129
 	token_str = build_token_str()
 	keywords = build_keys()
 )
@@ -178,7 +180,7 @@ fn build_keys() map[string]int {
 
 // TODO remove once we have `enum Kind { name('name') if('if') ... }`
  fn build_token_str() []string {
-	mut s := []string{len: 128, init: ''}
+	mut s := []string{len: 129, init: ''}
 	s[Kind.eof] = 'EOF'
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.integer] = 'integer'
@@ -263,6 +265,7 @@ fn build_keys() map[string]int {
 	s[Kind.string_concat] = 'string_concat'
 	s[Kind.keyword_beging] = ''
 	s[Kind.key_def] = 'def'
+	s[Kind.key_defmodule] = 'defmodule'
 	s[Kind.key_do] = 'do'
 	s[Kind.key_end] = 'end'
 	s[Kind.key_else] = 'else'
