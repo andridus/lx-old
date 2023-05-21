@@ -20,6 +20,5 @@ pub fn start() {
 		history << line
 		mut l := lexer.new(line)
 		l.generate_tokens()
-		println(l.tokens)
 	}
 }

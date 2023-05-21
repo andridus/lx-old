@@ -10,9 +10,9 @@
 
 ### To do List
  - [x] Lexing
- - [x] Parser file in AST Elixir structure
+ - [x] Parser file in AST
  - [x] Binary Expressions
- - [ ] Assignment Statement
+ - [x] Assignment Statement
  - [ ] Function Statement
  - [ ] Module Statement
  - [ ] Symbols table

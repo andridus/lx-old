@@ -12,9 +12,11 @@ import token
 import types
 import table
 import term
+import utils
 
 struct Parser {
 	file_name string
+	build_path string
 mut:
 	tok       token.Token
 	lexer     &lexer.Lexer
@@ -27,6 +29,7 @@ pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
 	l := lexer.new(text)
 	mut p := unsafe {
 		Parser{
+			build_path: '_build'
 			lexer: l
 			table: t
 		}
@@ -35,12 +38,12 @@ pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
 	return p.top_stmt()
 }
 pub fn parse_file(path string, t &table.Table) ast.File {
-	println('Parsing file ... "${path}" ')
 	text := os.read_file(path) or { panic(err)}
 	mut stmts := []ast.Stmt{}
 	mut l := lexer.new(text)
 	mut p := unsafe {
 		Parser {
+			build_path: '_build'
 			lexer: l
 			table: t
 			file_name: path
@@ -55,6 +58,8 @@ pub fn parse_file(path string, t &table.Table) ast.File {
 	}
 	return ast.File{
 		stmts: stmts
+		input_path: path
+		output_path: p.build_path
 	}
 }
 pub fn (mut p Parser) read_first_token() {
@@ -79,63 +84,105 @@ fn (mut p Parser) check(expected token.Kind) {
 pub fn (mut p Parser) top_stmt() ast.Stmt {
 	match p.tok.kind {
 
-		 .key_defmodule {
+		.line_comment {
+			p.next_token()
+			return p.top_stmt()
+		}
+		.key_defmodule {
 		 	return p.module_decl()
-		 }
-		// .key_import {
-		// 	return p.import_stmt()
-		// }
-		// .key_pub {
-		// 	match p.peek_tok.kind {
-		// 		.key_fn {
-		// 			return p.fn_decl()
-		// 		}
-		// 		.key_struct, .key_union, .key_interface {
-		// 			return p.struct_decl()
-		// 		}
-		// 		else {
-		// 			p.error('wrong pub keyword usage')
-		// 			return ast.Stmt{}
-		// 		}
-		// }
-		// 	// .key_const {
-		// 	// return p.const_decl()
-		// 	// }
-		// 	// .key_enum {
-		// 	// return p.enum_decl()
-		// 	// }
-		// 	// .key_type {
-		// 	// return p.type_decl()
-		// 	// }
-		// }
-		// .key_fn {
-		// 	return p.fn_decl()
-		// }
-		// .key_struct {
-		// 	return p.struct_decl()
-		// }
+		}
+		.modl {
+			return p.call_expr()
+		}
 		.lsbr {
 			p.next_token()
-			p.check(.name)
+			p.check(.ident)
 			p.check(.rsbr)
 			return ast.Module{}
 		}
 		else {
-			return p.expr_stmt()
-			// p.error('`$p.tok.kind` and $p.tok.lit bad top level statement')
-			// return ast.Module{} // silence C warning
-			// exit(0)
+			return p.block_expr(true)
 		}
+	}
+}
+pub fn (mut p Parser) stmt() ast.Stmt {
+	match p.tok.kind {
+		.line_comment {
+			p.next_token()
+			return p.stmt()
+		}
+		.key_def, .key_defp  {
+			return p.def_decl()
+		}
+		.lsbr {
+			p.next_token()
+			p.check(.ident)
+			p.check(.rsbr)
+			return ast.Module{}
+		}
+		else {
+			if p.tok.kind == .atom && p.peek_tok.kind == .assign {
+				return p.var_decl()
+			}else{
+				return p.expr_stmt()
+			}
+		}
+	}
+}
+
+fn (mut p Parser) block_expr(is_top_stmt bool) ast.Block {
+	p.check(.key_do)
+	mut stmts := []ast.Stmt{}
+	for p.peek_tok.kind != .eof {
+		if p.tok.kind == .key_end { break }
+		stmts << p.stmt()
+	}
+	p.check(.key_end)
+	return ast.Block{
+		name: utils.filename_without_extension(p.file_name)
+		stmts: stmts
+		is_top_stmt: is_top_stmt
 	}
 }
 
 fn (mut p Parser) module_decl() ast.Module {
 	p.check(.key_defmodule)
+	mut module_path_name := [p.tok.lit]
 	p.check(.modl)
-	p.check(.key_do)
-	p.expr(0)
-	p.check(.key_end)
-	return ast.Module{}
+
+	for p.tok.kind == .dot {
+		p.check(.dot)
+		module_path_name << p.tok.lit
+		p.check(.modl)
+	}
+	stmt := p.block_expr(false)
+	return ast.Module{
+		name: module_path_name.join(".")
+		file_name: module_path_name.join(".").to_lower(),
+		path: p.file_name
+		stmt: stmt
+		}
+}
+
+fn (mut p Parser) var_decl() ast.VarDecl {
+	name := p.tok.lit
+	p.read_first_token()
+	expr, ti := p.expr(token.lowest_prec)
+	if _ := p.table.find_var(name) {
+		p.error('rebinding of `$name`')
+	}
+	p.table.register_var(table.Var{
+		name: name
+		ti: ti
+		is_mut: false
+	})
+
+	return ast.VarDecl{
+		name: name
+		expr: expr
+		ti: ti
+	}
+
 }
 
 fn (mut p Parser) expr_stmt() ast.ExprStmt {
@@ -147,9 +194,9 @@ pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
 	// Prefix
 	match p.tok.kind {
-		// .name {
-		// 	node,ti = p.name_expr()
-		// }
+		.atom {
+			node,ti = p.atom_expr()
+		}
 		// .str {
 		// 	node,ti = p.string_expr()
 		// }
@@ -219,6 +266,27 @@ pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
 	}
 	return node, ti
 }
+
+fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
+	mut node := ast.Expr(ast.EmptyExpr{})
+  mut ti := types.void_ti
+
+	// TODO: When is a function
+	//
+	// When is a var
+	node = ast.Ident{
+		name: p.tok.lit
+		tok_kind: p.tok.kind
+	}
+	var := p.table.find_var(p.tok.lit) or {
+		p.error('undefined variable `$p.tok.lit`')
+		exit(0)
+	}
+	ti = var.ti
+	p.next_token()
+
+	return node, ti
+}
 fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr,types.TypeIdent) {
 	// println('index expr$p.tok.str() line=$p.tok.line_nr')
 	p.next_token()
@@ -251,62 +319,6 @@ fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
 	p.next_token()
 	return node, ti
 }
-// pub fn (mut p Parser) stmt() ast.Stmt {
-// 	match p.tok.kind {
-// 		.key_mut {
-// 			return p.var_decl()
-// 		}
-// 		// .key_for {
-// 		// 	return p.for_statement()
-// 		// }
-// 		// .key_return {
-// 		// 	return p.return_stmt()
-// 		// }
-// 		else {
-// 			// `x := ...`
-// 			if p.tok.kind == .name && p.peek_tok.kind == .decl_assign {
-// 				return p.var_decl()
-// 			}
-// 			expr, ti := p.expr(0)
-// 			return ast.ExprStmt{
-// 				expr: expr
-// 				ti: ti
-// 			}
-// 		}
-// 	}
-// }
-
-// fn (mut p Parser) var_decl() ast.VarDecl {
-// 	is_mut := p.tok.kind == .key_mut // || p.prev_tok == .key_for
-// 	// is_static := p.tok.kind == .key_static
-// 	if p.tok.kind == .key_mut {
-// 		p.check(.key_mut)
-// 		// p.fspace()
-// 	}
-// 	if p.tok.kind == .key_static {
-// 		p.check(.key_static)
-// 		// p.fspace()
-// 	}
-// 	name := p.tok.lit
-// 	p.read_first_token()
-// 	expr, ti := p.expr(token.lowest_prec)
-// 	if _ := p.table.find_var(name) {
-// 		p.error('redefinition of `${name}`')
-// 	}
-// 	p.table.register_var(table.Var{
-// 		name: name
-// 		ti: ti
-// 		is_mut: is_mut
-// 	})
-// 	// println(p.table.names)
-// 	// println('added var `$name` with type $t.name')
-// 	return ast.VarDecl{
-// 		name: name
-// 		expr: expr // p.expr(token.lowest_prec)
-// 		ti: ti
-// 	}
-// }
-
 fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 	op := p.tok.kind
 	// mut typ := p.
@@ -351,7 +363,7 @@ fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 }
 pub fn (p &Parser) error(s string) {
 	// print_backtrace()
-	println(term.bold(term.red('$p.file_name:$p.tok.line_nr: $s')))
+	println(term.bold(term.red('$p.file_name[$p.tok.line_nr,$p.tok.pos]: $s')))
 	exit(1)
 }
 
@@ -362,4 +374,26 @@ pub fn (p &Parser) error_at_line(s string, line_nr int) {
 
 pub fn (p &Parser) warn(s string) {
 	println(term.blue('$p.file_name:$p.tok.line_nr: $s'))
+}
+
+fn (mut p Parser) check_name() string {
+	name := p.tok.lit
+	p.check(.atom)
+	return name
+}
+pub fn (mut p Parser) parse_block() []ast.Stmt {
+	p.check(.key_do)
+	mut stmts := []ast.Stmt{}
+	if p.tok.kind != .key_do {
+		for {
+			stmts << p.stmt()
+			// p.warn('after stmt(): tok=$p.tok.str()')
+			if p.tok.kind in [.eof, .key_end] {
+				break
+			}
+		}
+	}
+	p.check(.key_end)
+	// println('nr exprs in block = $exprs.len')
+	return stmts
 }

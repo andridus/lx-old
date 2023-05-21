@@ -356,11 +356,12 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 		value = token.LiteralValue{
 			fval: lit.f32()
 		}
-	} else if kind == .float {
+	} else if kind in [.float, .atom] {
 		value = token.LiteralValue{
 			sval: lit
 		}
 	}
+
 	return token.Token{
 		kind: kind
 		lit: lit

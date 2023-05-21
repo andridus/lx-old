@@ -1,2 +1,6 @@
-1+1*2+(1/2+5-5*8+5)/5
-6/8-9+(8*5)*9
+defmodule Test.Mod do
+
+  def sum(a: int, b, c: float) :: float do
+   a + b
+  end
+end

@@ -77,15 +77,22 @@ pub fn new_builtin_ti(kind Kind, nr_muls int) TypeIdent {
 		nr_muls: nr_muls
 	}
 }
-
+[inline]
+pub fn (ti &TypeIdent) is_ptr() bool {
+	return ti.nr_muls > 0
+}
+[inline]
 pub fn (ti TypeIdent) is_int() bool {
 	return ti.kind in [.i8, .i16, .int, .i64, .byte, .u16, .u32, .u64]
 }
-
+[inline]
 pub fn (ti TypeIdent) is_float() bool {
 	return ti.kind in [.f32, .f64]
 }
-
+[inline]
+pub fn (ti &TypeIdent) is_number() bool {
+	return ti.is_int() || ti.is_float()
+}
 pub fn (ti &TypeIdent) str() string {
 	mut muls := ''
 	for _ in 0 .. ti.nr_muls {

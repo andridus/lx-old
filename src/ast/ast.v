@@ -31,6 +31,7 @@ pub type Stmt = ExprStmt
 	| ForCStmt
 	| ForInStmt
 	| ForStmt
+	| Block
 	| Import
 	| Module
 	| Return
@@ -45,6 +46,14 @@ pub struct ExprStmt {
 pub:
 	expr Expr
 	ti   types.TypeIdent
+}
+pub struct Block {
+pub:
+	stmts []Stmt
+	ti   types.TypeIdent
+	name string
+	args []Arg
+	is_top_stmt bool
 }
 
 pub struct EmptyExpr {}
@@ -79,7 +88,9 @@ pub struct Module {
 pub:
 	name string
 	path string
-	expr Expr
+	file_name string
+	stmt Stmt
+	is_top_stmt bool
 }
 
 pub struct Field {
@@ -119,7 +130,7 @@ pub:
 	stmts    []Stmt
 	ti       types.TypeIdent
 	args     []Arg
-	is_pub   bool
+	is_priv   bool
 	receiver Field
 }
 
@@ -154,6 +165,9 @@ pub:
 
 pub struct File {
 pub:
+  input_path string
+	output_path string
+	file_name string
 	stmts []Stmt
 }
 
@@ -256,6 +270,9 @@ pub fn (x Expr) str() string {
 		IntegerLiteral {
 			return x.val.str()
 		}
+		Ident {
+			return x.name
+		}
 		else {
 			return ''
 		}
@@ -272,6 +289,9 @@ pub fn (node Stmt) str() string {
 		}
 		FnDecl {
 			return 'fn ${node.name}() { ${node.stmts.len} stmts }'
+		}
+		Block {
+			return node.str()
 		}
 		else {
 			return '[unhandled stmt str]'
