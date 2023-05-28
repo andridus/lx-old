@@ -5,18 +5,19 @@ module token
 
 pub struct Token {
 pub:
-	kind		Kind
-	lit			string
-	line_nr		int
-	pos			int
-	value		LiteralValue
+	kind    Kind
+	lit     string
+	line_nr int
+	pos     int
+	value   LiteralValue
 }
+
 pub union LiteralValue {
-	pub:
-		sval string
-		ival int
-		fval f32
-	}
+pub:
+	sval string
+	ival int
+	fval f32
+}
 
 pub enum Kind {
 	// types
@@ -33,8 +34,8 @@ pub enum Kind {
 	str // "my first string"
 	str_inter // '#user.name'
 	charlist // 'abcd'
-	map  // %{}
-    struct // %MyStruct{}
+	map // %{}
+	struct // %MyStruct{}
 	// Operators
 	typedef // :, ::
 	bang // !
@@ -50,11 +51,12 @@ pub enum Kind {
 	dec // --
 	and // &&
 	bit_not // ~
-    logical_or // ||
+	logical_or // ||
 	question // ?
 	comma //,
 	semicolon //;
 	colon //:
+	colon_space //:[32]
 	arrow // =>
 	right_arrow // ->
 	left_arrow // <-
@@ -83,7 +85,7 @@ pub enum Kind {
 	line_comment // starts by #
 	doc // starts by @doc
 	moduledoc // starts by moduledoc
-	multistring //starts by """
+	multistring // starts by """
 	dot // .
 	range // ..
 	ellipsis // ...
@@ -92,14 +94,15 @@ pub enum Kind {
 	string_concat // <>
 	// keywords
 	keyword_beging
+	key_keyword
 	key_and
-    key_or
+	key_or
 	key_true
 	key_false
 	key_else
 	key_nil
 	key_when
-    key_not
+	key_not
 	key_in
 	key_fn
 	key_do
@@ -110,6 +113,8 @@ pub enum Kind {
 	// function and definitions
 	key_def
 	key_defp
+	key_defmacro
+	key_defmacrop
 	key_defmodule
 	key_import
 	key_defstruct
@@ -120,20 +125,20 @@ pub enum Kind {
 
 const (
 	token_str = build_token_str()
-	keywords = build_keywords()
+	keywords  = build_keywords()
 )
 
 fn build_keywords() map[string]int {
 	mut res := map[string]int{}
-	 for t := int(Kind.keyword_beging) + 1; t < int(Kind.keyword_endg); t++ {
-	 	key := token_str[t]
+	for t := int(Kind.keyword_beging) + 1; t < int(Kind.keyword_endg); t++ {
+		key := token.token_str[t]
 		res[key] = t
-	 }
+	}
 	return res
 }
 
- fn build_token_str() []string {
-	mut s := []string{len: 90, init: ''}
+fn build_token_str() []string {
+	mut s := []string{len: 94, init: ''}
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.eof] = 'EOF'
 	s[Kind.newline] = 'NEWLINE'
@@ -169,6 +174,7 @@ fn build_keywords() map[string]int {
 	s[Kind.comma] = ','
 	s[Kind.semicolon] = ';'
 	s[Kind.colon] = ':'
+	s[Kind.colon_space] = ':s'
 	s[Kind.arrow] = '=>' // =>
 	s[Kind.right_arrow] = '->' // ->
 	s[Kind.left_arrow] = '<-' // <-
@@ -202,6 +208,7 @@ fn build_keywords() map[string]int {
 	s[Kind.minus_concat] = '--'
 	s[Kind.string_concat] = '<>'
 	s[Kind.keyword_beging] = ''
+	s[Kind.key_keyword] = 'keyword'
 	s[Kind.key_and] = 'and'
 	s[Kind.key_or] = 'or'
 	s[Kind.key_true] = 'true'
@@ -220,6 +227,8 @@ fn build_keywords() map[string]int {
 	// funcs and defs
 	s[Kind.key_def] = 'def'
 	s[Kind.key_defp] = 'defp'
+	s[Kind.key_defmacro] = 'defmacro'
+	s[Kind.key_defmacrop] = 'defmacrop'
 	s[Kind.key_defmodule] = 'defmodule'
 	s[Kind.key_import] = 'import'
 	s[Kind.key_defstruct] = 'defstruct'
@@ -230,7 +239,7 @@ fn build_keywords() map[string]int {
 }
 
 pub fn key_to_token(key string) Kind {
-	kind := keywords[key] or {4}
+	kind := token.keywords[key] or { 3 }
 	a := unsafe { Kind(kind) }
 	return a
 }
@@ -240,7 +249,8 @@ pub fn is_key(key string) bool {
 }
 
 pub fn is_decl(t Kind) bool {
-	return t in [.key_def, .key_defp, .key_defstruct, .key_alias, .key_import, .key_require, .key_defmodule,.eof]
+	return t in [.key_def, .key_defp, .key_defstruct, .key_alias, .key_import, .key_require,
+		.key_defmodule, .eof]
 }
 
 pub fn (t Kind) is_assign() bool {
@@ -257,43 +267,46 @@ fn (t []Kind) contains(val Kind) bool {
 }
 
 pub fn (t Kind) str() string {
-	if t == .integer {
-		return 'integer'
+	return match t {
+		.integer {
+			'integer'
+		}
+		.float {
+			'float'
+		}
+		.charlist {
+			'charlist'
+		}
+		.str {
+			'string'
+		}
+		.atom {
+			'atom'
+		}
+		.list {
+			'list'
+		}
+		.map {
+			'map'
+		}
+		.tuple {
+			'tuple'
+		}
+		.struct {
+			'struct'
+		}
+		else {
+			token.token_str[int(t)]
+		}
 	}
-	if t == .float {
-		return 'float'
-	}
-	if t == .charlist {
-		return 'charlist'
-	}
-	if t == .str {
-		return 'string'
-	}
-	if t == .atom {
-		return 'atom'
-	}
-	if t == .list {
-		return 'list'
-	}
-	if t == .map {
-		return 'map'
-	}
-	if t == .tuple {
-		return 'tuple'
-	}
-	if t == .struct {
-		return 'struct'
-	}
-	return token_str[int(t)]
 }
 
 pub fn (t Token) str() string {
-	return '[$t.kind.str()] "$t.lit"'
+	return '[${t.kind.str()}] "${t.lit}"'
 }
 
-
 pub const (
-	lowest_prec = 0
+	lowest_prec  = 0
 	highest_prec = 8
 )
 
@@ -336,6 +349,7 @@ pub fn build_precedences() []Precedence {
 const (
 	precedences = build_precedences()
 )
+
 pub fn (tok Token) precedence() int {
 	match tok.kind {
 		.lsbr {
@@ -370,7 +384,7 @@ pub fn (tok Token) precedence() int {
 			return 2
 		}
 		else {
-			return lowest_prec
+			return token.lowest_prec
 		}
 	}
 }
@@ -381,49 +395,61 @@ pub fn (tok Token) is_scalar() bool {
 
 pub fn (tok Token) is_unary() bool {
 	return tok.kind in [
-	// `+` | `-` | `!` |  `*` | `&`
-	.plus, .minus, .not, .mul, .amp]
-}
-
-// NOTE: do we need this for all tokens (is_left_assoc / is_right_assoc),
-// or only ones with the same precedence?
-// is_left_assoc returns true if the token is left associative
-pub fn (tok Token) is_left_assoc() bool {
-	return tok.kind in [
-	// `.`
-	.dot,
-	// `+` | `-`
-	.plus, .minus, // additive
-	// .number,
-	// `++` | `--`
-	.inc, .dec,
-	// `*` | `/` | `%`
-	.mul, .div, .mod,
-	// `and` | ||` | `&`
-	.key_and,  .logical_or, .and,
-	// `==` | `!=`
-	.eq, .ne,
-	// `<` | `<=` | `>` | `>=`
-	.lt, .le, .gt, .ge, .ne, .eq,
-	// `,`
-	.comma]
-}
-
-pub fn (tok Token) is_right_assoc() bool {
-	return tok.kind in [
-	// `+` | `-` | `!`
-	.plus, .minus, .not, // unary
-	// `=` | `+=` | `-=` | `*=` | `/=`
-	.assign
+		// `+` | `-` | `!` |  `*` | `&`
+		.plus,
+		.minus,
+		.not,
+		.mul,
+		.amp,
 	]
 }
 
+// pub fn (tok Token) is_left_assoc() bool {
+// 	return tok.kind in [
+// 		Kind.dot,
+// 		Kind.plus,
+// 		Kind.minus,
+// 		Kind.inc,
+// 		Kind.dec,
+// 		Kind.mul,
+// 		Kind.div,
+// 		Kind.mod
+// 		Kind.key_and,
+// 		Kind.logical_or,
+// 		Kind.and
+// 		Kind.eq,
+// 		Kind.ne
+// 		Kind.lt,
+// 		Kind.le,
+// 		Kind.gt,
+// 		Kind.ge,
+// 		Kind.ne,
+// 		Kind.eq
+// 		Kind.comma,
+// 	]
+// }
+//
+// pub fn (tok Token) is_right_assoc() bool {
+// 	return tok.kind in [
+// 		Kind.plus,
+// 		Kind.minus,
+// 		Kind.not, // unary
+// 		Kind.assign,
+// 	]
+// }
+//
 pub fn (tok Kind) is_relational() bool {
 	return tok in [
-	// `<` | `<=` | `>` | `>=`
-	.lt, .le, .gt, .ge, .eq, .ne]
+		.lt,
+		.le,
+		.gt,
+		.ge,
+		.eq,
+		.ne,
+	]
 }
 
 pub fn (kind Kind) is_infix() bool {
-	return kind in [.plus, .minus, .mod, .mul, .div, .eq, .ne, .gt, .lt, .ge, .le, .logical_or, .and, .dot, .key_in, .key_and, .key_or]
+	return kind in [.plus, .minus, .mod, .mul, .div, .eq, .ne, .gt, .lt, .ge, .le, .logical_or,
+		.and, .dot, .key_in, .key_and, .key_or]
 }

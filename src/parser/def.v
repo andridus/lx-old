@@ -7,85 +7,86 @@ import ast
 import table
 import types
 
-pub fn (mut p Parser) call_expr() ast.ExprStmt{
-
+pub fn (mut p Parser) call_expr() ast.ExprStmt {
 	mut args := ast.CallExpr{}
 	mut return_ti := types.void_ti
 	if p.tok.kind == .modl {
 		args, return_ti = p.call_from_module()
 	}
-	return ast.ExprStmt{ expr: args, ti: return_ti}
+	return ast.ExprStmt{
+		expr: args
+		ti: return_ti
+	}
 }
-fn (mut p Parser) call_from_module() (ast.CallExpr,types.TypeIdent) {
-		mut tok := p.tok
-		mut module_path := []string{}
-		mut fn_name := ''
-		module_path << p.tok.lit
-		p.check(.modl)
 
-		for p.tok.kind != .lpar {
-			if p.tok.kind == .modl {
-				module_path << p.tok.lit
+fn (mut p Parser) call_from_module() (ast.CallExpr, types.TypeIdent) {
+	mut tok := p.tok
+	mut module_path := []string{}
+	mut fn_name := ''
+	module_path << p.tok.lit
+	p.check(.modl)
 
-			}
-			if p.tok.kind == .atom {
-				tok = p.tok
-				fn_name = p.check_name()
-			}
-			p.next_token()
-
+	for p.tok.kind != .lpar {
+		if p.tok.kind == .modl {
+			module_path << p.tok.lit
 		}
-		p.check(.lpar)
-		if fn_name == '' {
-			p.error('Error no nome da funcao')
+		if p.tok.kind == .atom {
+			tok = p.tok
+			fn_name = p.check_name()
 		}
-		mut is_unknown := false
-		mut args := []ast.Expr{}
-		mut return_ti := types.void_ti
-		if f := p.table.find_fn(fn_name) {
-			return_ti = f.return_ti
-			for i, arg in f.args {
-				e,ti := p.expr(0)
-				if !types.check(&arg.ti, &ti) {
-					p.error('cannot use type `$ti.name` as type `$arg.ti.name` in argument to `$fn_name`')
-				}
-				args << e
-				if i < f.args.len - 1 {
-					p.check(.comma)
-				}
+		p.next_token()
+	}
+	p.check(.lpar)
+	if fn_name == '' {
+		p.error('Error no nome da funcao')
+	}
+	mut is_unknown := false
+	mut args := []ast.Expr{}
+	mut return_ti := types.void_ti
+	if f := p.table.find_fn(fn_name) {
+		return_ti = f.return_ti
+		for i, arg in f.args {
+			e, ti := p.expr(0)
+			if !types.check(&arg.ti, &ti) {
+				p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fn_name}`')
 			}
-			if p.tok.kind == .comma {
-				p.error('too many arguments in call to `$fn_name`')
-			}
-		}else{
-			is_unknown = true
-			p.warn('unknown function `$fn_name`')
-			for p.tok.kind != .rpar {
-				e,_ := p.expr(0)
-				args << e
-				if p.tok.kind != .rpar {
-					p.check(.comma)
-				}
+			args << e
+			if i < f.args.len - 1 {
+				p.check(.comma)
 			}
 		}
-		p.check(.rpar)
-		node := ast.CallExpr{
-			name: fn_name
-			args: args
-			is_unknown: is_unknown
-			tok: tok
-			// typ: return_ti
-
+		if p.tok.kind == .comma {
+			p.error('too many arguments in call to `${fn_name}`')
 		}
-		if is_unknown {
-			p.table.unknown_calls << node
+	} else {
+		is_unknown = true
+		p.warn('unknown function `${fn_name}`')
+		for p.tok.kind != .rpar {
+			e, _ := p.expr(0)
+			args << e
+			if p.tok.kind != .rpar {
+				p.check(.comma)
+			}
 		}
-		return node,return_ti
+	}
+	p.check(.rpar)
+	node := ast.CallExpr{
+		name: fn_name
+		args: args
+		is_unknown: is_unknown
+		tok: tok
+		// typ: return_ti
+	}
+	if is_unknown {
+		p.table.unknown_calls << node
+	}
+	return node, return_ti
 }
+
 pub fn (mut p Parser) call_args() []ast.Expr {
 	mut args := []ast.Expr{}
 	for p.tok.kind != .rpar {
-		e,_ := p.expr(0)
+		e, _ := p.expr(0)
 		args << e
 		if p.tok.kind != .rpar {
 			p.check(.comma)
@@ -102,9 +103,9 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	mut rec_ti := types.void_ti
 	p.table.clear_vars()
 	if is_priv {
-			p.check(.key_defp)
+		p.check(.key_defp)
 	} else {
-			p.check(.key_def)
+		p.check(.key_def)
 	}
 	// ### if is a method
 
@@ -137,12 +138,10 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 		// parse type of ARG
 		mut ti := types.void_ti
-		if p.tok.kind == .typedef {
+		if p.tok.kind == .colon_space {
 			p.next_token()
 			ti = p.parse_ti()
 		}
-
-
 
 		for arg_name in arg_names {
 			arg := table.Var{
@@ -183,11 +182,11 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	// 	}
 	// }
 	// else {
-		p.table.register_fn(table.Fn{
-			name: name
-			args: args
-			return_ti: ti
-		})
+	p.table.register_fn(table.Fn{
+		name: name
+		args: args
+		return_ti: ti
+	})
 	// }
 	stmts := p.parse_block()
 	return ast.FnDecl{
@@ -207,7 +206,7 @@ pub fn (p &Parser) check_fn_calls() {
 	println('check fn calls2')
 	for call in p.table.unknown_calls {
 		f := p.table.find_fn(call.name) or {
-			p.error_at_line('unknown function `$call.name`', call.tok.line_nr)
+			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
 			return
 		}
 		println(f.name)

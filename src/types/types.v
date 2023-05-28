@@ -3,7 +3,10 @@
 // that can be found in the LICENSE file
 module types
 
+import token
+
 pub enum Kind {
+	atom
 	placeholder
 	void
 	voidptr
@@ -34,6 +37,7 @@ pub enum Kind {
 
 pub type Type = Array
 	| ArrayFixed
+	| Atom
 	| Bool
 	| Byte
 	| Byteptr
@@ -77,22 +81,27 @@ pub fn new_builtin_ti(kind Kind, nr_muls int) TypeIdent {
 		nr_muls: nr_muls
 	}
 }
+
 [inline]
 pub fn (ti &TypeIdent) is_ptr() bool {
 	return ti.nr_muls > 0
 }
+
 [inline]
 pub fn (ti TypeIdent) is_int() bool {
 	return ti.kind in [.i8, .i16, .int, .i64, .byte, .u16, .u32, .u64]
 }
+
 [inline]
 pub fn (ti TypeIdent) is_float() bool {
 	return ti.kind in [.f32, .f64]
 }
+
 [inline]
 pub fn (ti &TypeIdent) is_number() bool {
 	return ti.is_int() || ti.is_float()
 }
+
 pub fn (ti &TypeIdent) str() string {
 	mut muls := ''
 	for _ in 0 .. ti.nr_muls {
@@ -116,6 +125,9 @@ pub fn check(got TypeIdent, expected &TypeIdent) bool {
 
 pub fn (k Kind) str() string {
 	k_str := match k {
+		.atom {
+			'atom'
+		}
 		.placeholder {
 			'placeholder'
 		}
@@ -219,6 +231,12 @@ pub struct Voidptr {}
 pub struct Charptr {}
 
 pub struct Byteptr {}
+
+pub struct Atom {
+pub:
+	idx  int
+	name string
+}
 
 pub struct Const {
 pub:
@@ -398,10 +416,20 @@ pub const (
 	bool_type    = Bool{}
 )
 
+pub fn type_from_token(tok token.Token) TypeIdent {
+	return match tok.kind {
+		.integer { types.int_ti }
+		.float { types.float_ti }
+		.str { types.string_ti }
+		else { types.void_ti }
+	}
+}
+
 pub const (
 	void_ti   = new_builtin_ti(.void, 0)
 	int_ti    = new_builtin_ti(.int, 0)
-	float_ti    = new_builtin_ti(.f32, 0)
+	float_ti  = new_builtin_ti(.f32, 0)
 	string_ti = new_builtin_ti(.string, 0)
 	bool_ti   = new_builtin_ti(.bool, 0)
+	atom_ti   = new_builtin_ti(.atom, 0)
 )

@@ -1,7 +1,11 @@
 module repl
 
-import lexer
+// import lexer
 import readline
+import table
+import parser
+
+// import os
 
 const prompt = 'iex'
 
@@ -12,13 +16,13 @@ pub fn start() {
 		is_raw: false
 		skip_empty: true
 	}
-	println('lx REPL type CTRL+C to Exit')
-
+	println('Interactive Lx (0.1.0) - press CTRL+C to exit (type h() ENTER for help)')
+	t := &table.Table{}
 	for {
 		nr_line++
 		line := r.read_line('${repl.prompt}(${nr_line})> ') or { break }
 		history << line
-		mut l := lexer.new(line)
-		l.generate_tokens()
+		p := parser.parse_stmt(line, t)
+		println(p)
 	}
 }

@@ -7,17 +7,18 @@ module ast
 import types
 import token
 
-pub type Expr = EmptyExpr
-	|	ArrayInit
+pub type Expr = ArrayInit
 	| AssignExpr
 	| BinaryExpr
 	| BoolLiteral
 	| CallExpr
+	| EmptyExpr
 	| FloatLiteral
 	| Ident
 	| IfExpr
 	| IndexExpr
 	| IntegerLiteral
+	| KeywordList
 	| MethodCallExpr
 	| PostfixExpr
 	| PrefixExpr
@@ -26,12 +27,12 @@ pub type Expr = EmptyExpr
 	| StructInit
 	| UnaryExpr
 
-pub type Stmt = ExprStmt
+pub type Stmt = Block
+	| ExprStmt
 	| FnDecl
 	| ForCStmt
 	| ForInStmt
 	| ForStmt
-	| Block
 	| Import
 	| Module
 	| Return
@@ -47,16 +48,25 @@ pub:
 	expr Expr
 	ti   types.TypeIdent
 }
+
 pub struct Block {
 pub:
-	stmts []Stmt
-	ti   types.TypeIdent
-	name string
-	args []Arg
+	stmts       []Stmt
+	ti          types.TypeIdent
+	name        string
+	args        []Arg
 	is_top_stmt bool
 }
 
 pub struct EmptyExpr {}
+
+pub struct Keyword {
+	idx   int
+	key   string
+	value string
+	typ   types.TypeIdent
+	atom  bool
+}
 
 pub struct IntegerLiteral {
 pub:
@@ -78,6 +88,11 @@ pub:
 	val bool
 }
 
+pub struct KeywordList {
+mut:
+	items []Keyword
+}
+
 pub struct SelectorExpr {
 pub:
 	expr  Expr
@@ -86,10 +101,10 @@ pub:
 
 pub struct Module {
 pub:
-	name string
-	path string
-	file_name string
-	stmt Stmt
+	name        string
+	path        string
+	file_name   string
+	stmt        Stmt
 	is_top_stmt bool
 }
 
@@ -130,7 +145,7 @@ pub:
 	stmts    []Stmt
 	ti       types.TypeIdent
 	args     []Arg
-	is_priv   bool
+	is_priv  bool
 	receiver Field
 }
 
@@ -165,10 +180,10 @@ pub:
 
 pub struct File {
 pub:
-  input_path string
+	input_path  string
 	output_path string
-	file_name string
-	stmts []Stmt
+	file_name   string
+	stmts       []Stmt
 }
 
 pub struct Ident {
@@ -180,10 +195,10 @@ pub:
 
 pub struct BinaryExpr {
 pub:
-	op    token.Kind
+	op            token.Kind
 	op_precedence int
-	left  Expr
-	right Expr
+	left          Expr
+	right         Expr
 }
 
 pub struct UnaryExpr {
@@ -273,6 +288,17 @@ pub fn (x Expr) str() string {
 		Ident {
 			return x.name
 		}
+		KeywordList {
+			mut st := []string{}
+			for i in x.items {
+				if !i.atom && i.key.contains_u8(32) {
+					st << '"${i.key}": ${i.value}'
+				} else {
+					st << '${i.key}:  ${i.value}'
+				}
+			}
+			return '[' + st.join(', ') + ']'
+		}
 		else {
 			return ''
 		}
@@ -296,5 +322,24 @@ pub fn (node Stmt) str() string {
 		else {
 			return '[unhandled stmt str]'
 		}
+	}
+}
+
+pub fn (mut kw KeywordList) put(ident string, value string, typ types.TypeIdent, atom bool) {
+	kw.items << Keyword{
+		idx: kw.items.len + 1
+		key: ident
+		value: value
+		typ: typ
+		atom: atom
+	}
+}
+
+pub fn type_from_token(tok token.Token) types.TypeIdent {
+	return match tok.kind {
+		.integer { types.int_ti }
+		.float { types.float_ti }
+		.str { types.string_ti }
+		else { types.void_ti }
 	}
 }

@@ -1,11 +1,9 @@
 // Copyright (c) 2023 Helder de Sousa. All rights reserved/
 // Use of this source code is governed by a MIT license
 // that can be found in the LICENSE file
-
 module parser
 
 import os
-
 import ast
 import lexer
 import token
@@ -15,7 +13,7 @@ import term
 import utils
 
 struct Parser {
-	file_name string
+	file_name  string
 	build_path string
 mut:
 	tok       token.Token
@@ -35,14 +33,15 @@ pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
 		}
 	}
 	p.read_first_token()
-	return p.top_stmt()
+	return p.stmt()
 }
+
 pub fn parse_file(path string, t &table.Table) ast.File {
-	text := os.read_file(path) or { panic(err)}
+	text := os.read_file(path) or { panic(err) }
 	mut stmts := []ast.Stmt{}
 	mut l := lexer.new(text)
 	mut p := unsafe {
-		Parser {
+		Parser{
 			build_path: '_build'
 			lexer: l
 			table: t
@@ -62,18 +61,20 @@ pub fn parse_file(path string, t &table.Table) ast.File {
 		output_path: p.build_path
 	}
 }
+
 pub fn (mut p Parser) read_first_token() {
-	// need to call next() twice to get peek token and current token
 	p.next_token()
 	p.next_token()
 }
+
 fn (mut p Parser) next_token() {
 	p.tok = p.peek_tok
 	p.peek_tok = p.lexer.generate_one_token()
-	if p.tok.kind  == .newline {
+	if p.tok.kind == .newline {
 		p.next_token()
 	}
 }
+
 fn (mut p Parser) check(expected token.Kind) {
 	if p.tok.kind != expected {
 		s := 'syntax error: unexpected `${p.tok.kind.str()}` , expecting `${expected.str()}`'
@@ -81,15 +82,15 @@ fn (mut p Parser) check(expected token.Kind) {
 	}
 	p.next_token()
 }
+
 pub fn (mut p Parser) top_stmt() ast.Stmt {
 	match p.tok.kind {
-
 		.line_comment {
 			p.next_token()
 			return p.top_stmt()
 		}
 		.key_defmodule {
-		 	return p.module_decl()
+			return p.module_decl()
 		}
 		.modl {
 			return p.call_expr()
@@ -100,18 +101,22 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 			p.check(.rsbr)
 			return ast.Module{}
 		}
-		else {
+		.key_do {
 			return p.block_expr(true)
+		}
+		else {
+			return p.expr_stmt()
 		}
 	}
 }
+
 pub fn (mut p Parser) stmt() ast.Stmt {
 	match p.tok.kind {
 		.line_comment {
 			p.next_token()
 			return p.stmt()
 		}
-		.key_def, .key_defp  {
+		.key_def, .key_defp {
 			return p.def_decl()
 		}
 		.lsbr {
@@ -121,9 +126,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			return ast.Module{}
 		}
 		else {
-			if p.tok.kind == .atom && p.peek_tok.kind == .assign {
+			if p.tok.kind == .ident && p.peek_tok.kind == .assign {
 				return p.var_decl()
-			}else{
+			} else {
 				return p.expr_stmt()
 			}
 		}
@@ -134,7 +139,9 @@ fn (mut p Parser) block_expr(is_top_stmt bool) ast.Block {
 	p.check(.key_do)
 	mut stmts := []ast.Stmt{}
 	for p.peek_tok.kind != .eof {
-		if p.tok.kind == .key_end { break }
+		if p.tok.kind == .key_end {
+			break
+		}
 		stmts << p.stmt()
 	}
 	p.check(.key_end)
@@ -157,11 +164,11 @@ fn (mut p Parser) module_decl() ast.Module {
 	}
 	stmt := p.block_expr(false)
 	return ast.Module{
-		name: module_path_name.join(".")
-		file_name: module_path_name.join(".").to_lower(),
+		name: module_path_name.join('.')
+		file_name: module_path_name.join('.').to_lower()
 		path: p.file_name
 		stmt: stmt
-		}
+	}
 }
 
 fn (mut p Parser) var_decl() ast.VarDecl {
@@ -169,7 +176,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 	p.read_first_token()
 	expr, ti := p.expr(token.lowest_prec)
 	if _ := p.table.find_var(name) {
-		p.error('rebinding of `$name`')
+		p.error('rebinding of `${name}`')
 	}
 	p.table.register_var(table.Var{
 		name: name
@@ -182,20 +189,35 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		expr: expr
 		ti: ti
 	}
-
 }
 
 fn (mut p Parser) expr_stmt() ast.ExprStmt {
 	exp, ti := p.expr(0)
-	return ast.ExprStmt{ expr: exp, ti: ti}
+	return ast.ExprStmt{
+		expr: exp
+		ti: ti
+	}
 }
-pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
+
+pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 	mut ti := types.void_ti
 	mut node := ast.Expr(ast.EmptyExpr{})
 	// Prefix
 	match p.tok.kind {
 		.atom {
-			node,ti = p.atom_expr()
+			node, ti = p.atom_expr()
+		}
+		.ident {
+			node, ti = p.ident_expr()
+		}
+		.key_keyword {
+			node, ti = p.keyword_list_expr()
+		}
+		.str {
+			println(p.peek_tok.kind)
+			if p.peek_tok.kind == .colon_space {
+				node, ti = p.keyword_list_expr()
+			}
 		}
 		// .str {
 		// 	node,ti = p.string_expr()
@@ -222,7 +244,7 @@ pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
 		}
 		.lpar {
 			p.check(.lpar)
-			node,ti = p.expr(0)
+			node, ti = p.expr(0)
 			p.check(.rpar)
 		}
 		// .key_if {
@@ -231,9 +253,8 @@ pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
 		// .lsbr {
 		// 	node,ti = p.array_init()
 		// }
-
 		else {
-			p.error('expr(): bad token `$p.tok.str()`')
+			p.error('expr(): bad token `${p.tok.str()}`')
 		}
 	}
 
@@ -259,39 +280,81 @@ pub fn (mut p Parser) expr(precedence int)  (ast.Expr, types.TypeIdent) {
 			}
 			p.next_token()
 			return node, ti
-		}
-		else {
+		} else {
 			return node, ti
 		}
 	}
 	return node, ti
 }
 
-fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
+fn (mut p Parser) keyword_list_expr() (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
-  mut ti := types.void_ti
+	mut keyword_list := ast.KeywordList{}
+	breakpoint := [token.Kind.rpar, .rsbr, .eof]
+	for p.tok.kind !in breakpoint {
+		keyword := p.tok.lit
+		mut atom := false
 
-	// TODO: When is a function
-	//
-	// When is a var
+		if p.tok.kind == .key_keyword {
+			p.check(.key_keyword)
+			atom = true
+		} else if p.tok.kind == .str {
+			p.check(.str)
+			p.next_token()
+		} else {
+			println('${p.tok.kind} not a keyword')
+			exit(0)
+		}
+		value := p.tok.lit
+		typ := types.type_from_token(p.tok)
+
+		keyword_list.put(keyword, value, typ, atom)
+		p.next_token()
+		if p.tok.kind != .comma && p.tok.kind in breakpoint {
+		} else {
+			p.check(.comma)
+		}
+	}
+	node = keyword_list
+	return node, types.void_ti
+}
+
+fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
+	mut node := ast.Expr(ast.EmptyExpr{})
+
 	node = ast.Ident{
 		name: p.tok.lit
 		tok_kind: p.tok.kind
 	}
 	var := p.table.find_var(p.tok.lit) or {
-		p.error('undefined variable `$p.tok.lit`')
+		p.error('undefined variable ${p.tok.lit}')
 		exit(0)
 	}
-	ti = var.ti
+
+	ti := var.ti
 	p.next_token()
 
 	return node, ti
 }
-fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr,types.TypeIdent) {
+
+fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
+	mut node := ast.Expr(ast.EmptyExpr{})
+
+	node = ast.Ident{
+		name: p.tok.lit
+		tok_kind: p.tok.kind
+	}
+	p.table.find_or_new_atom(p.tok.lit)
+	p.next_token()
+
+	return node, types.atom_ti
+}
+
+fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 	// println('index expr$p.tok.str() line=$p.tok.line_nr')
 	p.next_token()
 	println('start expr')
-	index,_ := p.expr(0)
+	index, _ := p.expr(0)
 	println('end expr')
 	p.check(.rsbr)
 	println('got ]')
@@ -300,18 +363,18 @@ fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr,types.TypeIdent) {
 		left: left
 		index: index
 	})
-	return node,ti
+	return node, ti
 }
+
 fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
 	mut ti := types.int_ti
 	if p.tok.kind == .float {
 		node = ast.Expr(ast.FloatLiteral{
-			val: unsafe {p.tok.value.fval}
+			val: unsafe { p.tok.value.fval }
 		})
-		 ti = types.float_ti
-	}
-	else {
+		ti = types.float_ti
+	} else {
 		node = ast.Expr(ast.IntegerLiteral{
 			val: unsafe { p.tok.value.ival }
 		})
@@ -319,68 +382,62 @@ fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
 	p.next_token()
 	return node, ti
 }
+
 fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 	op := p.tok.kind
-	// mut typ := p.
-	// println('infix op=$op.str()')
 	op_precedence := p.tok.precedence()
 	p.next_token()
 	precedence := p.tok.precedence()
-	// precedence = p.peek_tok.precedence()
 	right, mut ti := p.expr(precedence)
 	if op.is_relational() {
 		ti = types.bool_ti
 	}
 	mut expr := ast.Expr(ast.BinaryExpr{
-				op: op
-				op_precedence: op_precedence
-				left: left
-				right: right
-			})
-
+		op: op
+		op_precedence: op_precedence
+		left: left
+		right: right
+	})
 	match right {
 		ast.BinaryExpr {
 			if right.op_precedence < op_precedence {
-
 				expr = ast.Expr(ast.BinaryExpr{
-						op: right.op
-						op_precedence: op_precedence
-						left: ast.Expr(ast.BinaryExpr{
-							op: op
-							op_precedence: right.op_precedence
-							left: left
-							right: right.left
-						})
-						right: right.right
+					op: right.op
+					op_precedence: right.op_precedence
+					left: ast.Expr(ast.BinaryExpr{
+						op: op
+						op_precedence: right.op_precedence
+						left: left
+						right: right.left
 					})
+					right: right.right
+				})
 			}
 		}
-		else {
-
-		}
+		else {}
 	}
 	return expr, ti
 }
+
 pub fn (p &Parser) error(s string) {
 	// print_backtrace()
-	println(term.bold(term.red('$p.file_name[$p.tok.line_nr,$p.tok.pos]: $s')))
-	exit(1)
+	println(term.bold(term.red('${p.file_name}[${p.tok.line_nr},${p.tok.pos}]: ${s}')))
 }
 
 pub fn (p &Parser) error_at_line(s string, line_nr int) {
-	println(term.bold(term.red('$p.file_name:$line_nr: $s')))
-	exit(1)
+	println(term.bold(term.red('${p.file_name}:${line_nr}: ${s}')))
 }
 
 pub fn (p &Parser) warn(s string) {
-	println(term.blue('$p.file_name:$p.tok.line_nr: $s'))
+	println(term.blue('${p.file_name}:${p.tok.line_nr}: ${s}'))
 }
 
 fn (mut p Parser) check_name() string {
 	name := p.tok.lit
-	p.check(.atom)
+	p.check(.ident)
 	return name
 }
+
 pub fn (mut p Parser) parse_block() []ast.Stmt {
 	p.check(.key_do)
 	mut stmts := []ast.Stmt{}

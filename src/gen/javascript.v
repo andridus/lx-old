@@ -6,7 +6,7 @@ import term
 import table
 
 struct JsGen {
-	mut:
+mut:
 	out strings.Builder
 }
 
@@ -18,7 +18,7 @@ pub fn js_gen(program ast.File, t &table.Table) string {
 		g.stmt(stmt)
 		g.writeln('')
 	}
-	return (g.out.str())
+	return g.out.str()
 }
 
 pub fn (g &JsGen) save() {}
@@ -34,9 +34,9 @@ pub fn (mut g JsGen) writeln(s string) {
 fn (mut g JsGen) stmt(node ast.Stmt) {
 	match node {
 		ast.FnDecl {
-			g.write('/** @return { $node.ti.name } **/\nfunction ${node.name}(')
+			g.write('/** @return { ${node.ti.name} } **/\nfunction ${node.name}(')
 			for arg in node.args {
-				g.write(' /** @type { arg.ti.name } **/ $arg.name')
+				g.write(' /** @type { arg.ti.name } **/ ${arg.name}')
 			}
 			g.writeln(') { ')
 			for stmt in node.stmts {
@@ -47,15 +47,13 @@ fn (mut g JsGen) stmt(node ast.Stmt) {
 		ast.Return {
 			g.write('return ')
 			if node.exprs.len > 0 {
-
-			}
-			else {
+			} else {
 				g.expr(node.exprs[0])
 			}
 			g.writeln(';')
 		}
 		ast.VarDecl {
-			g.write('var /* $node.ti.name */ $node.name = ')
+			g.write('var /* ${node.ti.name} */ ${node.name} = ')
 			g.expr(node.expr)
 			g.writeln(';')
 		}
@@ -73,7 +71,7 @@ fn (mut g JsGen) stmt(node ast.Stmt) {
 			// for field in node.fields {
 			// g.writeln('\t$field.ti.name $field.name;')
 			// }
-			g.writeln('var $node.name = function() {};')
+			g.writeln('var ${node.name} = function() {};')
 		}
 		ast.ExprStmt {
 			g.expr(node.expr)
@@ -83,7 +81,7 @@ fn (mut g JsGen) stmt(node ast.Stmt) {
 				else {
 					g.writeln(';')
 				}
-	}
+			}
 		}
 		else {
 			error('jsgen.stmt(): bad node')
@@ -102,21 +100,21 @@ fn (mut g JsGen) expr(node ast.Expr) {
 		}
 		ast.UnaryExpr {
 			g.expr(node.left)
-			g.write(' $node.op ')
+			g.write(' ${node.op} ')
 		}
 		ast.StringLiteral {
-			g.write('tos3("$node.val")')
+			g.write('tos3("${node.val}")')
 		}
 		ast.BinaryExpr {
 			g.expr(node.left)
-			g.write(' $node.op.str() ')
+			g.write(' ${node.op.str()} ')
 			g.expr(node.right)
 		}
 		// `user := User{name: 'Bob'}`
 		ast.StructInit {
-			g.writeln('/*$node.ti.name*/{')
+			g.writeln('/*${node.ti.name}*/{')
 			for i, field in node.fields {
-				g.write('\t$field : ')
+				g.write('\t${field} : ')
 				g.expr(node.exprs[i])
 				g.writeln(', ')
 			}
@@ -133,13 +131,12 @@ fn (mut g JsGen) expr(node ast.Expr) {
 			g.write(')')
 		}
 		ast.Ident {
-			g.write('$node.name')
+			g.write('${node.name}')
 		}
 		ast.BoolLiteral {
 			if node.val == true {
 				g.write('true')
-			}
-			else {
+			} else {
 				g.write('false')
 			}
 		}

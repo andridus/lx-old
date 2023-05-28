@@ -23,7 +23,7 @@ fn main() {
 
 					elapsed := sw.elapsed().milliseconds()
 					res := gen.js_gen(p, t)
-					os.write_file('${path}.js', res) or { println(error) }
+					os.write_file('${path}.js', res) or { println(err.msg()) }
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {
 					println('File is need to lexer')
@@ -51,7 +51,7 @@ fn main() {
 					println('\nRead file `${path}` at ${elapsed}ms')
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {
-					println('File is need to Lexer')
+					println('File is need to lexer')
 				}
 			}
 			else {

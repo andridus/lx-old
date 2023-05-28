@@ -97,9 +97,9 @@ fn test_line_break() {
 		},
 	] == a.tokens
 }
-	fn test_parser_grammar() {
 
-	    mut a := lexer.new('
+fn test_parser_grammar() {
+	mut a := lexer.new('
 	      true
 		  false
 		  nil
@@ -140,7 +140,7 @@ fn test_line_break() {
 			kind: .key_when
 			lit: 'when'
 			line_nr: 4
-		    pos: 1
+			pos: 1
 		},
 		token.Token{
 			kind: .key_and
@@ -154,7 +154,7 @@ fn test_line_break() {
 			line_nr: 6
 			pos: 1
 		},
-        token.Token{
+		token.Token{
 			kind: .key_not
 			lit: 'not'
 			line_nr: 7
@@ -166,7 +166,7 @@ fn test_line_break() {
 			line_nr: 8
 			pos: 1
 		},
-        token.Token{
+		token.Token{
 			kind: .key_fn
 			lit: 'fn'
 			line_nr: 9
@@ -190,12 +190,11 @@ fn test_line_break() {
 			line_nr: 12
 			pos: 1
 		},
-
 		token.Token{
 			kind: .key_rescue
 			lit: 'rescue'
 			line_nr: 13
-		    pos: 1
+			pos: 1
 		},
 		token.Token{
 			kind: .key_after

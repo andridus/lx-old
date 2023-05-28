@@ -24,6 +24,15 @@ pub:
 	id   int
 }
 
+pub struct Keyword {
+pub:
+	idx int
+	key string
+	value string
+	typ types.TypeIdent
+	atom bool
+}
+
 pub struct Var {
 pub:
 	name   string
@@ -117,6 +126,10 @@ pub fn (mut t Table) register_method(ti types.TypeIdent, new_fn Fn) bool {
 pub fn (mut t Table) new_tmp_var() string {
 	t.tmp_cnt++
 	return 'tmp${t.tmp_cnt}'
+}
+
+pub fn (mut list []Keyword) put(ident string, value string, typ types.TypeIdent, atom bool) {
+	list << Keyword{idx: list.len + 1, key: ident, value: value, typ: typ, atom: atom}
 }
 
 pub fn (mut t Table) find_or_register_array_fixed(elem_ti &types.TypeIdent, size int, nr_dims int) (int, string) {

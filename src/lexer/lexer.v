@@ -176,9 +176,11 @@ fn (mut l Lexer) parse_token() token.Token {
 					l.match_else()
 				}
 			} else {
-				// l.advance(-2) // return to first occurence of \"
 				l.get_text_delim(token.Kind.str, '"', '"')
 			}
+		}
+		`'` {
+			l.get_text_delim(token.Kind.charlist, "'", "'")
 		}
 		`=` {
 			if l.match_next_char(`=`) {
@@ -208,11 +210,7 @@ fn (mut l Lexer) parse_token() token.Token {
 		}
 		`&` {
 			if l.match_next_char(`&`) {
-				if l.match_next_char(`&`) {
-					l.new_token('&&&', .and, 3)
-				} else {
-					l.new_token('&&', .and, 2)
-				}
+				l.new_token('&&', .and, 2)
 			} else {
 				l.new_token('&', .capture, 1)
 			}
@@ -254,6 +252,9 @@ fn (mut l Lexer) parse_token() token.Token {
 				} else {
 					l.new_token('--', .minus_concat, 2)
 				}
+			}
+			if l.match_next_char(`>`) {
+				l.new_token('->', .right_arrow, 2)
 			} else {
 				l.new_token('-', .minus, 1)
 			}
@@ -287,8 +288,11 @@ fn (mut l Lexer) parse_token() token.Token {
 			if l.match_next_char(`:`) {
 				l.new_token('::', .typedef, 2)
 			} else {
-				l.new_token(':', .typedef, 1)
+				l.get_token_atom(u)
 			}
+		}
+		`?` {
+			l.new_token('?', .question, 1)
 		}
 		`*` {
 			l.new_token('*', .mul, 1)
@@ -317,7 +321,6 @@ fn (mut l Lexer) parse_token() token.Token {
 		`]` {
 			l.new_token(']', .rsbr, 1)
 		}
-
 		else {
 			l.match_else()
 		}
@@ -376,13 +379,50 @@ fn (mut l Lexer) match_else() token.Token {
 	return l.get_token_word(s) or { l.get_token_integer(s) or { l.new_token('[i]', .ignore, 1) } }
 }
 
+fn (mut l Lexer) get_token_atom(bt u8) token.Token {
+	l.pos++
+	mut current := l.input[l.pos]
+	mut pos := l.pos
+	if current == `'` || current == `"` {
+		pos++
+		start_pos := pos
+		current = l.input[pos]
+		for current != `'` && current != `"` && pos < l.total {
+			current = l.input[pos]
+			pos++
+		}
+		str := l.input[start_pos..pos - 1].bytestr()
+		return l.new_token(str, token.Kind.atom, str.len + 2)
+	} else if is_letter(current) {
+		start_pos := pos
+		for current != 32 && current != 10 && pos < l.total {
+			pos++
+			current = l.input[pos]
+		}
+		str := l.input[start_pos..pos].bytestr()
+		return l.new_token(str, token.Kind.atom, str.len)
+	} else {
+		if pos < l.total {
+			if l.input[pos] == 32 {
+				return l.new_token(':', token.Kind.colon_space, 1)
+			}
+		}
+		return l.new_token(':', token.Kind.colon, 1)
+	}
+}
+
 fn (mut l Lexer) get_token_word(cch u8) !token.Token {
 	term, is_capital := l.get_word(cch)
 	if term.len > 0 {
 		if is_capital {
 			return l.new_token(term, token.Kind.modl, term.len)
 		} else {
-			return l.new_token(term, token.key_to_token(term), term.len)
+			if l.pos + term.len + 1 < l.total && l.input[l.pos + term.len] == `:`
+				&& l.input[l.pos + term.len + 1] == 32 {
+				return l.new_token(term, token.Kind.key_keyword, term.len + 1)
+			} else {
+				return l.new_token(term, token.key_to_token(term), term.len)
+			}
 		}
 	} else {
 		return error('not have a word')
