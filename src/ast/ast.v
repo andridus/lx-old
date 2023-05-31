@@ -199,6 +199,7 @@ pub:
 	op_precedence int
 	left          Expr
 	right         Expr
+	meta          Meta
 }
 
 pub struct UnaryExpr {
@@ -274,10 +275,18 @@ pub:
 	ti    types.TypeIdent
 }
 
+pub struct Meta {
+	line int
+}
+
+fn (m Meta) str() string {
+	return '[line: ${m.line}]'
+}
+
 pub fn (x Expr) str() string {
 	match x {
 		BinaryExpr {
-			return '(${x.left.str()} ${x.op.str()} ${x.right.str()})'
+			return '{:${x.op.str()}, ${x.meta}, [${x.left.str()}, ${x.right.str()}]}'
 		}
 		UnaryExpr {
 			return x.left.str() + x.op.str()

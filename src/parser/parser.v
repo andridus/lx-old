@@ -21,6 +21,14 @@ mut:
 	table     &table.Table
 	peek_tok  token.Token
 	return_ti types.TypeIdent
+	recv_pos  int
+	recv_meta RecvMeta
+}
+
+struct RecvMeta {
+	op            token.Kind
+	op_precedence int
+	expr          ast.Expr
 }
 
 pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
@@ -351,7 +359,6 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 }
 
 fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
-	// println('index expr$p.tok.str() line=$p.tok.line_nr')
 	p.next_token()
 	println('start expr')
 	index, _ := p.expr(0)
@@ -392,31 +399,67 @@ fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 	if op.is_relational() {
 		ti = types.bool_ti
 	}
-	mut expr := ast.Expr(ast.BinaryExpr{
-		op: op
-		op_precedence: op_precedence
-		left: left
-		right: right
-	})
+	expr := p.parse_ast_expr(left, op, op_precedence, right)
+	return expr, ti
+}
+
+//
+fn (p Parser) parse_ast_expr_deep(left ast.Expr, op token.Kind, op_prec int, right ast.Expr) ast.Expr {
+	line := p.tok.line_nr - 1
 	match right {
 		ast.BinaryExpr {
-			if right.op_precedence < op_precedence {
-				expr = ast.Expr(ast.BinaryExpr{
-					op: right.op
-					op_precedence: right.op_precedence
-					left: ast.Expr(ast.BinaryExpr{
-						op: op
-						op_precedence: right.op_precedence
-						left: left
-						right: right.left
-					})
-					right: right.right
-				})
+			match right.left {
+				ast.BinaryExpr {
+					if op_prec < right.op_precedence {
+						return ast_bin_expr(left, op, right, line, op_prec)
+					} else {
+						left0 := p.parse_ast_expr_deep(left, op, op_prec, right.left)
+						return ast_bin_expr(left0, right.op, right.right, line, right.op_precedence)
+					}
+				}
+				else {
+					if op_prec < right.op_precedence {
+						return ast_bin_expr(left, op, right, line, op_prec)
+					} else {
+						left0 := ast_bin_expr(left, op, right.left, line, op_prec)
+						return ast_bin_expr(left0, right.op, right.right, line, right.op_precedence)
+					}
+				}
 			}
 		}
-		else {}
+		else {
+			return ast_bin_expr(left, op, right, line, op_prec)
+		}
 	}
-	return expr, ti
+}
+
+fn (p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, right ast.Expr) ast.Expr {
+	line := p.tok.line_nr - 1
+	match right {
+		ast.BinaryExpr {
+			if op_prec < right.op_precedence {
+				return ast_bin_expr(left, op, right, line, op_prec)
+			} else {
+				left0 := p.parse_ast_expr_deep(left, op, op_prec, right.left)
+				return ast_bin_expr(left0, right.op, right.right, line, right.op_precedence)
+			}
+		}
+		else {
+			return ast_bin_expr(left, op, right, line, op_prec)
+		}
+	}
+}
+
+fn ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, line int, op_prec int) ast.Expr {
+	return ast.Expr(ast.BinaryExpr{
+		op: op
+		op_precedence: op_prec
+		left: left
+		meta: ast.Meta{
+			line: line
+		}
+		right: right
+	})
 }
 
 pub fn (p &Parser) error(s string) {

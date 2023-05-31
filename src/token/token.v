@@ -75,7 +75,10 @@ pub enum Kind {
 	rsbr
 	// == != <= < >= >
 	eq
+	seq
+	eqt
 	ne
+	sne
 	gt
 	lt
 	ge
@@ -138,7 +141,7 @@ fn build_keywords() map[string]int {
 }
 
 fn build_token_str() []string {
-	mut s := []string{len: 94, init: ''}
+	mut s := []string{len: 98, init: ''}
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.eof] = 'EOF'
 	s[Kind.newline] = 'NEWLINE'
@@ -191,7 +194,10 @@ fn build_token_str() []string {
 	s[Kind.lsbr] = '['
 	s[Kind.rsbr] = ']'
 	s[Kind.eq] = '=='
+	s[Kind.seq] = '==='
 	s[Kind.ne] = '!='
+	s[Kind.sne] = '!=='
+	s[Kind.eqt] = '~='
 	s[Kind.gt] = '<'
 	s[Kind.lt] = '>'
 	s[Kind.ge] = '<='
@@ -396,48 +402,59 @@ pub fn (tok Token) is_scalar() bool {
 pub fn (tok Token) is_unary() bool {
 	return tok.kind in [
 		// `+` | `-` | `!` |  `*` | `&`
-		.plus,
-		.minus,
-		.not,
-		.mul,
-		.amp,
+		Kind.plus,
+		Kind.minus,
+		Kind.not,
+		Kind.mul,
+		Kind.amp,
+		Kind.key_not,
+		Kind.arrob,
+		Kind.xor,
 	]
 }
 
-// pub fn (tok Token) is_left_assoc() bool {
-// 	return tok.kind in [
-// 		Kind.dot,
-// 		Kind.plus,
-// 		Kind.minus,
-// 		Kind.inc,
-// 		Kind.dec,
-// 		Kind.mul,
-// 		Kind.div,
-// 		Kind.mod
-// 		Kind.key_and,
-// 		Kind.logical_or,
-// 		Kind.and
-// 		Kind.eq,
-// 		Kind.ne
-// 		Kind.lt,
-// 		Kind.le,
-// 		Kind.gt,
-// 		Kind.ge,
-// 		Kind.ne,
-// 		Kind.eq
-// 		Kind.comma,
-// 	]
-// }
-//
-// pub fn (tok Token) is_right_assoc() bool {
-// 	return tok.kind in [
-// 		Kind.plus,
-// 		Kind.minus,
-// 		Kind.not, // unary
-// 		Kind.assign,
-// 	]
-// }
-//
+pub fn (tok Token) is_left_assoc() bool {
+	return tok.kind in [
+		// .
+		Kind.dot,
+		// **
+		// * /
+		Kind.mul,
+		Kind.div,
+		// + -
+		Kind.plus,
+		Kind.minus,
+		// in not
+		Kind.key_in,
+		Kind.key_not,
+		// |> <<< >>> <<~ ~>> <~ ~> <~>
+		// < > <= >=
+		Kind.lt,
+		Kind.le,
+		Kind.gt,
+		Kind.ge,
+		// == != =~ === !==
+		Kind.eq,
+		Kind.ne,
+		Kind.eqt,
+		Kind.seq,
+		Kind.sne,
+		// && &&& and
+		// || ||| or
+		// <- \\
+	]
+}
+
+pub fn (tok Token) is_right_assoc() bool {
+	return false // tok.kind in [
+	// ++ -- +++ --- .. <>
+	// =
+	// => (only inside %{})
+	// ::
+	// when
+	//	]
+}
+
 pub fn (tok Kind) is_relational() bool {
 	return tok in [
 		.lt,
