@@ -4,6 +4,7 @@ module repl
 import readline
 import table
 import parser
+import color
 
 // import os
 
@@ -16,7 +17,7 @@ pub fn start() {
 		is_raw: false
 		skip_empty: true
 	}
-	println('Interactive Lx (0.1.0) - press CTRL+C to exit (type h() ENTER for help)')
+	println('Interactive Lx (0.1.0) - press ${color.fg(color.red,'CTRL+C to exit')} (type h() ENTER for help)')
 	t := &table.Table{}
 	for {
 		nr_line++
