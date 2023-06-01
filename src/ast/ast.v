@@ -276,7 +276,12 @@ pub:
 }
 
 pub struct Meta {
-	line int
+	line          int
+	inside_parens int
+}
+
+pub fn (e BinaryExpr) is_inside_parens() bool {
+	return e.meta.inside_parens > 0
 }
 
 fn (m Meta) str() string {
