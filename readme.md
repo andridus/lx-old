@@ -24,5 +24,5 @@
 ### To Execute
 1. Install V
 2. Install Erlang
-3. In one terminal, execute
+3. On terminal, execute
   `$ v run . repl`
