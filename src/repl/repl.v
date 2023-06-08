@@ -90,6 +90,9 @@ fn code_server(op_ch chan int, repl_ch chan int, req chan string, res chan strin
 		client.write_string(ast_erl) or { panic(err) }
 		client.read(mut buf) or { panic(err) }
 		res <- buf.bytestr()
+		for i := 0; i < buf.len; i++ {
+			buf[i] = 0
+		}
 	}
 }
 
@@ -109,7 +112,7 @@ pub fn start() {
 		op := <-op_ch
 		if op == -1 {
 			kill_server()
-			println('Gracefully exit')
+			println('Gracefull exit')
 			time.sleep(time.Duration(300 * time.millisecond))
 			break
 		}
