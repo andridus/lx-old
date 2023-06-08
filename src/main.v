@@ -55,10 +55,10 @@ fn main() {
 				}
 			}
 			else {
-				println('Basic commands `lx build {file.ex}` or `lx repl`')
+				println('Basic commands `lx build [file.ex]` or `lx repl`')
 			}
 		}
 	} else {
-		println('Basic commands `lx build {file.ex}` or `lx repl`')
+		println('Basic commands `lx build [file.ex]` or `lx repl`')
 	}
 }

@@ -330,7 +330,8 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 	}
 	var := p.table.find_var(p.tok.lit) or {
 		p.error('undefined variable ${p.tok.lit}')
-		exit(0)
+		// exit(0)
+		table.Var{}
 	}
 
 	ti := var.ti

@@ -66,37 +66,44 @@ pub struct Keyword {
 	value string
 	typ   types.TypeIdent
 	atom  bool
+	meta  Meta
 }
 
 pub struct IntegerLiteral {
 pub:
-	val int
+	val  int
+	meta Meta
 }
 
 pub struct FloatLiteral {
 pub:
-	val f32
+	val  f32
+	meta Meta
 }
 
 pub struct StringLiteral {
 pub:
-	val string
+	val  string
+	meta Meta
 }
 
 pub struct BoolLiteral {
 pub:
-	val bool
+	val  bool
+	meta Meta
 }
 
 pub struct KeywordList {
 mut:
 	items []Keyword
+	meta  Meta
 }
 
 pub struct SelectorExpr {
 pub:
 	expr  Expr
 	field string
+	meta  Meta
 }
 
 pub struct Module {
@@ -106,12 +113,14 @@ pub:
 	file_name   string
 	stmt        Stmt
 	is_top_stmt bool
+	meta        Meta
 }
 
 pub struct Field {
 pub:
 	name string
 	ti   types.TypeIdent
+	meta Meta
 }
 
 pub struct StructDecl {
@@ -119,6 +128,7 @@ pub:
 	name   string
 	fields []Field
 	is_pub bool
+	meta   Meta
 }
 
 pub struct StructInit {
@@ -126,17 +136,20 @@ pub:
 	ti     types.TypeIdent
 	fields []string
 	exprs  []Expr
+	meta   Meta
 }
 
 pub struct Import {
 pub:
 	mods map[string]string
+	meta Meta
 }
 
 pub struct Arg {
 pub:
 	ti   types.TypeIdent
 	name string
+	meta Meta
 }
 
 pub struct FnDecl {
@@ -147,6 +160,7 @@ pub:
 	args     []Arg
 	is_priv  bool
 	receiver Field
+	meta     Meta
 }
 
 pub struct CallExpr {
@@ -155,6 +169,7 @@ pub:
 	args       []Expr
 	is_unknown bool
 	tok        token.Token
+	meta       Meta
 }
 
 pub struct MethodCallExpr {
@@ -164,11 +179,13 @@ pub:
 	args       []Expr
 	is_unknown bool
 	tok        token.Token
+	meta       Meta
 }
 
 pub struct Return {
 pub:
 	exprs []Expr
+	meta  Meta
 }
 
 pub struct VarDecl {
@@ -176,6 +193,7 @@ pub:
 	name string
 	expr Expr
 	ti   types.TypeIdent
+	meta Meta
 }
 
 pub struct File {
@@ -191,6 +209,7 @@ pub:
 	name     string
 	tok_kind token.Kind
 	value    string
+	meta     Meta
 }
 
 pub struct BinaryExpr {
@@ -206,24 +225,28 @@ pub struct UnaryExpr {
 pub:
 	op   token.Kind
 	left Expr
+	meta Meta
 }
 
 pub struct PostfixExpr {
 pub:
 	op   token.Kind
 	expr Expr
+	meta Meta
 }
 
 pub struct PrefixExpr {
 pub:
 	op    token.Kind
 	right Expr
+	meta  Meta
 }
 
 pub struct IndexExpr {
 pub:
 	left  Expr
 	index Expr
+	meta  Meta
 }
 
 pub struct IfExpr {
@@ -234,12 +257,14 @@ pub:
 	else_stmts []Stmt
 	ti         types.TypeIdent
 	left       Expr
+	meta       Meta
 }
 
 pub struct ForStmt {
 pub:
 	cond  Expr
 	stmts []Stmt
+	meta  Meta
 }
 
 pub struct ForInStmt {
@@ -247,6 +272,7 @@ pub:
 	var   string
 	cond  Expr
 	stmts []Stmt
+	meta  Meta
 }
 
 pub struct ForCStmt {
@@ -255,11 +281,13 @@ pub:
 	cond  Expr // i < 10;
 	inc   Stmt // i++;
 	stmts []Stmt
+	meta  Meta
 }
 
 pub struct ReturnStmt {
 	tok_kind token.Kind // or pos
 	results  []Expr
+	meta     Meta
 }
 
 pub struct AssignExpr {
@@ -267,15 +295,18 @@ pub:
 	left Expr
 	val  Expr
 	op   token.Kind
+	meta Meta
 }
 
 pub struct ArrayInit {
 pub:
 	exprs []Expr
 	ti    types.TypeIdent
+	meta  Meta
 }
 
 pub struct Meta {
+pub:
 	line          int
 	inside_parens int
 }

@@ -26,6 +26,10 @@ pub fn erl_gen(program ast.File, t table.Table) ErlGen {
 	return g
 }
 
+pub fn (mut g ErlGen) ast() string {
+	return g.out.str()
+}
+
 pub fn (mut g ErlGen) save() {
 	for stmt in g.program.stmts {
 		match stmt {
@@ -178,9 +182,9 @@ fn (mut g ErlGen) stmt(node ast.Stmt, same_expr bool) {
 
 fn (mut g ErlGen) endln(same_expr bool) {
 	if same_expr {
-		g.writeln(',')
+		g.writeln('')
 	} else {
-		g.writeln('.')
+		g.writeln('')
 	}
 }
 
@@ -188,7 +192,7 @@ fn (mut g ErlGen) expr(node ast.Expr, same_expr bool) {
 	// println('cgen expr()')
 	match node {
 		ast.IntegerLiteral {
-			g.write(node.val.str())
+			g.write('{integer, ${node.meta.line}, ${node.val.str()}}')
 		}
 		ast.FloatLiteral {
 			g.write(node.val.str())
@@ -201,9 +205,11 @@ fn (mut g ErlGen) expr(node ast.Expr, same_expr bool) {
 			g.write('tos3("${node.val}")')
 		}
 		ast.BinaryExpr {
+			g.write('{op, ${node.meta.line}, \'${node.op.str()}\', ')
 			g.expr(node.left, same_expr)
-			g.write(' ${node.op.str()} ')
+			g.write(', ')
 			g.expr(node.right, same_expr)
+			g.write('}')
 		}
 		// `user := User{name: 'Bob'}`
 		ast.StructInit {
