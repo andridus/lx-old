@@ -19,3 +19,13 @@
  - [ ] Binary Erlang CodeGen
  - [ ] Binary Vlang CodeGen
  - [ ] Recreate compiler with Lx Lang
+
+
+### To Execute
+1. Install V
+2. Install Erlang
+3. In one terminal, execute
+  `$ v run . repl`
+4. In other terminal execute
+  `$ ./compile_server.sh`
+  that will be execute erlang compile server (for this purpose)

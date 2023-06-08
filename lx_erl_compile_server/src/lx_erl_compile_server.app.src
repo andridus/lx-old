@@ -1,0 +1,15 @@
+{application, lx_erl_compile_server,
+ [{description, "Lx Erlang Compiler Server"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {lx_erl_compile_server_app, 5570}},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
