@@ -8,8 +8,8 @@ import color
 import gen
 import ast
 import net
-
-// import os
+import os
+import time
 
 const prompt = 'iex'
 
@@ -32,6 +32,7 @@ fn read_line(op_ch chan int, repl_ch chan int, req_ch chan string, res_ch chan s
 		// type quit to exit repl
 		if r == 'quit\n' {
 			op_ch <- -1
+
 			return
 		}
 
@@ -56,13 +57,33 @@ fn add_new_line(repl_ch chan int, ln int) {
 	repl_ch <- (ln + 1)
 }
 
-fn code_server(op_ch chan int, req chan string, res chan string) {
-	/// connect the compile server
+fn kill_server() {
+	maybe_port := os.execute('lsof -t -i:5570')
+	splitted := maybe_port.output.split('\n')
+	for i := 0; i < splitted.len; i++ {
+		pid := splitted[i]
+		if pid.len > 1 {
+			spawn kill_pid(pid)
+		}
+	}
+}
+
+fn kill_pid(pid string) {
+	os.execute('kill -9 ${pid}')
+}
+
+fn code_server(op_ch chan int, repl_ch chan int, req chan string, res chan string) {
+	// Start the server
+	kill_server()
+	os.execute('./compile_server.sh')
+	/// waits to connect the compile server
+	time.sleep(time.Duration(200 * time.millisecond))
 	mut client := net.dial_tcp('localhost:5570') or {
 		println('${color.fg(color.red, 'Invalid connection with LX Erl Compile Server ')}')
 		op_ch <- -1
 		return
 	}
+	repl_ch <- 1
 	mut buf := []u8{len: 4096}
 	for {
 		ast_erl := <-req
@@ -79,16 +100,18 @@ pub fn start() {
 	res_ch := chan string{}
 	tbl := &table.Table{}
 
-	spawn code_server(op_ch, req_ch, res_ch)
 	spawn read_line(op_ch, repl_ch, req_ch, res_ch, tbl)
+	spawn code_server(op_ch, repl_ch, req_ch, res_ch)
 
 	println('Interactive Lx (0.1.0) - press ${color.fg(color.red, 'CTRL+C to exit')} (type h() ENTER for help)')
-	repl_ch <- 1
+
 	for {
 		op := <-op_ch
 		if op == -1 {
+			kill_server()
+			println('Gracefully exit')
+			time.sleep(time.Duration(300 * time.millisecond))
 			break
 		}
 	}
-	println('exit')
 }
