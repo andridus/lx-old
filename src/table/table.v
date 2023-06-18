@@ -11,7 +11,7 @@ pub struct Table {
 pub mut:
 	types         []types.Type
 	type_idxs     map[string]int
-	local_vars    []Var
+	local_vars    map[string]Var
 	atoms         []Atom
 	fns           map[string]Fn
 	unknown_calls []ast.CallExpr
@@ -29,6 +29,7 @@ pub:
 	name   string
 	ti     types.TypeIdent
 	is_mut bool
+	expr  ast.ExprStmt
 }
 
 pub struct Fn {
@@ -60,8 +61,8 @@ pub fn (t &Table) find_or_new_atom(atom string) Atom {
 }
 
 pub fn (t &Table) find_var(name string) ?Var {
-	for var in t.local_vars {
-		if var.name == name {
+	for key, var in t.local_vars {
+		if key == name {
 			return var
 		}
 	}
@@ -70,12 +71,12 @@ pub fn (t &Table) find_var(name string) ?Var {
 
 pub fn (mut t Table) clear_vars() {
 	if t.local_vars.len > 0 {
-		t.local_vars = []
+		t.local_vars = map[string]Var
 	}
 }
 
 pub fn (mut t Table) register_var(v Var) {
-	t.local_vars << v
+	t.local_vars[v.name] = v
 }
 
 pub fn (t Table) find_fn(name string) ?Fn {

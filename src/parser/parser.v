@@ -183,6 +183,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		name: name
 		ti: ti
 		is_mut: false
+		expr: ast.ExprStmt{expr: expr, ti: ti}
 	})
 
 	return ast.VarDecl{

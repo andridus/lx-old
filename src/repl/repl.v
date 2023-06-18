@@ -17,7 +17,7 @@ fn send_socket(erl chan string) string {
 	return 'term'
 }
 
-fn read_line(op_ch chan int, repl_ch chan int, req_ch chan string, res_ch chan string, tbl table.Table) {
+fn read_line(op_ch chan int, repl_ch chan int, req_ch chan string, res_ch chan string, tbl &table.Table) {
 	mut reader := readline.Readline{
 		is_raw: false
 		skip_empty: true
@@ -72,7 +72,7 @@ fn kill_pid(pid string) {
 	os.execute('kill -9 ${pid}')
 }
 
-fn code_server(op_ch chan int, repl_ch chan int, req chan string, res chan string) {
+fn code_server(op_ch chan int, repl_ch chan int, req chan string, res chan string, tbl &table.Table) {
 	// Start the server
 	kill_server()
 	os.execute('./compile_server.sh')
@@ -87,13 +87,30 @@ fn code_server(op_ch chan int, repl_ch chan int, req chan string, res chan strin
 	mut buf := []u8{len: 4096}
 	for {
 		ast_erl := <-req
-		client.write_string(ast_erl) or { panic(err) }
+		tbl_erl := table_to_erl(tbl)
+		println('${color.fg(color.blue, ast_erl)}')
+		println('$ast_erl::$tbl_erl')
+		client.write_string('$ast_erl::$tbl_erl') or { panic(err) }
 		client.read(mut buf) or { panic(err) }
 		res <- buf.bytestr()
 		for i := 0; i < buf.len; i++ {
 			buf[i] = 0
 		}
 	}
+}
+fn table_to_erl(tbl table.Table) string {
+	mut tbl_ast := '['
+	for k, v in tbl.local_vars {
+		f := ast.File{
+			file_name: 'nofile'
+			stmts: [v.expr]
+		}
+		mut res := gen.erl_gen(f, tbl)
+		ast_erl := res.ast()
+		tbl_ast += '{{var, 0, \'$k.capitalize()\'}, $ast_erl}'
+	}
+	tbl_ast += ']'
+	return tbl_ast
 }
 
 pub fn start() {
@@ -104,7 +121,7 @@ pub fn start() {
 	tbl := &table.Table{}
 
 	spawn read_line(op_ch, repl_ch, req_ch, res_ch, tbl)
-	spawn code_server(op_ch, repl_ch, req_ch, res_ch)
+	spawn code_server(op_ch, repl_ch, req_ch, res_ch, tbl)
 
 	println('Interactive Lx (0.1.0) - press ${color.fg(color.red, 'CTRL+C to exit')} (type h() ENTER for help)')
 

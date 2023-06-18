@@ -1,7 +1,7 @@
 -module(lx_erl_compile_server).
 -beahviour(gen_server).
 
--export([start_link/1, eval_ast_from_string/1, client/2]).
+-export([start_link/1, eval_ast_from_string/2, client/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3, terminate/2]).
 
 -record(state, {socket}).
@@ -38,7 +38,8 @@ code_change(_OldVersion, Tab, _Extra) -> {ok, Tab}.
 
 send(Socket, Str, Args) ->
   try
-    Value0 = eval_ast_from_string(Str),
+    [Str0, Env0] = string:split(Str, "::"),
+    Value0 = eval_ast_from_string(Str0, Env0),
     Value1 = io_lib:format("~p~n", [Value0], Args),
     Bin = erlang:list_to_bitstring(Value1),
     ok = gen_tcp:send(Socket, Bin),
@@ -53,17 +54,17 @@ send(Socket, Str, Args) ->
       ok
   end.
 
-eval_ast_from_string(String) ->
+eval_ast_from_string(Str0, Env0) ->
   try
-    AST = string_to_ast(String),
-    eval_ast(AST)
+    AST = string_to_ast(Str0),
+    Env = string_to_ast(Env0),
+    eval_ast(AST, Env)
   catch
     _:_Error ->
       error
   end.
 
-eval_ast(AST) ->
-  Env = [],
+eval_ast(AST, Env) ->
   {value, Val, _} = erl_eval:expr(AST, Env),
   Val.
 string_to_ast(String) ->

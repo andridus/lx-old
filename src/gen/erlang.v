@@ -144,9 +144,9 @@ fn (mut g ErlGen) stmt(node ast.Stmt, same_expr bool) {
 			g.endln(same_expr)
 		}
 		ast.VarDecl {
-			g.write('${node.name.capitalize()} = ')
+			g.write('{match, $node.meta.line, {var, $node.meta.line, \'${node.name.capitalize()}\'}, ')
 			g.expr(node.expr, same_expr)
-			g.endln(same_expr)
+			g.write('}')
 		}
 		ast.ForStmt {
 			g.write('while (')
@@ -195,14 +195,14 @@ fn (mut g ErlGen) expr(node ast.Expr, same_expr bool) {
 			g.write('{integer, ${node.meta.line}, ${node.val.str()}}')
 		}
 		ast.FloatLiteral {
-			g.write(node.val.str())
+			g.write('{float, ${node.meta.line}, ${node.val}}')
 		}
 		ast.UnaryExpr {
 			g.expr(node.left, same_expr)
 			g.write(' ${node.op} ')
 		}
 		ast.StringLiteral {
-			g.write('tos3("${node.val}")')
+			g.write('{string, ${node.meta.line}, "${node.val}"}')
 		}
 		ast.BinaryExpr {
 			g.write('{op, ${node.meta.line}, \'${node.op.str()}\', ')
@@ -232,13 +232,13 @@ fn (mut g ErlGen) expr(node ast.Expr, same_expr bool) {
 			g.write(')')
 		}
 		ast.Ident {
-			g.write('${node.name.capitalize()}')
+			g.write('{var, ${node.meta.line}, \'${node.name.capitalize()}\'}')
 		}
 		ast.BoolLiteral {
 			if node.val == true {
-				g.write('true')
+				g.write('{atom, ${node.meta.line}, true}')
 			} else {
-				g.write('false')
+				g.write('{atom, ${node.meta.line}, false}')
 			}
 		}
 		ast.IfExpr {
