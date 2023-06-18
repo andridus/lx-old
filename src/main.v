@@ -15,7 +15,7 @@ fn main() {
 			'repl' {
 				repl.start()
 			}
-			'build-js' {
+			'-js' {
 				if os.args.len == 3 {
 					path := os.args[2]
 					t := &table.Table{}
@@ -29,13 +29,26 @@ fn main() {
 					println('File is need to lexer')
 				}
 			}
-			'build-erl' {
+			'-erl' {
 				if os.args.len == 3 {
 					path := os.args[2]
 					t := &table.Table{}
 					p := parser.parse_file(path, t)
 					elapsed := sw.elapsed().milliseconds()
 					mut generated := gen.erl_gen(p, t)
+					generated.save()
+					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
+				} else {
+					println('File is need to lexer')
+				}
+			}
+			'-c' {
+				if os.args.len == 3 {
+					path := os.args[2]
+					t := &table.Table{}
+					p := parser.parse_file(path, t)
+					elapsed := sw.elapsed().milliseconds()
+					mut generated := gen.c_gen(p, t)
 					generated.save()
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {

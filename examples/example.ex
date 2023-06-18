@@ -1,5 +1,5 @@
 defmodule Test.Mod do
-  def sum(a: integer, b: float, c: float) :: float do
+  def sum(a, b, c)do
     a + b + c
   end
 end
