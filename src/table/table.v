@@ -7,11 +7,24 @@ module table
 import types
 import ast
 
+pub struct Module {
+pub mut:
+	name           string
+	path           string
+	require_module []string
+	is_compiled    bool
+	compiled_at    int
+	is_main        bool
+}
+
 pub struct Table {
 pub mut:
+	modules       map[string]Module
+	is_completed  bool
 	types         []types.Type
 	type_idxs     map[string]int
 	local_vars    map[string]Var
+	aliases       map[string]Alias
 	atoms         []Atom
 	fns           map[string]Fn
 	unknown_calls []ast.CallExpr
@@ -29,14 +42,25 @@ pub:
 	name   string
 	ti     types.TypeIdent
 	is_mut bool
-	expr  ast.ExprStmt
+	expr   ast.ExprStmt
+}
+
+pub struct Alias {
+pub:
+	as_key      string
+	args        []Var
+	module_path string
 }
 
 pub struct Fn {
 pub:
-	name      string
-	args      []Var
-	return_ti types.TypeIdent
+	name        string
+	args        []Var
+	return_ti   types.TypeIdent
+	is_external bool
+	is_valid    bool
+	module_path string
+	module_name string
 }
 
 pub fn new_table() &Table {
@@ -71,7 +95,7 @@ pub fn (t &Table) find_var(name string) ?Var {
 
 pub fn (mut t Table) clear_vars() {
 	if t.local_vars.len > 0 {
-		t.local_vars = map[string]Var
+		t.local_vars = map[string]Var{}
 	}
 }
 
@@ -79,16 +103,16 @@ pub fn (mut t Table) register_var(v Var) {
 	t.local_vars[v.name] = v
 }
 
-pub fn (t Table) find_fn(name string) ?Fn {
-	f := t.fns[name]
-	if f.name.str != 0 {
+pub fn (t &Table) find_fn(name string, module_name string) ?Fn {
+	f := t.fns[module_name + '.' + name]
+	if f.is_valid {
 		return f
 	}
 	return none
 }
 
 pub fn (mut t Table) register_fn(new_fn Fn) {
-	t.fns[new_fn.name] = new_fn
+	t.fns[new_fn.module_name + '.' + new_fn.name] = new_fn
 }
 
 pub fn (mut t Table) register_method(ti types.TypeIdent, new_fn Fn) bool {

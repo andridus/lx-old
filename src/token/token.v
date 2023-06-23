@@ -5,11 +5,12 @@ module token
 
 pub struct Token {
 pub:
-	kind    Kind
-	lit     string
-	line_nr int
-	pos     int
-	value   LiteralValue
+	kind       Kind
+	lit        string
+	line_nr    int
+	pos        int
+	pos_inline int
+	value      LiteralValue
 }
 
 pub union LiteralValue {

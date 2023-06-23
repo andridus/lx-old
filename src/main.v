@@ -46,10 +46,24 @@ fn main() {
 				if os.args.len == 3 {
 					path := os.args[2]
 					t := &table.Table{}
-					p := parser.parse_file(path, t)
+					if os.is_dir(path) {
+						files := os.ls('${path}') or { []string{} }
+						for file in files {
+							parser.parse_modules('${path}/${file}', t)
+						}
+						order := parser.compile_order(t)
+						for file in order {
+							// Generate for every file	
+							p := parser.parse_file(file, t)
+							mut generated := gen.c_gen(p, t)
+							generated.save()
+						}
+					} else {
+						p := parser.parse_file(path, t)
+						mut generated := gen.c_gen(p, t)
+						generated.save()
+					}
 					elapsed := sw.elapsed().milliseconds()
-					mut generated := gen.c_gen(p, t)
-					generated.save()
 					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
 				} else {
 					println('File is need to lexer')
@@ -59,6 +73,7 @@ fn main() {
 				if os.args.len == 3 {
 					path := os.args[2]
 					t := &table.Table{}
+
 					parser.parse_file(path, t)
 					elapsed := sw.elapsed().milliseconds()
 					println('\nRead file `${path}` at ${elapsed}ms')

@@ -144,7 +144,7 @@ fn (mut g ErlGen) stmt(node ast.Stmt, same_expr bool) {
 			g.endln(same_expr)
 		}
 		ast.VarDecl {
-			g.write('{match, $node.meta.line, {var, $node.meta.line, \'${node.name.capitalize()}\'}, ')
+			g.write('{match, ${node.meta.line}, {var, ${node.meta.line}, \'${node.name.capitalize()}\'}, ')
 			g.expr(node.expr, same_expr)
 			g.write('}')
 		}

@@ -65,6 +65,7 @@ pub struct Keyword {
 	key   string
 	value string
 	typ   types.TypeIdent
+	ti    types.TypeIdent
 	atom  bool
 	meta  Meta
 }
@@ -73,30 +74,35 @@ pub struct IntegerLiteral {
 pub:
 	val  int
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct FloatLiteral {
 pub:
 	val  f32
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct StringLiteral {
 pub:
 	val  string
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct BoolLiteral {
 pub:
 	val  bool
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct KeywordList {
 mut:
 	items []Keyword
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct SelectorExpr {
@@ -104,6 +110,7 @@ pub:
 	expr  Expr
 	field string
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct Module {
@@ -114,6 +121,7 @@ pub:
 	stmt        Stmt
 	is_top_stmt bool
 	meta        Meta
+	ti          types.TypeIdent
 }
 
 pub struct Field {
@@ -129,6 +137,7 @@ pub:
 	fields []Field
 	is_pub bool
 	meta   Meta
+	ti     types.TypeIdent
 }
 
 pub struct StructInit {
@@ -143,6 +152,7 @@ pub struct Import {
 pub:
 	mods map[string]string
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct Arg {
@@ -165,11 +175,15 @@ pub:
 
 pub struct CallExpr {
 pub:
-	name       string
-	args       []Expr
-	is_unknown bool
-	tok        token.Token
-	meta       Meta
+	name        string
+	args        []Expr
+	is_unknown  bool
+	is_external bool
+	module_path string
+	module_name string
+	tok         token.Token
+	meta        Meta
+	ti          types.TypeIdent
 }
 
 pub struct MethodCallExpr {
@@ -180,12 +194,14 @@ pub:
 	is_unknown bool
 	tok        token.Token
 	meta       Meta
+	ti         types.TypeIdent
 }
 
 pub struct Return {
 pub:
 	exprs []Expr
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct VarDecl {
@@ -210,6 +226,7 @@ pub:
 	tok_kind token.Kind
 	value    string
 	meta     Meta
+	ti       types.TypeIdent
 }
 
 pub struct BinaryExpr {
@@ -219,6 +236,7 @@ pub:
 	left          Expr
 	right         Expr
 	meta          Meta
+	ti            types.TypeIdent
 }
 
 pub struct UnaryExpr {
@@ -226,6 +244,7 @@ pub:
 	op   token.Kind
 	left Expr
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct PostfixExpr {
@@ -233,6 +252,7 @@ pub:
 	op   token.Kind
 	expr Expr
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct PrefixExpr {
@@ -240,6 +260,7 @@ pub:
 	op    token.Kind
 	right Expr
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct IndexExpr {
@@ -247,6 +268,7 @@ pub:
 	left  Expr
 	index Expr
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct IfExpr {
@@ -265,6 +287,7 @@ pub:
 	cond  Expr
 	stmts []Stmt
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct ForInStmt {
@@ -273,6 +296,7 @@ pub:
 	cond  Expr
 	stmts []Stmt
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct ForCStmt {
@@ -282,12 +306,14 @@ pub:
 	inc   Stmt // i++;
 	stmts []Stmt
 	meta  Meta
+	ti    types.TypeIdent
 }
 
 pub struct ReturnStmt {
 	tok_kind token.Kind // or pos
 	results  []Expr
 	meta     Meta
+	ti       types.TypeIdent
 }
 
 pub struct AssignExpr {
@@ -296,6 +322,7 @@ pub:
 	val  Expr
 	op   token.Kind
 	meta Meta
+	ti   types.TypeIdent
 }
 
 pub struct ArrayInit {
@@ -319,56 +346,56 @@ fn (m Meta) str() string {
 	return '[line: ${m.line}]'
 }
 
-pub fn (x Expr) str() string {
-	match x {
-		BinaryExpr {
-			return '{:${x.op.str()}, ${x.meta}, [${x.left.str()}, ${x.right.str()}]}'
-		}
-		UnaryExpr {
-			return x.left.str() + x.op.str()
-		}
-		IntegerLiteral {
-			return x.val.str()
-		}
-		Ident {
-			return x.name
-		}
-		KeywordList {
-			mut st := []string{}
-			for i in x.items {
-				if !i.atom && i.key.contains_u8(32) {
-					st << '"${i.key}": ${i.value}'
-				} else {
-					st << '${i.key}:  ${i.value}'
-				}
-			}
-			return '[' + st.join(', ') + ']'
-		}
-		else {
-			return ''
-		}
-	}
-}
+// pub fn (x Expr) str() string {
+// 	match x {
+// 		BinaryExpr {
+// 			return '{:${x.op.str()}, ${x.meta}, [${x.left.str()}, ${x.right.str()}]}'
+// 		}
+// 		UnaryExpr {
+// 			return x.left.str() + x.op.str()
+// 		}
+// 		IntegerLiteral {
+// 			return x.val.str()
+// 		}
+// 		Ident {
+// 			return x.name
+// 		}
+// 		KeywordList {
+// 			mut st := []string{}
+// 			for i in x.items {
+// 				if !i.atom && i.key.contains_u8(32) {
+// 					st << '"${i.key}": ${i.value}'
+// 				} else {
+// 					st << '${i.key}:  ${i.value}'
+// 				}
+// 			}
+// 			return '[' + st.join(', ') + ']'
+// 		}
+// 		else {
+// 			return ''
+// 		}
+// 	}
+// }
 
-pub fn (node Stmt) str() string {
-	match node {
-		VarDecl {
-			return node.name + ' = ' + node.expr.str()
-		}
-		ExprStmt {
-			return node.expr.str()
-		}
-		FnDecl {
-			return 'fn ${node.name}() { ${node.stmts.len} stmts }'
-		}
-		Block {
-			return node.str()
-		}
-		else {
-			return '[unhandled stmt str]'
-		}
-	}
-}
+// pub fn (node Stmt) str() string {
+// 	match node {
+// 		VarDecl {
+// 			return node.name + ' = ' + node.expr.str()
+// 		}
+// 		ExprStmt {
+// 			return node.expr.str()
+// 		}
+// 		FnDecl {
+// 			return 'fn ${node.name}() { ${node.stmts.len} stmts }'
+// 		}
+// 		Block {
+// 			return node.str()
+// 		}
+// 		else {
+// 			return '[unhandled stmt str]'
+// 		}
+// 	}
+// }
 
 pub fn (mut kw KeywordList) put(ident string, value string, typ types.TypeIdent, atom bool) {
 	kw.items << Keyword{

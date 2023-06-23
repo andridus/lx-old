@@ -23,6 +23,6 @@ pub const (
 	white        = 97
 )
 
-pub fn fg(c int, text string) string {
-	return '${color.prefix}${c}${color.suffix}${text}${color.reset}'
+pub fn fg(c int, dec int, text string) string {
+	return '${color.prefix}${dec}${color.suffix}${color.prefix}${c}${color.suffix}${text}${color.reset}'
 }

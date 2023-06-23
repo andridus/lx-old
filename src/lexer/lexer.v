@@ -1,6 +1,7 @@
 module lexer
 
 import token
+import color
 
 pub struct Lexer {
 	input []u8
@@ -10,6 +11,63 @@ pub mut:
 	pos_inline int
 	total      int
 	tokens     []token.Token
+}
+
+pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, line_breaks int, current_line int) string {
+	mut lb_before := seek_lb_before(l.input, from)
+	lb_after := seek_lb_after(l.input, from)
+	mut lines := []string{}
+	mut curr_line := current_line - 1
+	for i0 := lb_before; i0 <= lb_after; i0++ {
+		if l.input[i0] == 10 && i0 != lb_before {
+			i0++
+			if curr_line == current_line {
+				code := color.fg(color.black, 4, remove_break_line(l.input[lb_before..i0]).bytestr())
+				lines << color.fg(color.black, 1, '${curr_line} | ') + code
+				lines << color.fg(color.black, 0, '- |   ^')
+			} else {
+				str := '${curr_line} | ' + remove_break_line(l.input[lb_before..i0]).bytestr()
+				lines << color.fg(color.dark_gray, 0, '${str}')
+			}
+			lb_before = i0
+			curr_line++
+		}
+	}
+	return lines.join('\n')
+}
+
+fn remove_break_line(arr []u8) []u8 {
+	mut new_arr := []u8{}
+	for i in arr {
+		if i != 10 {
+			if i == 9 {
+				new_arr << 32
+			} else {
+				new_arr << i
+			}
+		}
+	}
+	return new_arr
+}
+
+fn seek_lb_before(arr []u8, i0 int) int {
+	mut ret_int := 0
+	for i := i0; i > 0; i-- {
+		if arr[i] == 10 {
+			ret_int = i
+		}
+	}
+	return ret_int
+}
+
+fn seek_lb_after(arr []u8, i0 int) int {
+	mut ret_int := 0
+	for i := i0; i < arr.len; i++ {
+		if arr[i] == 10 {
+			ret_int = i
+		}
+	}
+	return ret_int
 }
 
 pub fn new(input string) &Lexer {
@@ -92,7 +150,7 @@ fn (mut l Lexer) parse_token() token.Token {
 	}
 	u := l.input[l.pos]
 	return match u {
-		32 {
+		32, 9 {
 			l.skip_space()
 		}
 		10 {
@@ -336,6 +394,7 @@ fn (mut l Lexer) new_token_new_line() token.Token {
 		lit: '\\n'
 		line_nr: l.lines - 1
 		pos: l.pos
+		pos_inline: l.pos_inline
 	}
 }
 
@@ -344,7 +403,8 @@ fn (mut l Lexer) new_token_eof() token.Token {
 		kind: .eof
 		lit: '\0'
 		line_nr: l.lines
-		pos: l.pos_inline
+		pos: l.pos
+		pos_inline: l.pos_inline
 	}
 }
 
@@ -368,15 +428,22 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 	return token.Token{
 		kind: kind
 		lit: lit
-		line_nr: l.lines
-		pos: l.pos_inline
+		line_nr: l.lines - 1
+		pos: l.pos
+		pos_inline: l.pos_inline
 		value: value
 	}
 }
 
 fn (mut l Lexer) match_else() token.Token {
 	s := l.input[l.pos]
-	return l.get_token_word(s) or { l.get_token_integer(s) or { l.new_token('[i]', .ignore, 1) } }
+	return l.get_token_word(s) or {
+		l.get_token_integer(s) or {
+			// l.advance(1)
+			// l.parse_token()
+			l.new_token('[i]', .ignore, 1)
+		}
+	}
 }
 
 fn (mut l Lexer) get_token_atom(bt u8) token.Token {

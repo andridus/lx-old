@@ -9,13 +9,16 @@ import lexer
 import token
 import types
 import table
-import term
 import utils
+import color
 
 struct Parser {
 	file_name  string
 	build_path string
 mut:
+	module_name   string
+	module_path   string
+	requirements  []string
 	tok           token.Token
 	lexer         &lexer.Lexer
 	table         &table.Table
@@ -35,6 +38,107 @@ pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
 	}
 	p.read_first_token()
 	return p.stmt()
+}
+
+pub fn parse_modules(path string, t &table.Table) {
+	text := os.read_file(path) or { panic(err) }
+	mut t0 := unsafe { &t }
+	mut l := lexer.new(text)
+	l.generate_tokens()
+	mut is_main := false
+	mut requireds := []string{}
+	tk_len := l.tokens.len
+	mut name := []string{}
+	for i := 0; i < tk_len; i++ {
+		if l.tokens[i].kind != .key_defmodule {
+			mut module_required_name := []string{}
+			// get caller functions from outsite (other modules)
+			if i + 1 < tk_len && l.tokens[i + 1].kind == .modl {
+				module_required_name << l.tokens[i + 1].lit
+				for j := i + 2; j < tk_len; j++ {
+					if l.tokens[j].kind == .dot {
+						continue
+					} else if l.tokens[j].kind == .modl {
+						module_required_name << l.tokens[j].lit
+					} else {
+						break
+					}
+				}
+			} else if i + 1 < tk_len && l.tokens[i + 1].kind == .key_def {
+				if i + 2 < tk_len {
+					tk := l.tokens[i + 2]
+					if tk.kind == .ident && tk.lit == 'main' {
+						is_main = true
+					}
+				}
+			}
+			if module_required_name.len > 0 {
+				requireds << module_required_name.join('.')
+			}
+		} else {
+			if i + 1 < tk_len && l.tokens[i + 1].kind == .modl {
+				name << l.tokens[i + 1].lit
+				for j := i + 2; j < tk_len; j++ {
+					if l.tokens[j].kind == .dot {
+						continue
+					} else if l.tokens[j].kind == .modl {
+						name << l.tokens[j].lit
+					} else {
+						break
+					}
+				}
+			}
+		}
+	}
+	name0 := name.join('.')
+	t0.modules[name0] = table.Module{
+		name: name0
+		path: path
+		require_module: requireds
+		is_main: is_main
+	}
+}
+
+pub fn compile_order(t &table.Table) []string {
+	mut main_module := ''
+	mut requireds := []string{}
+	for _, mod in t.modules {
+		if mod.is_main {
+			main_module = mod.path
+			requireds.prepend(mod.require_module)
+		}
+	}
+	for req in requireds.clone() {
+		requireds.prepend(t.modules[req].require_module)
+	}
+	mut arr := []string{}
+
+	for nam in uniq(requireds) {
+		a := t.modules[nam].path
+		if a.len == 0 {
+			println(color.fg(color.red, 0, 'COMPILER: Module ${nam} is required and wasn\'t defined in current project'))
+			exit(0)
+		}
+		arr << a
+	}
+	arr << main_module
+	return arr
+}
+
+fn uniq(arr []string) []string {
+	mut new_arr := []string{}
+	for el in arr {
+		mut in_array := false
+		for i := 0; i < new_arr.len; i++ {
+			if new_arr[i] == el {
+				in_array = true
+			}
+		}
+		if !in_array {
+			new_arr << el
+		}
+	}
+	return new_arr
 }
 
 pub fn parse_file(path string, t &table.Table) ast.File {
@@ -93,9 +197,9 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 		.key_defmodule {
 			return p.module_decl()
 		}
-		.modl {
-			return p.call_expr()
-		}
+		// .modl {
+		// 	return p.call_expr()
+		// }
 		.lsbr {
 			p.next_token()
 			p.check(.ident)
@@ -163,10 +267,14 @@ fn (mut p Parser) module_decl() ast.Module {
 		module_path_name << p.tok.lit
 		p.check(.modl)
 	}
+	p.module_name = module_path_name.join('.')
+	p.module_path = module_path_name.join('_').to_lower()
+
 	stmt := p.block_expr(false)
+
 	return ast.Module{
-		name: module_path_name.join('.')
-		file_name: module_path_name.join('.').to_lower()
+		name: p.module_name
+		file_name: p.module_path
 		path: p.file_name
 		stmt: stmt
 	}
@@ -183,7 +291,10 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		name: name
 		ti: ti
 		is_mut: false
-		expr: ast.ExprStmt{expr: expr, ti: ti}
+		expr: ast.ExprStmt{
+			expr: expr
+			ti: ti
+		}
 	})
 
 	return ast.VarDecl{
@@ -218,25 +329,10 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.str {
 			if p.peek_tok.kind == .colon_space {
 				node, ti = p.keyword_list_expr()
+			} else {
+				node, ti = p.string_expr()
 			}
 		}
-		// .str {
-		// 	node,ti = p.string_expr()
-		// }
-		// -1, -a etc
-		// .minus, .amp {
-		// 	node,ti = p.prefix_expr()
-		// }
-		// .amp {
-		// p.next()
-		// }
-		// .key_true, .key_false {
-		// 	node = ast.BoolLiteral{
-		// 		val: p.tok.kind == .key_true
-		// 	}
-		// 	ti = types.bool_ti
-		// 	p.next_token()
-		// }
 		.integer {
 			node, ti = p.parse_number_literal()
 		}
@@ -250,12 +346,15 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			p.check(.rpar)
 			p.inside_parens--
 		}
-		// .key_if {
-		// 	node,ti = p.if_expr()
-		// }
-		// .lsbr {
-		// 	node,ti = p.array_init()
-		// }
+		.modl {
+			node1, ti1 := p.call_from_module() or {
+				p.warn('Error')
+				exit(0)
+				// p.warn('Module ${module_name(module_ref)} is orphan')
+			}
+			node = ast.Expr(node1)
+			ti = ti1
+		}
 		else {
 			p.error('expr(): bad token `${p.tok.str()}`')
 		}
@@ -263,14 +362,6 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 
 	// Infix
 	for precedence < p.tok.precedence() {
-		// if p.tok.kind.is_assign() {
-		// 	node = p.assign_expr(node)
-		// }
-		// else if p.tok.kind == .dot {
-		// 	node,ti = p.dot_expr(node, ti)
-		// }
-		// else if p.tok.kind == .lsbr {
-		// 	node,ti = p.index_expr(node)
 		if p.tok.kind.is_infix() {
 			node, ti = p.infix_expr(node)
 			return node, ti
@@ -288,6 +379,25 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		}
 	}
 	return node, ti
+}
+
+fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
+	mut node := ast.StringLiteral{
+		val: p.tok.lit
+	}
+	if p.peek_tok.kind != .hash {
+		p.next_token()
+		return node, types.string_ti
+	}
+	for p.tok.kind == .str {
+		p.next_token()
+		if p.tok.kind != .hash {
+			continue
+		}
+		p.check(.hash)
+		p.expr(0)
+	}
+	return node, types.string_ti
 }
 
 fn (mut p Parser) keyword_list_expr() (ast.Expr, types.TypeIdent) {
@@ -471,15 +581,18 @@ fn ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_
 
 pub fn (p &Parser) error(s string) {
 	// print_backtrace()
-	println(term.bold(term.red('${p.file_name}[${p.tok.line_nr},${p.tok.pos}]: ${s}')))
+	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.tok.pos}]: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) error_at_line(s string, line_nr int) {
-	println(term.bold(term.red('${p.file_name}:${line_nr}: ${s}')))
+	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}:${line_nr}: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) warn(s string) {
-	println(term.blue('${p.file_name}:${p.tok.line_nr}: ${s}'))
+	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.tok.pos_inline}]: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
 }
 
 fn (mut p Parser) check_name() string {
@@ -491,6 +604,7 @@ fn (mut p Parser) check_name() string {
 pub fn (mut p Parser) parse_block() []ast.Stmt {
 	p.check(.key_do)
 	mut stmts := []ast.Stmt{}
+
 	if p.tok.kind != .key_do {
 		for {
 			stmts << p.stmt()
@@ -501,6 +615,7 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 		}
 	}
 	p.check(.key_end)
+
 	// println('nr exprs in block = $exprs.len')
 	return stmts
 }
