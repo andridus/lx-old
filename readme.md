@@ -26,13 +26,13 @@
 ## About compilation
 1. List all files to compile, follow ther order from the module that has a 'main' function
 2. Compile all dependency files, at last the main module.
-
-3. Defer compilation warning. if is compiles many files and check dependency error, just wait to all files was compiled, and check if error persist, so thown.
-4. Parallel compilation. Using methods above to compile in parallel
+3. Set summarized information about headers functions was defined in modules.
+4. Defer compilation warning. if is compiles many files and check dependency error, just wait to all files was compiled, and check if error persist, so thown.
+5. Parallel compilation. Using methods above to compile in parallel
 
 ## Dependency between files
 
-Depict three files:
+Imagine three files:
 
 ```elixir
   a.ex
@@ -61,6 +61,8 @@ Depict three files:
 ```
   In order to compile A module, we need ensure that B module is already compiled, that be we need ensure C module is already compiled.
   Ir order of compilation defined by requirement of the main module, all warnings about compilation in call extern function is defer until finish all compilations that will be re evaluated.
+
+
 
 ### To Execute
 1. Install V

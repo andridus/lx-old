@@ -7,28 +7,16 @@ module table
 import types
 import ast
 
-pub struct Module {
-pub mut:
-	name           string
-	path           string
-	require_module []string
-	is_compiled    bool
-	compiled_at    int
-	is_main        bool
-}
-
 pub struct Table {
 pub mut:
-	modules       map[string]Module
-	is_completed  bool
-	types         []types.Type
-	type_idxs     map[string]int
-	local_vars    map[string]Var
-	aliases       map[string]Alias
-	atoms         []Atom
-	fns           map[string]Fn
-	unknown_calls []ast.CallExpr
-	tmp_cnt       int
+	types          []types.Type
+	type_idxs      map[string]int
+	local_vars     map[string]Var
+	global_aliases map[string]Alias
+	atoms          []Atom
+	fns            map[string]Fn
+	unknown_calls  []ast.CallExpr
+	tmp_cnt        int
 }
 
 pub struct Atom {
@@ -50,6 +38,14 @@ pub:
 	as_key      string
 	args        []Var
 	module_path string
+	module_name string
+}
+
+pub struct Require {
+pub:
+	args        []Var
+	module_path string
+	module_name string
 }
 
 pub struct Fn {

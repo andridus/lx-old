@@ -12,7 +12,7 @@ pub fn (mut p Parser) parse_array_ti(nr_muls int) types.TypeIdent {
 		size := p.tok.lit.int()
 		p.check(.rsbr)
 		elem_ti := p.parse_ti()
-		idx, name := p.table.find_or_register_array_fixed(&elem_ti, size, 1)
+		idx, name := p.program.table.find_or_register_array_fixed(&elem_ti, size, 1)
 		return types.new_ti(.array_fixed, name, idx, nr_muls)
 	}
 	// array
@@ -24,7 +24,7 @@ pub fn (mut p Parser) parse_array_ti(nr_muls int) types.TypeIdent {
 		p.check(.rsbr)
 		nr_dims++
 	}
-	idx, name := p.table.find_or_register_array(&elem_ti, nr_dims)
+	idx, name := p.program.table.find_or_register_array(&elem_ti, nr_dims)
 	return types.new_ti(.array, name, idx, nr_muls)
 }
 
@@ -34,7 +34,7 @@ pub fn (mut p Parser) parse_map_ti(nr_muls int) types.TypeIdent {
 	key_ti := p.parse_ti()
 	p.check(.rsbr)
 	value_ti := p.parse_ti()
-	idx, name := p.table.find_or_register_map(&key_ti, &value_ti)
+	idx, name := p.program.table.find_or_register_map(&key_ti, &value_ti)
 	return types.new_ti(.map, name, idx, nr_muls)
 }
 
@@ -51,14 +51,14 @@ pub fn (mut p Parser) parse_multi_return_ti() types.TypeIdent {
 		}
 	}
 	p.check(.rpar)
-	idx, name := p.table.find_or_register_multi_return(mr_tis)
+	idx, name := p.program.table.find_or_register_multi_return(mr_tis)
 	return types.new_ti(.multi_return, name, idx, 0)
 }
 
 pub fn (mut p Parser) parse_variadic_ti() types.TypeIdent {
 	p.check(.ellipsis)
 	variadic_ti := p.parse_ti()
-	idx, name := p.table.find_or_register_variadic(&variadic_ti)
+	idx, name := p.program.table.find_or_register_variadic(&variadic_ti)
 	return types.new_ti(.variadic, name, idx, 0)
 }
 
@@ -148,10 +148,10 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 				// struct / enum / placeholder
 				else {
 					// struct / enum
-					mut idx := p.table.find_type_idx(name)
+					mut idx := p.program.table.find_type_idx(name)
 					// add placeholder
 					if idx == 0 {
-						idx = p.table.add_placeholder_type(name)
+						idx = p.program.table.add_placeholder_type(name)
 					}
 					return types.new_ti(.placeholder, name, idx, nr_muls)
 				}

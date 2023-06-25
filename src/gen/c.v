@@ -6,124 +6,115 @@ import table
 import os
 
 struct CGen {
-	program &ast.File
-	table   &table.Table
+	program &table.Program
 mut:
 	definitions strings.Builder
-	out         strings.Builder
+	out_main    strings.Builder
+	out_modules map[string]strings.Builder
 }
 
-pub fn c_gen(program ast.File, t table.Table) CGen {
-	mut g := CGen{
-		program: &program
-		table: &t
-		out: strings.new_builder(100)
+pub fn c_gen(prog table.Program) CGen {
+	mut outm := map[string]strings.Builder{}
+	for o in prog.compile_order {
+		outm[o] = strings.new_builder(100)
 	}
-	for stmt in program.stmts {
-		g.stmt(stmt)
+
+	mut g := CGen{
+		program: &prog
+		out_main: strings.new_builder(100)
+		out_modules: outm
+	}
+
+	for modl in prog.compile_order {
+		for stmt in prog.modules[modl].stmts {
+			g.stmt(modl, stmt)
+		}
 	}
 	return g
 }
 
-pub fn (mut g CGen) ast() string {
-	return g.out.str()
+pub fn (mut g CGen) main_function() string {
+	return g.out_main.str()
 }
 
 pub fn (mut g CGen) save() {
-	for stmt in g.program.stmts {
-		match stmt {
-			ast.Module {
-				filename := stmt.name.to_lower().replace('.', '_')
-				output_c := '${g.program.output_path}/c'
-				os.rmdir_all(output_c) or { println(error) }
-				if !os.is_dir(output_c) {
-					os.mkdir(output_c) or { println(error) }
-				}
-				os.write_file('${output_c}/${filename}.c', g.out.str()) or { println(err.msg()) }
-			}
-			else {}
-		}
+	mut bin := []u8{}
+	mut order := g.program.compile_order.clone()
+	/// include std functions
+	bin << '// Include standard functions\n'.bytes()
+	bin << '#include <stdio.h>\n\n'.bytes()
+	//
+	order.reverse()
+	for modl in order {
+		bin << g.out_modules[modl]
 	}
+	bin << g.out_main
+	os.write_file('${g.program.build_folder}/main.c', bin.bytestr()) or { println(err.msg()) }
 }
 
-pub fn (mut g CGen) write(s string) {
-	g.out.write_string(s)
+pub fn (mut g CGen) write(modl string, s string) {
+	g.out_modules[modl].write_string(s)
 }
 
-pub fn (mut g CGen) writeln(s string) {
-	g.out.writeln(s)
+pub fn (mut g CGen) writeln(modl string, s string) {
+	g.out_modules[modl].writeln(s)
 }
 
-fn (mut g CGen) endln() {
-	g.writeln(';')
+fn (mut g CGen) endln(modl string) {
+	g.writeln(modl, ';')
 }
 
-fn (mut g CGen) stmt(node ast.Stmt) {
+fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 	match node {
 		ast.Module {
-			mut exports := []string{}
-			for _, fns in g.table.fns {
-				exports << '${fns.name}/${fns.args.len}'
-			}
-			g.writeln('// module \'${node.name}\'.ex transpiled to c')
-			g.writeln('#include <stdio.h>\n')
-			g.stmt(node.stmt)
+			module0 := g.program.modules[modl]
+			g.writeln(modl, '// MODULE \'${module0.name}\'.ex')
+			g.stmt(modl, node.stmt)
 		}
 		ast.Block {
-			if node.is_top_stmt {
-				g.writeln('Some definitions about before start module scope')
-				mut current := 0
-				for stmt in node.stmts {
-					if current > 0 {
-						g.writeln('')
-					}
-					g.stmt(stmt)
-					current++
-				}
-			} else {
-				for stmt in node.stmts {
-					g.stmt(stmt)
-				}
+			g.writeln(modl, '// -------- --------')
+			for stmt in node.stmts {
+				g.stmt(modl, stmt)
 			}
 		}
 		ast.FnDecl {
+			module0 := g.program.modules[modl]
 			mut total := node.args.len
 			mut current := 0
-			g.write('${node.ti} a$$${node.name}(')
-			///
-			current = 0
+
+			if module0.is_main && node.name == 'main' {
+				g.gen_main_function(module0, node)
+			}
+			g.write(modl, '${node.ti} ${module0.name}_${node.name}(')
 			for current < total {
-				g.write('${node.args[current].name.capitalize()}')
+				g.write(modl, '${node.args[current].name.capitalize()}')
 				current++
 				if current < total {
-					g.write(', ')
+					g.write(modl, ', ')
 				}
 			}
-			g.writeln(') {')
+			g.writeln(modl, ') {')
 
 			total = node.stmts.len
 			current = 0
 			for stmt in node.stmts {
-				if current > 0 {
-					g.write('          ')
-				}
 				if current + 1 == total {
-					g.write('return ')
-					g.stmt(stmt)
+					g.write(modl, 'return ')
+					g.stmt(modl, stmt)
 				} else {
-					g.stmt(stmt)
+					g.stmt(modl, stmt)
 				}
 				current++
 			}
-			g.writeln('}')
+			g.writeln(modl, '}')
 		}
 		ast.ExprStmt {
-			g.expr(node.expr)
+			g.expr(modl, node.expr)
 			match node.expr {
 				// no ; after an if expression
 				ast.IfExpr {}
 				else {
-					g.endln()
+					g.endln(modl)
 				}
 			}
 		}
@@ -131,74 +122,81 @@ fn (mut g CGen) stmt(node ast.Stmt) {
 	}
 }
 
-fn (mut g CGen) expr(node ast.Expr) {
+fn (mut g CGen) expr(modl string, node ast.Expr) {
 	// println('cgen expr()')
 	match node {
 		ast.IntegerLiteral {
-			g.write(node.val.str())
+			g.write(modl, node.val.str())
 		}
 		ast.FloatLiteral {
-			g.write(node.val.str())
+			g.write(modl, node.val.str())
 		}
 		ast.UnaryExpr {
-			g.expr(node.left)
-			g.write(' ${node.op} ')
+			g.expr(modl, node.left)
+			g.write(modl, ' ${node.op} ')
 		}
 		ast.StringLiteral {
-			g.write("\"${node.val}\"")
+			g.write(modl, "\"${node.val}\"")
 		}
 		ast.BinaryExpr {
-			g.write('{op, ${node.meta.line}, \'${node.op.str()}\', ')
-			g.expr(node.left)
-			g.write(', ')
-			g.expr(node.right)
-			g.write('}')
+			g.write(modl, '{op, ${node.meta.line}, \'${node.op.str()}\', ')
+			g.expr(modl, node.left)
+			g.write(modl, ', ')
+			g.expr(modl, node.right)
+			g.write(modl, '}')
 		}
 		// `user := User{name: 'Bob'}`
 		ast.StructInit {
-			g.writeln('/*${node.ti.name}*/{')
+			g.writeln(modl, '/*${node.ti.name}*/{')
 			for i, field in node.fields {
-				g.write('\t${field} : ')
-				g.expr(node.exprs[i])
-				g.writeln(', ')
+				g.write(modl, '\t${field} : ')
+				g.expr(modl, node.exprs[i])
+				g.writeln(modl, ', ')
 			}
-			g.write('}')
+			g.write(modl, '}')
 		}
 		ast.CallExpr {
 			if node.is_external {
-				g.write('${node.module_path}$$')
+				g.write(modl, '${node.module_name}_')
 			}
-			g.write('${node.name}(')
+			g.write(modl, '${node.name}(')
 			for i, expr in node.args {
-				g.expr(expr)
+				g.expr(modl, expr)
 				if i != node.args.len - 1 {
-					g.write(', ')
+					g.write(modl, ', ')
 				}
 			}
-			g.write(')')
+			g.write(modl, ')')
 		}
 		ast.Ident {
-			g.write('{var, ${node.meta.line}, \'${node.name.capitalize()}\'}')
+			g.write(modl, '{var, ${node.meta.line}, \'${node.name.capitalize()}\'}')
 		}
 		ast.BoolLiteral {
 			if node.val == true {
-				g.write('{atom, ${node.meta.line}, true}')
+				g.write(modl, '{atom, ${node.meta.line}, true}')
 			} else {
-				g.write('{atom, ${node.meta.line}, false}')
+				g.write(modl, '{atom, ${node.meta.line}, false}')
 			}
 		}
 		ast.IfExpr {
-			g.write('if (')
-			g.expr(node.cond)
-			g.writeln(') {')
+			g.write(modl, 'if (')
+			g.expr(modl, node.cond)
+			g.writeln(modl, ') {')
 			for stmt in node.stmts {
-				g.stmt(stmt)
+				g.stmt(modl, stmt)
 			}
-			g.writeln('}')
+			g.writeln(modl, '}')
 		}
 		ast.EmptyExpr {}
 		else {
-			println(node)
+			println('modl: ${modl}, node: ${node}')
 		}
 	}
+}
+
+fn (mut g CGen) gen_main_function(mod table.Module, fun ast.FnDecl) {
+	g.out_main.writeln('int main(int argc, char *argv[]) {')
+	g.out_main.writeln(' ${mod.name}_${fun.name}();')
+	g.out_main.writeln('return 0;')
+	g.out_main.writeln('}')
 }

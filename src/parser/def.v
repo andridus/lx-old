@@ -59,7 +59,7 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 	// 	p.next_token()
 	// }
 	p.check(.lpar)
-	if f := p.table.find_fn(fun_name.lit, module_name) {
+	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		return_ti = f.return_ti
 		for i, arg in f.args {
 			e, ti := p.expr(0)
@@ -98,7 +98,7 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 		// typ: return_ti
 	}
 	if is_unknown {
-		p.table.unknown_calls << node
+		p.program.table.unknown_calls << node
 	}
 	return node, return_ti
 }
@@ -130,7 +130,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	// mut is_method := false
 	mut rec_ti := types.void_ti
 
-	p.table.clear_vars()
+	p.program.table.clear_vars()
 	if is_priv {
 		p.check(.key_defp)
 	} else {
@@ -147,7 +147,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	// 		p.next_token()
 	// 	}
 	// 	rec_ti = p.parse_ti()
-	// 	p.table.register_var(table.Var{
+	// 	p.program.table.register_var(table.Var{
 	// 		name: rec_name
 	// 		ti: rec_ti
 	// 	})
@@ -180,7 +180,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 				ti: ti
 			}
 			args << arg
-			p.table.register_var(arg)
+			p.program.table.register_var(arg)
 			ast_args << ast.Arg{
 				ti: ti
 				name: arg_name
@@ -204,18 +204,13 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		p.return_ti = ti
 		from_type = true
 	}
-	// if is_method {
-	// 	ok := p.table.register_method(rec_ti, table.Fn{
-	// 		name: name
-	// 		args: args
-	// 		return_ti: ti
-	// 	})
-	// 	if !ok {
-	// 		p.error('expected Struct')
-	// 	}
-	// }
-	// else {
-	p.table.register_fn(table.Fn{
+	stmts := p.parse_block()
+	// Try get type from body inference
+	if from_type == false {
+		ti = stmts[stmts.len - 1].ti
+	}
+
+	p.program.table.register_fn(table.Fn{
 		name: name
 		args: args
 		return_ti: ti
@@ -225,12 +220,6 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		module_name: p.module_name
 	})
 
-	// }
-	stmts := p.parse_block()
-	// Try get type from body inference
-	if from_type == false {
-		ti = stmts[stmts.len - 1].ti
-	}
 	return ast.FnDecl{
 		name: name
 		stmts: stmts
@@ -246,8 +235,8 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 
 pub fn (p &Parser) check_fn_calls() {
 	println('check fn calls2')
-	for call in p.table.unknown_calls {
-		f := p.table.find_fn(call.name, '') or {
+	for call in p.program.table.unknown_calls {
+		f := p.program.table.find_fn(call.name, '') or {
 			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
 			return
 		}

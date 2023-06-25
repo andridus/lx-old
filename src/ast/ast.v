@@ -74,28 +74,28 @@ pub struct IntegerLiteral {
 pub:
 	val  int
 	meta Meta
-	ti   types.TypeIdent
+	ti   types.TypeIdent = types.int_ti
 }
 
 pub struct FloatLiteral {
 pub:
 	val  f32
 	meta Meta
-	ti   types.TypeIdent
+	ti   types.TypeIdent = types.float_ti
 }
 
 pub struct StringLiteral {
 pub:
 	val  string
 	meta Meta
-	ti   types.TypeIdent
+	ti   types.TypeIdent = types.string_ti
 }
 
 pub struct BoolLiteral {
 pub:
 	val  bool
 	meta Meta
-	ti   types.TypeIdent
+	ti   types.TypeIdent = types.bool_ti
 }
 
 pub struct KeywordList {
@@ -115,13 +115,11 @@ pub:
 
 pub struct Module {
 pub:
-	name        string
-	path        string
-	file_name   string
-	stmt        Stmt
-	is_top_stmt bool
-	meta        Meta
-	ti          types.TypeIdent
+	name             string
+	stmt             Stmt
+	is_parent_module bool
+	meta             Meta
+	ti               types.TypeIdent // TODO: compatibility with call `ti` from every ast.Stmt
 }
 
 pub struct Field {

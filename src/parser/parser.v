@@ -21,127 +21,34 @@ mut:
 	requirements  []string
 	tok           token.Token
 	lexer         &lexer.Lexer
-	table         &table.Table
+	program       &table.Program
 	peek_tok      token.Token
 	return_ti     types.TypeIdent
 	inside_parens int
 }
 
-pub fn parse_stmt(text string, t &table.Table) ast.Stmt {
+pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
 	l := lexer.new(text)
 	mut p := unsafe {
 		Parser{
 			build_path: '_build'
 			lexer: l
-			table: t
+			program: prog
 		}
 	}
 	p.read_first_token()
 	return p.stmt()
 }
 
-pub fn parse_modules(path string, t &table.Table) {
-	text := os.read_file(path) or { panic(err) }
-	mut t0 := unsafe { &t }
-	mut l := lexer.new(text)
-	l.generate_tokens()
-	mut is_main := false
-	mut requireds := []string{}
-	tk_len := l.tokens.len
-	mut name := []string{}
-	for i := 0; i < tk_len; i++ {
-		if l.tokens[i].kind != .key_defmodule {
-			mut module_required_name := []string{}
-			// get caller functions from outsite (other modules)
-			if i + 1 < tk_len && l.tokens[i + 1].kind == .modl {
-				module_required_name << l.tokens[i + 1].lit
-				for j := i + 2; j < tk_len; j++ {
-					if l.tokens[j].kind == .dot {
-						continue
-					} else if l.tokens[j].kind == .modl {
-						module_required_name << l.tokens[j].lit
-					} else {
-						break
-					}
-				}
-			} else if i + 1 < tk_len && l.tokens[i + 1].kind == .key_def {
-				if i + 2 < tk_len {
-					tk := l.tokens[i + 2]
-					if tk.kind == .ident && tk.lit == 'main' {
-						is_main = true
-					}
-				}
-			}
-			if module_required_name.len > 0 {
-				requireds << module_required_name.join('.')
-			}
-		} else {
-			if i + 1 < tk_len && l.tokens[i + 1].kind == .modl {
-				name << l.tokens[i + 1].lit
-				for j := i + 2; j < tk_len; j++ {
-					if l.tokens[j].kind == .dot {
-						continue
-					} else if l.tokens[j].kind == .modl {
-						name << l.tokens[j].lit
-					} else {
-						break
-					}
-				}
-			}
-		}
-	}
-	name0 := name.join('.')
-	t0.modules[name0] = table.Module{
-		name: name0
-		path: path
-		require_module: requireds
-		is_main: is_main
+pub fn parse_files(prog &table.Program) {
+	mut prog0 := unsafe { prog }
+	for modl in prog0.compile_order {
+		stmts := parse_file(prog0.modules[modl].path, prog)
+		prog0.modules[modl].put_stmts(stmts)
 	}
 }
 
-pub fn compile_order(t &table.Table) []string {
-	mut main_module := ''
-	mut requireds := []string{}
-	for _, mod in t.modules {
-		if mod.is_main {
-			main_module = mod.path
-			requireds.prepend(mod.require_module)
-		}
-	}
-	for req in requireds.clone() {
-		requireds.prepend(t.modules[req].require_module)
-	}
-	mut arr := []string{}
-
-	for nam in uniq(requireds) {
-		a := t.modules[nam].path
-		if a.len == 0 {
-			println(color.fg(color.red, 0, 'COMPILER: Module ${nam} is required and wasn\'t defined in current project'))
-			exit(0)
-		}
-		arr << a
-	}
-	arr << main_module
-	return arr
-}
-
-fn uniq(arr []string) []string {
-	mut new_arr := []string{}
-	for el in arr {
-		mut in_array := false
-		for i := 0; i < new_arr.len; i++ {
-			if new_arr[i] == el {
-				in_array = true
-			}
-		}
-		if !in_array {
-			new_arr << el
-		}
-	}
-	return new_arr
-}
-
-pub fn parse_file(path string, t &table.Table) ast.File {
+fn parse_file(path string, prog &table.Program) []ast.Stmt {
 	text := os.read_file(path) or { panic(err) }
 	mut stmts := []ast.Stmt{}
 	mut l := lexer.new(text)
@@ -149,7 +56,7 @@ pub fn parse_file(path string, t &table.Table) ast.File {
 		Parser{
 			build_path: '_build'
 			lexer: l
-			table: t
+			program: prog
 			file_name: path
 		}
 	}
@@ -160,11 +67,7 @@ pub fn parse_file(path string, t &table.Table) ast.File {
 		}
 		stmts << p.top_stmt()
 	}
-	return ast.File{
-		stmts: stmts
-		input_path: path
-		output_path: p.build_path
-	}
+	return stmts
 }
 
 pub fn (mut p Parser) read_first_token() {
@@ -268,14 +171,11 @@ fn (mut p Parser) module_decl() ast.Module {
 		p.check(.modl)
 	}
 	p.module_name = module_path_name.join('.')
-	p.module_path = module_path_name.join('_').to_lower()
 
 	stmt := p.block_expr(false)
 
 	return ast.Module{
 		name: p.module_name
-		file_name: p.module_path
-		path: p.file_name
 		stmt: stmt
 	}
 }
@@ -284,10 +184,10 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 	name := p.tok.lit
 	p.read_first_token()
 	expr, ti := p.expr(token.lowest_prec)
-	if _ := p.table.find_var(name) {
+	if _ := p.program.table.find_var(name) {
 		p.error('rebinding of `${name}`')
 	}
-	p.table.register_var(table.Var{
+	p.program.table.register_var(table.Var{
 		name: name
 		ti: ti
 		is_mut: false
@@ -439,7 +339,7 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 		name: p.tok.lit
 		tok_kind: p.tok.kind
 	}
-	var := p.table.find_var(p.tok.lit) or {
+	var := p.program.table.find_var(p.tok.lit) or {
 		p.error('undefined variable ${p.tok.lit}')
 		// exit(0)
 		table.Var{}
@@ -458,7 +358,7 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 		name: p.tok.lit
 		tok_kind: p.tok.kind
 	}
-	p.table.find_or_new_atom(p.tok.lit)
+	p.program.table.find_or_new_atom(p.tok.lit)
 	p.next_token()
 
 	return node, types.atom_ti
