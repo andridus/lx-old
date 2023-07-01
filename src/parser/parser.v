@@ -16,15 +16,16 @@ struct Parser {
 	file_name  string
 	build_path string
 mut:
-	module_name   string
-	module_path   string
-	requirements  []string
-	tok           token.Token
-	lexer         &lexer.Lexer
-	program       &table.Program
-	peek_tok      token.Token
-	return_ti     types.TypeIdent
-	inside_parens int
+	module_name      string
+	module_path      string
+	requirements     []string
+	tok              token.Token
+	lexer            &lexer.Lexer
+	program          &table.Program
+	peek_tok         token.Token
+	return_ti        types.TypeIdent
+	error_pos_inline int
+	inside_parens    int
 }
 
 pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
@@ -481,18 +482,19 @@ fn ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_
 
 pub fn (p &Parser) error(s string) {
 	// print_backtrace()
-	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.tok.pos}]: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
+	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_inline}]: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_inline,
+		1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) error_at_line(s string, line_nr int) {
 	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}:${line_nr}: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 0, 1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) warn(s string) {
 	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.tok.pos_inline}]: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 1, p.tok.line_nr))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 0, 1, p.tok.line_nr))
 }
 
 fn (mut p Parser) check_name() string {

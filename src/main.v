@@ -53,9 +53,10 @@ fn main() {
 
 					mut generated := gen.c_gen(prog)
 					generated.save()
+
 					// println(generated)
 					// for file in order {
-					// 	// Generate for every file	
+					// 	// Generate for every file
 					// 	parser.parse_file(file, prog)
 					// }
 					// mut generated := gen.c_gen(prog)

@@ -26,6 +26,7 @@ pub fn c_gen(prog table.Program) CGen {
 	}
 
 	for modl in prog.compile_order {
+		// println(prog.modules[modl].stmts)
 		for stmt in prog.modules[modl].stmts {
 			g.stmt(modl, stmt)
 		}

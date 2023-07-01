@@ -1,26 +1,17 @@
 // Include standard functions
 #include <stdio.h>
 
-// MODULE 'C'.ex
+// MODULE 'IO'.ex
 // -------- --------
-int C_sum() {
-return 1;
+atom IO_puts(Str) {
+return {var, 0, 'C_extern.stdio.printf(str)'};
 }
-// MODULE 'B'.ex
+// MODULE 'HelloWorld'.ex
 // -------- --------
-f32 B_one() {
-C_sum();
-return 2.0;
-}
-// MODULE 'A'.ex
-// -------- --------
-f32 A_main() {
-return B_one();
-}
-int A_other() {
-return C_sum();
+atom HelloWorld_main() {
+return IO_puts("Olá Mundo");
 }
 int main(int argc, char *argv[]) {
- A_main();
+ HelloWorld_main();
 return 0;
 }

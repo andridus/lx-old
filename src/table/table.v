@@ -57,6 +57,8 @@ pub:
 	is_valid    bool
 	module_path string
 	module_name string
+	def_pos_in  int
+	def_pos_out int
 }
 
 pub fn new_table() &Table {

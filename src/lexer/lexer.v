@@ -13,7 +13,7 @@ pub mut:
 	tokens     []token.Token
 }
 
-pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, line_breaks int, current_line int) string {
+pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current int, line_breaks int, current_line int) string {
 	mut lb_before := seek_lb_before(l.input, from)
 	lb_after := seek_lb_after(l.input, from)
 	mut lines := []string{}
@@ -22,9 +22,13 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, line_breaks 
 		if l.input[i0] == 10 && i0 != lb_before {
 			i0++
 			if curr_line == current_line {
-				code := color.fg(color.black, 4, remove_break_line(l.input[lb_before..i0]).bytestr())
+				code := color.fg(color.black, 0, remove_break_line(l.input[lb_before..i0]).bytestr())
 				lines << color.fg(color.black, 1, '${curr_line} | ') + code
-				lines << color.fg(color.black, 0, '- |   ^')
+				mut space := []u8{}
+				for c := 0; c < current; c++ {
+					space << 126
+				}
+				lines << color.fg(color.red, 1, '- |${space.bytestr()}^')
 			} else {
 				str := '${curr_line} | ' + remove_break_line(l.input[lb_before..i0]).bytestr()
 				lines << color.fg(color.dark_gray, 0, '${str}')
@@ -135,8 +139,14 @@ fn (l Lexer) match_next_space_or_nil() bool {
 }
 
 fn (mut l Lexer) advance(qtd int) {
+	for i := l.pos; i <= l.pos + qtd; i++ {
+		if l.input[i] == 10 {
+			l.pos_inline = 0
+		} else {
+			l.pos_inline += 1
+		}
+	}
 	l.pos += qtd
-	l.pos_inline += qtd
 }
 
 fn (mut l Lexer) skip_space() token.Token {

@@ -29,6 +29,7 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 	mut is_unknown := false
 	mut args := []ast.Expr{}
 	mut return_ti := types.void_ti
+	p.error_pos_inline = p.lexer.pos_inline
 	p.check(.modl)
 	for p.tok.kind == .dot {
 		p.check(.dot)
@@ -39,6 +40,7 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 		}
 		p.next_token()
 	}
+
 	module_name := module_name0(module_ref)
 	module_path := module_name.to_lower()
 	if fun_name.kind == .ignore {
@@ -58,13 +60,15 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 	// 	}
 	// 	p.next_token()
 	// }
+
 	p.check(.lpar)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		return_ti = f.return_ti
 		for i, arg in f.args {
 			e, ti := p.expr(0)
 			if !types.check(&arg.ti, &ti) {
-				p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fun_name}`')
+				p.error('The function `${module_name}.${fun_name.lit}` expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`')
+				// p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fun_name}`')
 			}
 			args << e
 			if i < f.args.len - 1 {
@@ -125,6 +129,8 @@ pub fn (mut p Parser) call_args() []ast.Expr {
 }
 
 fn (mut p Parser) def_decl() ast.FnDecl {
+	pos_in := p.tok.pos
+	mut pos_out := p.tok.pos
 	is_priv := p.tok.kind == .key_defp
 	mut rec_name := ''
 	// mut is_method := false
@@ -136,7 +142,6 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	} else {
 		p.check(.key_def)
 	}
-
 	// ### if is a method
 
 	// if p.tok.kind == .lpar {
@@ -209,7 +214,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	if from_type == false {
 		ti = stmts[stmts.len - 1].ti
 	}
-
+	pos_out = p.tok.pos
 	p.program.table.register_fn(table.Fn{
 		name: name
 		args: args
@@ -218,6 +223,8 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		is_valid: true
 		module_path: p.module_path
 		module_name: p.module_name
+		def_pos_in: pos_in
+		def_pos_out: pos_out
 	})
 
 	return ast.FnDecl{

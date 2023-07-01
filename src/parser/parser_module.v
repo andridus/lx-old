@@ -19,6 +19,9 @@ pub fn preprocess(path string, prog &table.Program) {
 			parse_modules('${path}/${file}', prog)
 		}
 		prog0.compile_order = compile_order(prog)
+	} else {
+		parse_modules('${path}', prog)
+		prog0.compile_order = compile_order(prog)
 	}
 }
 
