@@ -142,8 +142,8 @@ pub fn (mut t Table) new_tmp_var() string {
 	return 'tmp${t.tmp_cnt}'
 }
 
-pub fn (mut t Table) find_or_register_array_fixed(elem_ti &types.TypeIdent, size int, nr_dims int) (int, string) {
-	name := 'array_fixed_${elem_ti.name}_${size}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
+pub fn (mut t Table) find_or_register_list_fixed(elem_ti &types.TypeIdent, size int, nr_dims int) (int, string) {
+	name := 'list_fixed_${elem_ti.name}_${size}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
 	// existing
 	existing_idx := t.type_idxs[name]
 	if existing_idx > 0 {
@@ -151,8 +151,8 @@ pub fn (mut t Table) find_or_register_array_fixed(elem_ti &types.TypeIdent, size
 	}
 	// register
 	idx := t.types.len
-	mut array_fixed_type := types.Type(types.Void{})
-	array_fixed_type = types.ArrayFixed{
+	mut list_fixed_type := types.Type(types.Void{})
+	list_fixed_type = types.ListFixed{
 		idx: idx
 		name: name
 		elem_type_idx: elem_ti.idx
@@ -161,12 +161,12 @@ pub fn (mut t Table) find_or_register_array_fixed(elem_ti &types.TypeIdent, size
 		nr_dims: nr_dims
 	}
 	t.type_idxs[name] = idx
-	t.types << array_fixed_type
+	t.types << list_fixed_type
 	return idx, name
 }
 
-pub fn (mut t Table) find_or_register_array(elem_ti &types.TypeIdent, nr_dims int) (int, string) {
-	name := 'array_${elem_ti.name}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
+pub fn (mut t Table) find_or_register_list(elem_ti &types.TypeIdent, nr_dims int) (int, string) {
+	name := 'list_${elem_ti.name}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
 	// existing
 	existing_idx := t.type_idxs[name]
 	if existing_idx > 0 {
@@ -174,8 +174,8 @@ pub fn (mut t Table) find_or_register_array(elem_ti &types.TypeIdent, nr_dims in
 	}
 	// register
 	idx := t.types.len
-	mut array_type := types.Type(types.Void{})
-	array_type = types.Array{
+	mut list_type := types.Type(types.Void{})
+	list_type = types.List{
 		idx: idx
 		name: name
 		elem_type_idx: elem_ti.idx
@@ -183,7 +183,29 @@ pub fn (mut t Table) find_or_register_array(elem_ti &types.TypeIdent, nr_dims in
 		nr_dims: nr_dims
 	}
 	t.type_idxs[name] = idx
-	t.types << array_type
+	t.types << list_type
+	return idx, name
+}
+
+pub fn (mut t Table) find_or_register_tuple(elem_ti &types.TypeIdent, nr_dims int) (int, string) {
+	name := 'tuple_${elem_ti.name}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
+	// existing
+	existing_idx := t.type_idxs[name]
+	if existing_idx > 0 {
+		return existing_idx, name
+	}
+	// register
+	idx := t.types.len
+	mut tuple_type := types.Type(types.Void{})
+	tuple_type = types.Tuple{
+		idx: idx
+		name: name
+		elem_type_idx: elem_ti.idx
+		elem_is_ptr: elem_ti.is_ptr()
+		nr_dims: nr_dims
+	}
+	t.type_idxs[name] = idx
+	t.types << tuple_type
 	return idx, name
 }
 

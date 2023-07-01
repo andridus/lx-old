@@ -5,17 +5,17 @@ module parser
 // that can be found in the LICENSE file.
 import types
 
-pub fn (mut p Parser) parse_array_ti(nr_muls int) types.TypeIdent {
+pub fn (mut p Parser) parse_list_ti(nr_muls int) types.TypeIdent {
 	p.check(.lsbr)
-	// fixed array
+	// fixed list
 	if p.tok.kind in [.integer, .float] {
 		size := p.tok.lit.int()
 		p.check(.rsbr)
 		elem_ti := p.parse_ti()
-		idx, name := p.program.table.find_or_register_array_fixed(&elem_ti, size, 1)
-		return types.new_ti(.array_fixed, name, idx, nr_muls)
+		idx, name := p.program.table.find_or_register_list_fixed(&elem_ti, size, 1)
+		return types.new_ti(.list_fixed, name, idx, nr_muls)
 	}
-	// array
+	// list
 	p.check(.rsbr)
 	elem_ti := p.parse_ti()
 	mut nr_dims := 1
@@ -24,8 +24,8 @@ pub fn (mut p Parser) parse_array_ti(nr_muls int) types.TypeIdent {
 		p.check(.rsbr)
 		nr_dims++
 	}
-	idx, name := p.program.table.find_or_register_array(&elem_ti, nr_dims)
-	return types.new_ti(.array, name, idx, nr_muls)
+	idx, name := p.program.table.find_or_register_list(&elem_ti, nr_dims)
+	return types.new_ti(.list, name, idx, nr_muls)
 }
 
 pub fn (mut p Parser) parse_map_ti(nr_muls int) types.TypeIdent {
@@ -70,9 +70,9 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 	}
 	name := p.tok.lit
 	match p.tok.kind {
-		// array
+		// list
 		.lsbr {
-			return p.parse_array_ti(nr_muls)
+			return p.parse_list_ti(nr_muls)
 		}
 		// multiple return
 		.lpar {
@@ -98,52 +98,52 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 					return p.parse_map_ti(nr_muls)
 				}
 				'voidptr' {
-					return types.new_builtin_ti(.voidptr, nr_muls)
+					return types.new_builtin_ti(.voidptr, nr_muls, false)
 				}
 				'byteptr' {
-					return types.new_builtin_ti(.byteptr, nr_muls)
+					return types.new_builtin_ti(.byteptr, nr_muls, false)
 				}
 				'charptr' {
-					return types.new_builtin_ti(.charptr, nr_muls)
+					return types.new_builtin_ti(.charptr, nr_muls, false)
 				}
 				'i8' {
-					return types.new_builtin_ti(.i8, nr_muls)
+					return types.new_builtin_ti(.i8, nr_muls, false)
 				}
 				'i16' {
-					return types.new_builtin_ti(.i16, nr_muls)
+					return types.new_builtin_ti(.i16, nr_muls, false)
 				}
 				'int' {
-					return types.new_builtin_ti(.int, nr_muls)
+					return types.new_builtin_ti(.int, nr_muls, false)
 				}
 				'i64' {
-					return types.new_builtin_ti(.i64, nr_muls)
+					return types.new_builtin_ti(.i64, nr_muls, false)
 				}
 				'byte' {
-					return types.new_builtin_ti(.byte, nr_muls)
+					return types.new_builtin_ti(.byte, nr_muls, false)
 				}
 				'u16' {
-					return types.new_builtin_ti(.u16, nr_muls)
+					return types.new_builtin_ti(.u16, nr_muls, false)
 				}
 				'u32' {
-					return types.new_builtin_ti(.u32, nr_muls)
+					return types.new_builtin_ti(.u32, nr_muls, false)
 				}
 				'u64' {
-					return types.new_builtin_ti(.u64, nr_muls)
+					return types.new_builtin_ti(.u64, nr_muls, false)
 				}
 				'f32' {
-					return types.new_builtin_ti(.f32, nr_muls)
+					return types.new_builtin_ti(.f32, nr_muls, false)
 				}
 				'f64' {
-					return types.new_builtin_ti(.f64, nr_muls)
+					return types.new_builtin_ti(.f64, nr_muls, false)
 				}
 				'string' {
-					return types.new_builtin_ti(.string, nr_muls)
+					return types.new_builtin_ti(.string, nr_muls, false)
 				}
 				'char' {
-					return types.new_builtin_ti(.char, nr_muls)
+					return types.new_builtin_ti(.char, nr_muls, false)
 				}
 				'bool' {
-					return types.new_builtin_ti(.bool, nr_muls)
+					return types.new_builtin_ti(.bool, nr_muls, false)
 				}
 				// struct / enum / placeholder
 				else {

@@ -25,6 +25,8 @@ mut:
 	peek_tok         token.Token
 	return_ti        types.TypeIdent
 	error_pos_inline int
+	error_pos_in     int
+	error_pos_out    int
 	inside_parens    int
 }
 
@@ -240,6 +242,9 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.float {
 			node, ti = p.parse_number_literal()
 		}
+		.charlist {
+			node, ti = p.charlist_expr()
+		}
 		.lpar {
 			p.check(.lpar)
 			p.inside_parens++
@@ -248,7 +253,7 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			p.inside_parens--
 		}
 		.modl {
-			node1, ti1 := p.call_from_module() or {
+			node1, ti1 := p.call_from_module(.modl) or {
 				p.warn('Error')
 				exit(0)
 				// p.warn('Module ${module_name(module_ref)} is orphan')
@@ -257,7 +262,10 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			ti = ti1
 		}
 		else {
+			p.error_pos_in = p.tok.lit.len
+			p.error_pos_out = p.lexer.pos_inline
 			p.error('expr(): bad token `${p.tok.str()}`')
+			exit(0)
 		}
 	}
 
@@ -289,6 +297,25 @@ fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
 	if p.peek_tok.kind != .hash {
 		p.next_token()
 		return node, types.string_ti
+	}
+	for p.tok.kind == .str {
+		p.next_token()
+		if p.tok.kind != .hash {
+			continue
+		}
+		p.check(.hash)
+		p.expr(0)
+	}
+	return node, types.string_ti
+}
+
+fn (mut p Parser) charlist_expr() (ast.Expr, types.TypeIdent) {
+	mut node := ast.CharlistLiteral{
+		val: p.tok.lit.bytes()
+	}
+	if p.peek_tok.kind != .hash {
+		p.next_token()
+		return node, types.charlist_ti
 	}
 	for p.tok.kind == .str {
 		p.next_token()
@@ -359,9 +386,17 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 		name: p.tok.lit
 		tok_kind: p.tok.kind
 	}
-	p.program.table.find_or_new_atom(p.tok.lit)
-	p.next_token()
-
+	if p.peek_tok.kind == .dot {
+		a, b := p.call_from_module(.atom) or {
+			println(err.msg())
+			exit(0)
+		}
+		return a, b
+	} else {
+		p.check(.atom)
+		p.program.table.find_or_new_atom(p.tok.lit)
+		p.next_token()
+	}
 	return node, types.atom_ti
 }
 
@@ -480,21 +515,40 @@ fn ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_
 	})
 }
 
+pub fn (mut p Parser) log(type_error string, message string, s string) {
+	p.error_pos_in, p.error_pos_out = p.lexer.get_in_out(p.error_pos_in, p.error_pos_out,
+		s)
+	match type_error {
+		'ERROR' {
+			p.error(message)
+		}
+		'WARN' {
+			p.warn(message)
+		}
+		else {
+			panic(message)
+		}
+	}
+}
+
 pub fn (p &Parser) error(s string) {
 	// print_backtrace()
-	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_inline}]: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_inline,
-		1, p.tok.line_nr))
+	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
+		p.error_pos_out, 1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) error_at_line(s string, line_nr int) {
+	num := p.tok.lit.len + 2
 	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}:${line_nr}: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 0, 1, p.tok.line_nr))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.tok.pos_inline - num,
+		p.tok.pos_inline, 1, p.tok.line_nr))
 }
 
 pub fn (p &Parser) warn(s string) {
-	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.tok.pos_inline}]: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, 0, 1, p.tok.line_nr))
+	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
+	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
+		p.error_pos_out, 1, p.tok.line_nr))
 }
 
 fn (mut p Parser) check_name() string {

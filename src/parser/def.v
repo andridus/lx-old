@@ -12,7 +12,7 @@ pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 	mut args := ast.CallExpr{}
 	mut return_ti := types.void_ti
 	if p.tok.kind == .modl {
-		args, return_ti = p.call_from_module()!
+		args, return_ti = p.call_from_module(.modl)!
 	}
 
 	return ast.ExprStmt{
@@ -21,7 +21,7 @@ pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 	}
 }
 
-pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
+pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.TypeIdent) {
 	is_external := true
 	mut tok := p.tok
 	mut fun_name := token.Token{}
@@ -29,15 +29,27 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 	mut is_unknown := false
 	mut args := []ast.Expr{}
 	mut return_ti := types.void_ti
-	p.error_pos_inline = p.lexer.pos_inline
-	p.check(.modl)
+	p.error_pos_in = p.tok.pos - p.tok.lit.len
+	p.check(kind)
+
+	mut more := 0
 	for p.tok.kind == .dot {
 		p.check(.dot)
 		if p.tok.kind == .ident {
+			if more > 0 {
+				module_ref << fun_name
+				more = 0
+			}
 			fun_name = p.tok
-		} else {
+			more++
+		} else if p.tok.kind == .modl {
 			module_ref << p.tok
+		} else {
+			p.error_pos_inline = p.lexer.pos_inline
+			p.error('The token `${p.tok.str()}` is not a Module. \n Module starts with a capital letter.')
+			exit(0)
 		}
+
 		p.next_token()
 	}
 
@@ -67,7 +79,9 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 		for i, arg in f.args {
 			e, ti := p.expr(0)
 			if !types.check(&arg.ti, &ti) {
-				p.error('The function `${module_name}.${fun_name.lit}` expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`')
+				p.error_pos_out = p.tok.pos
+				p.log('ERROR', 'The function `${module_name}.${fun_name.lit}` expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`',
+					e.str())
 				// p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fun_name}`')
 			}
 			args << e
@@ -80,7 +94,8 @@ pub fn (mut p Parser) call_from_module() !(ast.CallExpr, types.TypeIdent) {
 		}
 	} else {
 		is_unknown = true
-		p.warn('unknown function `${fun_name}`')
+		p.error_pos_out = p.tok.pos
+		p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
 		for p.tok.kind != .rpar {
 			e, _ := p.expr(0)
 			args << e

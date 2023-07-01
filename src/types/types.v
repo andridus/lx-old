@@ -28,16 +28,15 @@ pub enum Kind {
 	string
 	char
 	bool
-	array
-	array_fixed
+	list
+	list_fixed
+	tuple
 	map
 	multi_return
 	variadic
 }
 
-pub type Type = Array
-	| ArrayFixed
-	| Atom
+pub type Type = Atom
 	| Bool
 	| Byte
 	| Byteptr
@@ -47,11 +46,14 @@ pub type Type = Array
 	| Enum
 	| Float
 	| Int
+	| List
+	| ListFixed
 	| Map
 	| MultiReturn
 	| Placeholder
 	| String
 	| Struct
+	| Tuple
 	| Variadic
 	| Void
 	| Voidptr
@@ -59,6 +61,7 @@ pub type Type = Array
 pub struct TypeIdent {
 pub:
 	idx     int
+	is_list bool
 	kind    Kind
 	name    string
 	nr_muls int
@@ -73,9 +76,10 @@ pub fn new_ti(kind Kind, name string, idx int, nr_muls int) TypeIdent {
 	}
 }
 
-pub fn new_builtin_ti(kind Kind, nr_muls int) TypeIdent {
+pub fn new_builtin_ti(kind Kind, nr_muls int, is_list bool) TypeIdent {
 	return TypeIdent{
 		idx: -int(kind) - 1
+		is_list: is_list
 		kind: kind
 		name: kind.str()
 		nr_muls: nr_muls
@@ -107,7 +111,8 @@ pub fn (ti &TypeIdent) str() string {
 	for _ in 0 .. ti.nr_muls {
 		muls += '&'
 	}
-	return '${muls}${ti.name}'
+	list := if ti.is_list { 'list' } else { '' }
+	return '${muls}${ti.name}${list}'
 }
 
 pub fn check(got TypeIdent, expected &TypeIdent) bool {
@@ -185,11 +190,14 @@ pub fn (k Kind) str() string {
 		.bool {
 			'bool'
 		}
-		.array {
-			'array'
+		.list {
+			'list'
 		}
-		.array_fixed {
-			'array_fixed'
+		.list_fixed {
+			'list_fixed'
+		}
+		.tuple {
+			'tuple'
 		}
 		.map {
 			'map'
@@ -284,7 +292,7 @@ pub struct Byte {}
 
 pub struct Bool {}
 
-pub struct Array {
+pub struct List {
 pub:
 	idx            int
 	name           string
@@ -294,7 +302,18 @@ pub:
 	nr_dims        int
 }
 
-pub struct ArrayFixed {
+pub struct ListFixed {
+pub:
+	idx            int
+	name           string
+	elem_type_kind Kind
+	elem_type_idx  int
+	elem_is_ptr    bool
+	nr_dims        int
+	size           int
+}
+
+pub struct Tuple {
 pub:
 	idx            int
 	name           string
@@ -376,11 +395,11 @@ pub fn (t Byte) str() string {
 	return 'byte'
 }
 
-pub fn (t Array) str() string {
+pub fn (t List) str() string {
 	return t.name
 }
 
-pub fn (t ArrayFixed) str() string {
+pub fn (t ListFixed) str() string {
 	return t.name
 }
 
@@ -426,10 +445,11 @@ pub fn type_from_token(tok token.Token) TypeIdent {
 }
 
 pub const (
-	void_ti   = new_builtin_ti(.void, 0)
-	int_ti    = new_builtin_ti(.int, 0)
-	float_ti  = new_builtin_ti(.f32, 0)
-	string_ti = new_builtin_ti(.string, 0)
-	bool_ti   = new_builtin_ti(.bool, 0)
-	atom_ti   = new_builtin_ti(.atom, 0)
+	void_ti     = new_builtin_ti(.void, 0, false)
+	int_ti      = new_builtin_ti(.int, 0, false)
+	float_ti    = new_builtin_ti(.f32, 0, false)
+	string_ti   = new_builtin_ti(.string, 0, false)
+	charlist_ti = new_builtin_ti(.char, 0, true)
+	bool_ti     = new_builtin_ti(.bool, 0, false)
+	atom_ti     = new_builtin_ti(.atom, 0, false)
 )

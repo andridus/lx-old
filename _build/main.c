@@ -3,12 +3,12 @@
 
 // MODULE 'IO'.ex
 // -------- --------
-atom IO_puts(Str) {
-return {var, 0, 'C_extern.stdio.printf(str)'};
+void IO_puts(Str) {
+return _c_.stdio_printf([37, 46, 42, 115, 92, 110], 1, {var, 0, 'Str'});
 }
 // MODULE 'HelloWorld'.ex
 // -------- --------
-atom HelloWorld_main() {
+void HelloWorld_main() {
 return IO_puts("Olá Mundo");
 }
 int main(int argc, char *argv[]) {

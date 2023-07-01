@@ -13,7 +13,15 @@ pub mut:
 	tokens     []token.Token
 }
 
-pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current int, line_breaks int, current_line int) string {
+pub fn (l Lexer) get_in_out(lin int, lout int, str string) (int, int) {
+	a := l.input[lin..lout].bytestr()
+	first_of_line := seek_len_until_lb_before(l.input, lin)
+	mut initial_char := a.index(str) or { 0 }
+	initial_char += lin - first_of_line
+	return initial_char, initial_char + str.len
+}
+
+pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in int, current_out int, line_breaks int, current_line int) string {
 	mut lb_before := seek_lb_before(l.input, from)
 	lb_after := seek_lb_after(l.input, from)
 	mut lines := []string{}
@@ -25,10 +33,16 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current int,
 				code := color.fg(color.black, 0, remove_break_line(l.input[lb_before..i0]).bytestr())
 				lines << color.fg(color.black, 1, '${curr_line} | ') + code
 				mut space := []u8{}
-				for c := 0; c < current; c++ {
-					space << 126
+				for c := 0; c < current_out; c++ {
+					if c <= current_in && c + 1 > current_in {
+						space << 94
+					} else if c > current_in {
+						space << 126
+					} else {
+						space << 32
+					}
 				}
-				lines << color.fg(color.red, 1, '- |${space.bytestr()}^')
+				lines << color.fg(color.red, 1, '- |${space.bytestr()}')
 			} else {
 				str := '${curr_line} | ' + remove_break_line(l.input[lb_before..i0]).bytestr()
 				lines << color.fg(color.dark_gray, 0, '${str}')
@@ -52,6 +66,17 @@ fn remove_break_line(arr []u8) []u8 {
 		}
 	}
 	return new_arr
+}
+
+fn seek_len_until_lb_before(arr []u8, i0 int) int {
+	mut ret_int := 0
+	for i := i0; i > 0; i-- {
+		ret_int = i
+		if arr[i] == 10 {
+			break
+		}
+	}
+	return ret_int
 }
 
 fn seek_lb_before(arr []u8, i0 int) int {
@@ -472,7 +497,7 @@ fn (mut l Lexer) get_token_atom(bt u8) token.Token {
 		return l.new_token(str, token.Kind.atom, str.len + 2)
 	} else if is_letter(current) {
 		start_pos := pos
-		for current != 32 && current != 10 && pos < l.total {
+		for current != 46 && current != 32 && current != 10 && pos < l.total {
 			pos++
 			current = l.input[pos]
 		}

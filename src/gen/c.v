@@ -139,6 +139,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		ast.StringLiteral {
 			g.write(modl, "\"${node.val}\"")
 		}
+		ast.CharlistLiteral {
+			g.write(modl, '${node.val}')
+		}
 		ast.BinaryExpr {
 			g.write(modl, '{op, ${node.meta.line}, \'${node.op.str()}\', ')
 			g.expr(modl, node.left)
