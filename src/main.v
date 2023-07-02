@@ -4,7 +4,8 @@ import parser
 // import repl
 import time
 import table
-import gen
+import gen.c
+import color
 // import token
 
 fn main() {
@@ -51,9 +52,21 @@ fn main() {
 					parser.preprocess(path, prog)
 					parser.parse_files(prog)
 
-					mut generated := gen.c_gen(prog)
-					generated.save()
-
+					mut generated := c.gen(prog)
+					builded_file := generated.save() or {
+						 println(err.msg())
+						 exit(0)
+					}
+					cmd := 'gcc $builded_file -o ${prog.build_folder}/main'
+					os.execute(cmd)
+					elapsed := sw.elapsed().milliseconds()
+					println(color.fg(color.dark_gray, 1, '....... development summary........'))
+					println(color.fg(color.dark_gray, 0, '. Table size: `${sizeof(generated)}b`'))
+					println(color.fg(color.dark_gray, 0, '. Compiled: `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms'))
+					println(color.fg(color.dark_gray, 1, '..................................\n'))
+					os.execvp('${prog.build_folder}/main', []) or {
+						println(color.fg(color.red, 1, 'ERROR: $err.msg()'))
+					}
 					// println(generated)
 					// for file in order {
 					// 	// Generate for every file
@@ -63,9 +76,7 @@ fn main() {
 					// p := parser.parse_file(path, prog)
 					// mut generated := gen.c_gen(p, prog)
 					// generated.save()
-					elapsed := sw.elapsed().milliseconds()
-					println('Table size `${sizeof(generated)}b`')
-					println('Compiled `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms')
+
 				} else {
 					println('File is need to lexer')
 				}

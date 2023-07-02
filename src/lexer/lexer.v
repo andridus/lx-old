@@ -25,13 +25,15 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in i
 	mut lb_before := seek_lb_before(l.input, from)
 	lb_after := seek_lb_after(l.input, from)
 	mut lines := []string{}
+	// lines << color.fg(color.dark_gray, 1, '----------')
 	mut curr_line := current_line - 1
 	for i0 := lb_before; i0 <= lb_after; i0++ {
 		if l.input[i0] == 10 && i0 != lb_before {
 			i0++
 			if curr_line == current_line {
-				code := color.fg(color.black, 0, remove_break_line(l.input[lb_before..i0]).bytestr())
-				lines << color.fg(color.black, 1, '${curr_line} | ') + code
+
+				code := color.fg(color.white, 1, remove_break_line(l.input[lb_before..i0]).bytestr())
+				lines << color.fg(color.white, 1, '${curr_line} | ') + code
 				mut space := []u8{}
 				for c := 0; c < current_out; c++ {
 					if c <= current_in && c + 1 > current_in {
@@ -42,15 +44,16 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in i
 						space << 32
 					}
 				}
-				lines << color.fg(color.red, 1, '- |${space.bytestr()}')
+				lines << color.fg(color.red, 0, '- |${space.bytestr()}')
 			} else {
 				str := '${curr_line} | ' + remove_break_line(l.input[lb_before..i0]).bytestr()
-				lines << color.fg(color.dark_gray, 0, '${str}')
+				lines << color.fg(color.white, 0, '${str}')
 			}
 			lb_before = i0
 			curr_line++
 		}
 	}
+	lines << color.fg(color.dark_gray, 1, '-+---------')
 	return lines.join('\n')
 }
 

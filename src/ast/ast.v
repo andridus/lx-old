@@ -185,6 +185,7 @@ pub:
 	args        []Expr
 	is_unknown  bool
 	is_external bool
+	is_c_module bool
 	module_path string
 	module_name string
 	tok         token.Token

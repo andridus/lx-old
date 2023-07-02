@@ -23,6 +23,7 @@ pub mut:
 	main_module    string
 	modules        map[string]Module
 	compile_order  []string
+	c_dependencies []string
 	build_folder   string
 	build_state    State
 	build_progress int

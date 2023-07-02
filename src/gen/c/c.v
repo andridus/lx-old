@@ -1,9 +1,10 @@
-module gen
+module c
 
 import strings
 import ast
 import table
 import os
+
 
 struct CGen {
 	program &table.Program
@@ -13,7 +14,7 @@ mut:
 	out_modules map[string]strings.Builder
 }
 
-pub fn c_gen(prog table.Program) CGen {
+pub fn gen(prog table.Program) CGen {
 	mut outm := map[string]strings.Builder{}
 	for o in prog.compile_order {
 		outm[o] = strings.new_builder(100)
@@ -38,19 +39,27 @@ pub fn (mut g CGen) main_function() string {
 	return g.out_main.str()
 }
 
-pub fn (mut g CGen) save() {
+pub fn (mut g CGen) save() !string{
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()
 	/// include std functions
 	bin << '// Include standard functions\n'.bytes()
-	bin << '#include <stdio.h>\n\n'.bytes()
+	for dep in g.program.c_dependencies {
+		dep0 := stdlib(dep) or {
+			println(err.msg())
+			exit(0)
+		}
+		bin << '#include $dep0\n'.bytes()
+	}
 	//
 	order.reverse()
 	for modl in order {
 		bin << g.out_modules[modl]
 	}
 	bin << g.out_main
-	os.write_file('${g.program.build_folder}/main.c', bin.bytestr()) or { println(err.msg()) }
+	filepath := '${g.program.build_folder}/main.c'
+	os.write_file(filepath, bin.bytestr())!
+	return filepath
 }
 
 pub fn (mut g CGen) write(modl string, s string) {
@@ -86,9 +95,11 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			if module0.is_main && node.name == 'main' {
 				g.gen_main_function(module0, node)
 			}
-			g.write(modl, '${node.ti} ${module0.name}_${node.name}(')
+			g.write(modl, '${parse_type(node.ti.kind)} ${module0.name}_${node.name}(')
 			for current < total {
-				g.write(modl, '${node.args[current].name.capitalize()}')
+				curr := node.args[current]
+				str := parse_arg(curr)
+				g.write(modl, str)
 				current++
 				if current < total {
 					g.write(modl, ', ')
@@ -99,7 +110,7 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			total = node.stmts.len
 			current = 0
 			for stmt in node.stmts {
-				if current + 1 == total {
+				if current + 1 == total && node.ti.kind != .void {
 					g.write(modl, 'return ')
 					g.stmt(modl, stmt)
 				} else {
@@ -161,7 +172,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		ast.CallExpr {
 			if node.is_external {
-				g.write(modl, '${node.module_name}_')
+				if !node.is_c_module {
+					g.write(modl, '${node.module_name}_')
+				}
 			}
 			g.write(modl, '${node.name}(')
 			for i, expr in node.args {
@@ -173,7 +186,7 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			g.write(modl, ')')
 		}
 		ast.Ident {
-			g.write(modl, '{var, ${node.meta.line}, \'${node.name.capitalize()}\'}')
+			g.write(modl, node.name)
 		}
 		ast.BoolLiteral {
 			if node.val == true {

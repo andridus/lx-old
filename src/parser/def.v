@@ -29,9 +29,13 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	mut is_unknown := false
 	mut args := []ast.Expr{}
 	mut return_ti := types.void_ti
+	mut is_c_module := false
+	if p.tok.lit == '_c_' {
+		is_c_module = true
+		module_ref = []
+	}
 	p.error_pos_in = p.tok.pos - p.tok.lit.len
 	p.check(kind)
-
 	mut more := 0
 	for p.tok.kind == .dot {
 		p.check(.dot)
@@ -49,7 +53,6 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			p.error('The token `${p.tok.str()}` is not a Module. \n Module starts with a capital letter.')
 			exit(0)
 		}
-
 		p.next_token()
 	}
 
@@ -93,9 +96,11 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			p.error('too many arguments in call to `${fun_name}`')
 		}
 	} else {
-		is_unknown = true
-		p.error_pos_out = p.tok.pos
-		p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
+		if is_c_module == false {
+			is_unknown = true
+			p.error_pos_out = p.tok.pos
+			p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
+		}
 		for p.tok.kind != .rpar {
 			e, _ := p.expr(0)
 			args << e
@@ -103,6 +108,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 				p.check(.comma)
 			}
 		}
+
 	}
 
 	p.check(.rpar)
@@ -114,7 +120,11 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		is_external: is_external
 		module_path: module_path
 		module_name: module_name
-		// typ: return_ti
+		is_c_module: is_c_module
+		ti: return_ti
+	}
+	if is_c_module {
+		p.program.c_dependencies << module_name
 	}
 	if is_unknown {
 		p.program.table.unknown_calls << node
@@ -189,7 +199,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 		// parse type of ARG
 		mut ti := types.void_ti
-		if p.tok.kind == .colon_space {
+		if p.tok.kind == .typedef {
 			p.next_token()
 			ti = p.parse_ti()
 		}

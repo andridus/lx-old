@@ -159,7 +159,7 @@ fn build_token_str() []string {
 	s[Kind.map] = 'map'
 	s[Kind.struct] = 'struct'
 	s[Kind.colon] = ':'
-	s[Kind.typedef] = ':'
+	s[Kind.typedef] = '::'
 	s[Kind.bang] = '!'
 	s[Kind.not] = '!'
 	s[Kind.plus] = '+'

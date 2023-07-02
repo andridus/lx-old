@@ -1,5 +1,5 @@
 defmodule IO do
-  def puts(str) do
-   :_c_.stdio.printf('%.*s\n', 1, str)
+  def puts(str :: string) do
+   :_c_.stdio.printf(str)
   end
 end
