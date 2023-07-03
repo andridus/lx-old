@@ -54,10 +54,10 @@ fn main() {
 
 					mut generated := c.gen(prog)
 					builded_file := generated.save() or {
-						 println(err.msg())
-						 exit(0)
+						println(err.msg())
+						exit(0)
 					}
-					cmd := 'gcc $builded_file -o ${prog.build_folder}/main'
+					cmd := 'gcc ${builded_file} -o ${prog.build_folder}/main'
 					os.execute(cmd)
 					elapsed := sw.elapsed().milliseconds()
 					println(color.fg(color.dark_gray, 1, '....... development summary........'))
@@ -65,7 +65,7 @@ fn main() {
 					println(color.fg(color.dark_gray, 0, '. Compiled: `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms'))
 					println(color.fg(color.dark_gray, 1, '..................................\n'))
 					os.execvp('${prog.build_folder}/main', []) or {
-						println(color.fg(color.red, 1, 'ERROR: $err.msg()'))
+						println(color.fg(color.red, 1, 'ERROR: ${err.msg()}'))
 					}
 					// println(generated)
 					// for file in order {
@@ -76,7 +76,6 @@ fn main() {
 					// p := parser.parse_file(path, prog)
 					// mut generated := gen.c_gen(p, prog)
 					// generated.save()
-
 				} else {
 					println('File is need to lexer')
 				}

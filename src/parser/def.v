@@ -42,12 +42,12 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		if p.peek_tok.kind != .dot {
 			// should be a local function, check
 			p.error_pos_out = p.tok.pos
-		  p.log_d('ERROR', 'The `$p.tok.lit` is not a local function',
-				'${docs.local_function_desc}\nView more: $docs.local_function_url\n', p.tok.lit)
+			p.log_d('ERROR', 'The `${p.tok.lit}` is not a local function', '${docs.local_function_desc}\nView more: ${docs.local_function_url}\n',
+				p.tok.lit)
 		} else if p.peek_tok.kind == .dot {
 			// should be a var, check
 			p.error_pos_out = p.tok.pos
-		  p.log_d('ERROR', '`$p.tok.lit` is not a var', '', p.tok.lit)
+			p.log_d('ERROR', '`${p.tok.lit}` is not a var', '', p.tok.lit)
 		}
 		exit(0)
 	}
@@ -123,7 +123,6 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 				p.check(.comma)
 			}
 		}
-
 	}
 
 	p.check(.rpar)

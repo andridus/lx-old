@@ -370,14 +370,14 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 	}
 	if p.peek_tok.kind == .lpar {
 		node0, ti0 := p.call_from_module(.ident) or {
-			p.log('ERROR',err.msg(), p.tok.lit)
+			p.log('ERROR', err.msg(), p.tok.lit)
 			exit(0)
 		}
 		return node0, ti0
 	} else {
 		p.error_pos_out = p.tok.lit.len
 		var := p.program.table.find_var(p.tok.lit) or {
-			p.log('ERROR','undefined variable `${p.tok.lit}`', p.tok.lit)
+			p.log('ERROR', 'undefined variable `${p.tok.lit}`', p.tok.lit)
 
 			table.Var{}
 		}
@@ -540,7 +540,6 @@ pub fn (mut p Parser) log_d(type_error string, message string, description strin
 		}
 		else {
 			panic(message)
-
 		}
 	}
 }
@@ -548,6 +547,7 @@ pub fn (mut p Parser) log_d(type_error string, message string, description strin
 pub fn (p &Parser) error(s string) {
 	p.error_d(s, '')
 }
+
 pub fn (p &Parser) error_d(s string, d string) {
 	// print_backtrace()
 	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
@@ -563,9 +563,11 @@ pub fn (p &Parser) error_at_line(s string, line_nr int) {
 	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.tok.pos_inline - num,
 		p.tok.pos_inline, 1, p.tok.line_nr))
 }
+
 pub fn (p &Parser) warn(s string) {
 	p.warn_d(s, '')
 }
+
 pub fn (p &Parser) warn_d(s string, d string) {
 	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
 	print(color.fg(color.dark_gray, 3, d))

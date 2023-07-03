@@ -31,7 +31,6 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in i
 		if l.input[i0] == 10 && i0 != lb_before {
 			i0++
 			if curr_line == current_line {
-
 				code := color.fg(color.white, 1, remove_break_line(l.input[lb_before..i0]).bytestr())
 				lines << color.fg(color.white, 1, '${curr_line} | ') + code
 				mut space := []u8{}
@@ -86,7 +85,11 @@ fn seek_lb_before(arr []u8, i0 int) int {
 	mut total := 2
 	for i := i0; i > 0; i-- {
 		if arr[i] == 10 {
-			if total == 0 { return i } else { total--}
+			if total == 0 {
+				return i
+			} else {
+				total--
+			}
 		}
 	}
 	return 0
@@ -96,7 +99,11 @@ fn seek_lb_after(arr []u8, i0 int) int {
 	mut total := 2
 	for i := i0; i < arr.len; i++ {
 		if arr[i] == 10 {
-			if total == 0 { return i } else { total--}
+			if total == 0 {
+				return i
+			} else {
+				total--
+			}
 		}
 	}
 	return i0

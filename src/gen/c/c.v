@@ -5,7 +5,6 @@ import ast
 import table
 import os
 
-
 struct CGen {
 	program &table.Program
 mut:
@@ -39,7 +38,7 @@ pub fn (mut g CGen) main_function() string {
 	return g.out_main.str()
 }
 
-pub fn (mut g CGen) save() !string{
+pub fn (mut g CGen) save() !string {
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()
 	/// include std functions
@@ -49,7 +48,7 @@ pub fn (mut g CGen) save() !string{
 			println(err.msg())
 			exit(0)
 		}
-		bin << '#include $dep0\n'.bytes()
+		bin << '#include ${dep0}\n'.bytes()
 	}
 	//
 	order.reverse()
