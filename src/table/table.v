@@ -101,6 +101,13 @@ pub fn (mut t Table) register_var(v Var) {
 	t.local_vars[v.name] = v
 }
 
+pub fn (mut t Table) update_var_ti(v Var, ti types.TypeIdent) {
+	t.local_vars[v.name] = Var{
+		...v
+		ti: ti
+	}
+}
+
 pub fn (t &Table) find_fn(name string, module_name string) ?Fn {
 	f := t.fns[module_name + '.' + name]
 	if f.is_valid {

@@ -24,6 +24,7 @@ mut:
 	program          &table.Program
 	peek_tok         token.Token
 	return_ti        types.TypeIdent
+	current_module   string
 	error_pos_inline int
 	error_pos_in     int
 	error_pos_out    int
@@ -46,13 +47,13 @@ pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
 pub fn parse_files(prog &table.Program) {
 	mut prog0 := unsafe { prog }
 	for modl in prog0.compile_order {
-		stmts := parse_file(prog0.modules[modl].path, prog)
+		stmts := parse_file(prog0.modules[modl], prog)
 		prog0.modules[modl].put_stmts(stmts)
 	}
 }
 
-fn parse_file(path string, prog &table.Program) []ast.Stmt {
-	text := os.read_file(path) or { panic(err) }
+fn parse_file(modl table.Module, prog &table.Program) []ast.Stmt {
+	text := os.read_file(modl.path) or { panic(err) }
 	mut stmts := []ast.Stmt{}
 	mut l := lexer.new(text)
 	mut p := unsafe {
@@ -60,7 +61,8 @@ fn parse_file(path string, prog &table.Program) []ast.Stmt {
 			build_path: '_build'
 			lexer: l
 			program: prog
-			file_name: path
+			current_module: modl.name
+			file_name: modl.path
 		}
 	}
 	p.read_first_token()
@@ -455,7 +457,7 @@ fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 }
 
 //
-fn (p Parser) parse_ast_expr_deep(left ast.Expr, op token.Kind, op_prec int, right ast.Expr) ast.Expr {
+fn (mut p Parser) parse_ast_expr_deep(left ast.Expr, op token.Kind, op_prec int, right ast.Expr) ast.Expr {
 	meta := ast.Meta{
 		line: p.tok.line_nr - 1
 	}
@@ -464,35 +466,35 @@ fn (p Parser) parse_ast_expr_deep(left ast.Expr, op token.Kind, op_prec int, rig
 			match right.left {
 				ast.BinaryExpr {
 					if right.is_inside_parens() {
-						return ast_bin_expr(left, op, right, meta, op_prec)
+						return p.ast_bin_expr(left, op, right, meta, op_prec)
 					}
 					if op_prec < right.op_precedence {
-						return ast_bin_expr(left, op, right, meta, op_prec)
+						return p.ast_bin_expr(left, op, right, meta, op_prec)
 					} else {
 						left0 := p.parse_ast_expr_deep(left, op, op_prec, right.left)
-						return ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
+						return p.ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
 					}
 				}
 				else {
 					if right.is_inside_parens() {
-						return ast_bin_expr(left, op, right, meta, op_prec)
+						return p.ast_bin_expr(left, op, right, meta, op_prec)
 					}
 					if op_prec < right.op_precedence {
-						return ast_bin_expr(left, op, right, meta, op_prec)
+						return p.ast_bin_expr(left, op, right, meta, op_prec)
 					} else {
-						left0 := ast_bin_expr(left, op, right.left, meta, op_prec)
-						return ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
+						left0 := p.ast_bin_expr(left, op, right.left, meta, op_prec)
+						return p.ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
 					}
 				}
 			}
 		}
 		else {
-			return ast_bin_expr(left, op, right, meta, op_prec)
+			return p.ast_bin_expr(left, op, right, meta, op_prec)
 		}
 	}
 }
 
-fn (p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, right ast.Expr, inside_parens bool) ast.Expr {
+fn (mut p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, right ast.Expr, inside_parens bool) ast.Expr {
 	meta := ast.Meta{
 		line: p.tok.line_nr - 1
 		inside_parens: p.inside_parens
@@ -500,43 +502,75 @@ fn (p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, right as
 	match right {
 		ast.BinaryExpr {
 			if right.is_inside_parens() {
-				return ast_bin_expr(left, op, right, meta, op_prec)
+				return p.ast_bin_expr(left, op, right, meta, op_prec)
 			} else if op_prec < right.op_precedence {
-				return ast_bin_expr(left, op, right, meta, op_prec)
+				return p.ast_bin_expr(left, op, right, meta, op_prec)
 			} else {
 				left0 := p.parse_ast_expr_deep(left, op, op_prec, right.left)
-				return ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
+				return p.ast_bin_expr(left0, right.op, right.right, meta, right.op_precedence)
 			}
 		}
 		else {
-			return ast_bin_expr(left, op, right, meta, op_prec)
+			return p.ast_bin_expr(left, op, right, meta, op_prec)
 		}
 	}
 }
 
-fn ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_prec int) ast.Expr {
-	return ast.Expr(ast.BinaryExpr{
+fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_prec int) ast.Expr {
+	ti := types.get_default_type(op)
+	a := ast.Expr(ast.BinaryExpr{
 		op: op
 		op_precedence: op_prec
 		left: left
-		meta: meta
+		meta: ast.Meta{
+			...meta
+			ti: ti
+		}
 		right: right
+		ti: ti
 	})
+	match left {
+		ast.Ident {
+			// try locate var
+			var := p.program.table.find_var(left.name) or {
+				println('not found var')
+				exit(1)
+			}
+			if var.ti.kind == .void {
+				p.program.table.update_var_ti(var, ti)
+			}
+		}
+		else {}
+	}
+	match right {
+		ast.Ident {
+			// try locate var
+			var := p.program.table.find_var(right.name) or {
+				println('not found var')
+				exit(1)
+			}
+			if var.ti.kind == .void {
+				p.program.table.update_var_ti(var, ti)
+			}
+		}
+		else {}
+	}
+	return a
 }
 
 pub fn (mut p Parser) log(type_error string, message string, s string) {
-	p.log_d(type_error, message, '', s)
+	p.log_d(type_error, message, '', '', s)
 }
 
-pub fn (mut p Parser) log_d(type_error string, message string, description string, s string) {
+pub fn (mut p Parser) log_d(type_error string, message string, description string, url string, s string) {
 	p.error_pos_in, p.error_pos_out = p.lexer.get_in_out(p.error_pos_in, p.error_pos_out,
 		s)
 	match type_error {
 		'ERROR' {
-			p.error_d(message, description)
+			p.error_d(message, description, url)
 		}
 		'WARN' {
-			p.warn_d(message, description)
+			p.warn_d(message, description, url)
 		}
 		else {
 			panic(message)
@@ -545,13 +579,20 @@ pub fn (mut p Parser) log_d(type_error string, message string, description strin
 }
 
 pub fn (p &Parser) error(s string) {
-	p.error_d(s, '')
+	p.error_d(s, '', '')
 }
 
-pub fn (p &Parser) error_d(s string, d string) {
+pub fn (p &Parser) error_d(s string, desc string, url string) {
 	// print_backtrace()
-	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
-	print(color.fg(color.dark_gray, 3, d))
+	mut description := ''
+	if desc.len > 0 {
+		description += desc
+	}
+	if url.len > 0 {
+		description += '\nView more: ${url}\n'
+	}
+	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]:\n${s}'))
+	print(color.fg(color.dark_gray, 3, description))
 	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
 		p.error_pos_out, 1, p.tok.line_nr))
 	exit(0)
@@ -565,12 +606,19 @@ pub fn (p &Parser) error_at_line(s string, line_nr int) {
 }
 
 pub fn (p &Parser) warn(s string) {
-	p.warn_d(s, '')
+	p.warn_d(s, '', '')
 }
 
-pub fn (p &Parser) warn_d(s string, d string) {
-	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]: ${s}'))
-	print(color.fg(color.dark_gray, 3, d))
+pub fn (p &Parser) warn_d(s string, desc string, url string) {
+	mut description := ''
+	if desc.len > 0 {
+		description += desc
+	}
+	if url.len > 0 {
+		description += '\nView more: ${url}\n'
+	}
+	println(color.fg(color.dark_yellow, 0, 'WARN: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]:\n${s}'))
+	print(color.fg(color.dark_gray, 3, description))
 	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
 		p.error_pos_out, 1, p.tok.line_nr))
 }

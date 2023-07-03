@@ -25,6 +25,7 @@ pub enum Kind {
 	u64
 	f32
 	f64
+	number
 	string
 	char
 	bool
@@ -207,6 +208,9 @@ pub fn (k Kind) str() string {
 		}
 		.variadic {
 			'variadic'
+		}
+		.number {
+			'number'
 		}
 		else {
 			'unknown'
@@ -447,9 +451,42 @@ pub fn type_from_token(tok token.Token) TypeIdent {
 pub const (
 	void_ti     = new_builtin_ti(.void, 0, false)
 	int_ti      = new_builtin_ti(.int, 0, false)
+	number_ti   = new_builtin_ti(.number, 0, false)
 	float_ti    = new_builtin_ti(.f32, 0, false)
 	string_ti   = new_builtin_ti(.string, 0, false)
 	charlist_ti = new_builtin_ti(.char, 0, true)
 	bool_ti     = new_builtin_ti(.bool, 0, false)
 	atom_ti     = new_builtin_ti(.atom, 0, false)
 )
+
+pub fn get_default_type(kind token.Kind) TypeIdent {
+	return match kind {
+		.not {
+			types.int_ti
+		}
+		.plus {
+			types.int_ti
+		}
+		.minus {
+			types.int_ti
+		}
+		.mul {
+			types.int_ti
+		}
+		.div {
+			types.int_ti
+		}
+		.mod {
+			types.int_ti
+		}
+		.xor {
+			types.int_ti
+		}
+		.pipe {
+			types.int_ti
+		}
+		else {
+			types.void_ti
+		}
+	}
+}

@@ -23,7 +23,8 @@ pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 }
 
 pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.TypeIdent) {
-	is_external := true
+	mut is_external := true
+	mut is_local := false
 	mut tok := p.tok
 	mut fun_name := token.Token{}
 	mut module_ref := [p.tok]
@@ -39,17 +40,15 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 
 	mut more := 0
 	if kind == .ident {
-		if p.peek_tok.kind != .dot {
-			// should be a local function, check
-			p.error_pos_out = p.tok.pos
-			p.log_d('ERROR', 'The `${p.tok.lit}` is not a local function', '${docs.local_function_desc}\nView more: ${docs.local_function_url}\n',
-				p.tok.lit)
-		} else if p.peek_tok.kind == .dot {
+		if p.peek_tok.kind == .dot {
 			// should be a var, check
 			p.error_pos_out = p.tok.pos
-			p.log_d('ERROR', '`${p.tok.lit}` is not a var', '', p.tok.lit)
+			p.log_d('ERROR', '`${p.tok.lit}` is not a var', '', '', p.tok.lit)
+			exit(0)
+		} else {
+			fun_name = p.tok
+			is_local = true
 		}
-		exit(0)
 	}
 	p.check(kind)
 	for p.tok.kind == .dot {
@@ -71,12 +70,14 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		p.next_token()
 	}
 
-	module_name := module_name0(module_ref)
+	mut module_name := module_name0(module_ref)
+	if is_local {
+		module_name = p.current_module
+	}
 	module_path := module_name.to_lower()
 	if fun_name.kind == .ignore {
 		p.warn('Module ${module_name} is orphan')
 	}
-
 	// p.check(.modl)
 
 	// for p.tok.kind != .lpar {
@@ -94,12 +95,17 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	p.check(.lpar)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		return_ti = f.return_ti
+
 		for i, arg in f.args {
 			e, ti := p.expr(0)
 			if !types.check(&arg.ti, &ti) {
 				p.error_pos_out = p.tok.pos
-				p.log('ERROR', 'The function `${module_name}.${fun_name.lit}` expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`',
-					e.str())
+				mut name0 := '`${module_name}.${fun_name.lit}`'
+				if is_local {
+					name0 = '`${fun_name.lit}`'
+				}
+				p.log_d('ERROR', 'The function ${name0} expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`',
+					docs.function_args_desc, docs.function_args_url, e.str())
 				// p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fun_name}`')
 			}
 			args << e
@@ -113,8 +119,14 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	} else {
 		if is_c_module == false {
 			is_unknown = true
-			p.error_pos_out = p.tok.pos
-			p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
+			if is_local {
+				// // should be a local function, check
+				p.error_pos_out = p.tok.pos
+				p.log_d('ERROR', 'The `${fun_name}` is undefined local function', docs.local_function_desc,
+					docs.local_function_url, p.tok.lit)
+			} else {
+				p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
+			}
 		}
 		for p.tok.kind != .rpar {
 			e, _ := p.expr(0)
@@ -217,7 +229,6 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			p.next_token()
 			ti = p.parse_ti()
 		}
-
 		for arg_name in arg_names {
 			arg := table.Var{
 				name: arg_name
@@ -253,10 +264,14 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	if from_type == false {
 		ti = stmts[stmts.len - 1].ti
 	}
+	mut final_args := []table.Var{}
+	for a in args {
+		final_args << p.program.table.find_var(a.name) or { a }
+	}
 	pos_out = p.tok.pos
 	p.program.table.register_fn(table.Fn{
 		name: name
-		args: args
+		args: final_args
 		return_ti: ti
 		is_external: false
 		is_valid: true

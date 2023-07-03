@@ -42,6 +42,7 @@ fn parse_type(kind types.Kind) string {
 		.map { 'map' }
 		.multi_return { 'multi' }
 		.variadic { 'variadic' }
+		.number { 'number' }
 	}
 }
 

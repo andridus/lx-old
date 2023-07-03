@@ -341,6 +341,7 @@ pub:
 
 pub struct Meta {
 pub:
+	ti            types.TypeIdent
 	line          int
 	inside_parens int
 }
@@ -350,7 +351,8 @@ pub fn (e BinaryExpr) is_inside_parens() bool {
 }
 
 fn (m Meta) str() string {
-	return '[line: ${m.line}]'
+	println(m.ti)
+	return '[line: ${m.line}, type: ${m.ti} ]'
 }
 
 pub fn (x Expr) str() string {
