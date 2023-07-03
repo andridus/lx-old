@@ -7,6 +7,7 @@ import ast
 import table
 import types
 import token
+import docs
 
 pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 	mut args := ast.CallExpr{}
@@ -35,8 +36,22 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		module_ref = []
 	}
 	p.error_pos_in = p.tok.pos - p.tok.lit.len
-	p.check(kind)
+
 	mut more := 0
+	if kind == .ident {
+		if p.peek_tok.kind != .dot {
+			// should be a local function, check
+			p.error_pos_out = p.tok.pos
+		  p.log_d('ERROR', 'The `$p.tok.lit` is not a local function',
+				'${docs.local_function_desc}\nView more: $docs.local_function_url\n', p.tok.lit)
+		} else if p.peek_tok.kind == .dot {
+			// should be a var, check
+			p.error_pos_out = p.tok.pos
+		  p.log_d('ERROR', '`$p.tok.lit` is not a var', '', p.tok.lit)
+		}
+		exit(0)
+	}
+	p.check(kind)
 	for p.tok.kind == .dot {
 		p.check(.dot)
 		if p.tok.kind == .ident {

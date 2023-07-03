@@ -26,7 +26,7 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in i
 	lb_after := seek_lb_after(l.input, from)
 	mut lines := []string{}
 	// lines << color.fg(color.dark_gray, 1, '----------')
-	mut curr_line := current_line - 1
+	mut curr_line := current_line - 2
 	for i0 := lb_before; i0 <= lb_after; i0++ {
 		if l.input[i0] == 10 && i0 != lb_before {
 			i0++
@@ -83,23 +83,23 @@ fn seek_len_until_lb_before(arr []u8, i0 int) int {
 }
 
 fn seek_lb_before(arr []u8, i0 int) int {
-	mut ret_int := 0
+	mut total := 2
 	for i := i0; i > 0; i-- {
 		if arr[i] == 10 {
-			ret_int = i
+			if total == 0 { return i } else { total--}
 		}
 	}
-	return ret_int
+	return 0
 }
 
 fn seek_lb_after(arr []u8, i0 int) int {
-	mut ret_int := 0
+	mut total := 2
 	for i := i0; i < arr.len; i++ {
 		if arr[i] == 10 {
-			ret_int = i
+			if total == 0 { return i } else { total--}
 		}
 	}
-	return ret_int
+	return i0
 }
 
 pub fn new(input string) &Lexer {
@@ -466,7 +466,7 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 	return token.Token{
 		kind: kind
 		lit: lit
-		line_nr: l.lines - 1
+		line_nr: l.lines
 		pos: l.pos
 		pos_inline: l.pos_inline
 		value: value

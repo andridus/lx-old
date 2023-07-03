@@ -7,7 +7,7 @@ pub struct Token {
 pub:
 	kind       Kind
 	lit        string
-	line_nr    int
+	line_nr    int = 1
 	pos        int
 	pos_inline int
 	value      LiteralValue
