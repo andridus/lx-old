@@ -9,7 +9,7 @@ return 0;
 // MODULE 'HelloWorld'.ex
 // -------- --------
 void HelloWorld_main() {
-LxCore_IO_puts("Olá usando o core\n");
+LxCore_IO_puts("Olá usando o alias e core\n");
 return 0;
 }
 int main(int argc, char *argv[]) {

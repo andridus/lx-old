@@ -74,6 +74,11 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	if is_local {
 		module_name = p.current_module
 	}
+
+	aliased_name := p.program.modules[p.current_module].aliases[module_name]
+	if aliased_name.len > 0 {
+		module_name = aliased_name
+	}
 	module_path := module_name.to_lower()
 	if fun_name.kind == .ignore {
 		p.warn('Module ${module_name} is orphan')
@@ -119,13 +124,19 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	} else {
 		if is_c_module == false {
 			is_unknown = true
+			p.error_pos_out = p.tok.pos
 			if is_local {
 				// // should be a local function, check
-				p.error_pos_out = p.tok.pos
 				p.log_d('ERROR', 'The `${fun_name}` is undefined local function', docs.local_function_desc,
 					docs.local_function_url, p.tok.lit)
 			} else {
-				p.log('WARN', 'unknown function `${fun_name.lit}`', fun_name.lit)
+				if is_external {
+					// call from external module (perhaps alias?)
+					p.log_d('WARN', 'unknown function `${fun_name.lit}` from module `${module_name}`',
+						'', '', fun_name.lit)
+				} else {
+					p.log_d('WARN', 'unknown function `${fun_name.lit}`', '', '', fun_name.lit)
+				}
 			}
 		}
 		for p.tok.kind != .rpar {

@@ -137,6 +137,21 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			p.next_token()
 			return p.stmt()
 		}
+		.key_alias {
+			mut module_name := []token.Token{}
+			p.check(.key_alias)
+			module_name << p.tok
+			p.check(.modl)
+			for p.tok.kind == .dot {
+				p.check(.dot)
+				if p.tok.kind == .modl {
+					module_name << p.tok
+					p.check(.modl)
+				}
+			}
+			println(module_name)
+			return p.stmt()
+		}
 		.key_def, .key_defp {
 			return p.def_decl()
 		}
@@ -274,7 +289,7 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		else {
 			p.error_pos_in = p.tok.lit.len
 			p.error_pos_out = p.lexer.pos_inline
-			p.error('expr(): bad token `${p.tok.str()}`')
+			p.log_d('ERROR', 'Bad token `${p.tok.str()}`', '', '', p.tok.lit)
 			exit(0)
 		}
 	}

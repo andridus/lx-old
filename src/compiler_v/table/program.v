@@ -49,16 +49,16 @@ pub mut:
 	path         string
 	headers      ModuleHeaders
 	dependencies []string
+	aliases      map[string]string
 	is_compiled  bool
 	compiled_at  int
 	is_main      bool
 	stmts        []ast.Stmt
 }
 
-struct ModuleHeaders {
+pub struct ModuleHeaders {
 	functions []string
 	requires  map[string]Require
-	aliases   map[string]Alias
 }
 
 pub fn (mut m Module) put_stmts(stmts []ast.Stmt) {

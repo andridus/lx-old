@@ -351,7 +351,6 @@ pub fn (e BinaryExpr) is_inside_parens() bool {
 }
 
 fn (m Meta) str() string {
-	println(m.ti)
 	return '[line: ${m.line}, type: ${m.ti} ]'
 }
 

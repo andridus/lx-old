@@ -32,11 +32,11 @@ fn generate_core_modules(prog &table.Program) map[string]table.Module {
 		if os.is_dir(path) {
 			files := get_all_files_in_dir(path)
 			for file in files {
-				meta := generate_module_metadata(file, prog)
+				meta := generate_module_core_metadata(file, prog)
 				metadata[meta.name] = meta
 			}
 		} else {
-			meta := generate_module_metadata('${path}', prog)
+			meta := generate_module_core_metadata('${path}', prog)
 			metadata[meta.name] = meta
 		}
 	}
@@ -59,7 +59,7 @@ fn get_all_files_in_dir(dir string) []string {
 	return all_files
 }
 
-fn generate_module_metadata(path string, prog &table.Program) table.Module {
+fn generate_module_core_metadata(path string, prog &table.Program) table.Module {
 	// mut prog0 := unsafe { prog }
 	text := os.read_file(path) or {
 		println(err)
@@ -109,8 +109,10 @@ fn parse_modules(path string, prog &table.Program) {
 	mut prog0 := unsafe { prog }
 	mut is_main := false
 	mut dependencies := []string{}
+	mut aliases := map[string]string{}
 	tk_len := l.tokens.len
 	mut name := ''
+	mut aliases_name := ''
 	mut i := 0
 
 	// ------ analyze entire source code of file
@@ -131,6 +133,15 @@ fn parse_modules(path string, prog &table.Program) {
 				}
 			}
 			// Define the main module when have the main function
+			.key_alias {
+				i++
+
+				i, aliases_name = get_module_name(i, l.tokens[i], l.tokens)
+				// aliases << name
+				a := aliases_name.clone().split('.').reverse().first()
+				aliases[a] = aliases_name
+				aliases_name = ''
+			}
 			// TODO: get functions with arity and put on module headers struct, event if not defined type.
 			.key_def {
 				i++
@@ -145,11 +156,19 @@ fn parse_modules(path string, prog &table.Program) {
 		}
 		i++
 	}
-	//--- end of analisys
+	mut dependencies0 := []string{}
+	for dep in dependencies {
+		if modl := aliases[dep] {
+			dependencies0 << modl
+		} else {
+			dependencies0 << dep
+		}
+	}
 	prog0.modules[name] = table.Module{
 		name: name
 		path: path
-		dependencies: dependencies
+		aliases: aliases
+		dependencies: dependencies0
 		is_main: is_main
 	}
 }
@@ -168,12 +187,13 @@ pub fn compile_order(prog &table.Program) []string {
 		dependencies.prepend(prog.modules[req].dependencies)
 	}
 	mut arr := []string{}
-
 	for nam in uniq(dependencies) {
-		a := prog.modules[nam].name
+		modl := prog.modules[nam]
+		a := modl.name
 		if a.len == 0 {
 			// try check in core lib
 			b := prog.core_modules[nam]
+
 			if b.name.len > 0 {
 				// import module
 				arr << '@${b.name}'

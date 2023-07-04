@@ -12,7 +12,7 @@ pub mut:
 	types          []types.Type
 	type_idxs      map[string]int
 	local_vars     map[string]Var
-	global_aliases map[string]Alias
+	global_aliases map[string]string
 	atoms          []Atom
 	fns            map[string]Fn
 	unknown_calls  []ast.CallExpr
@@ -37,7 +37,6 @@ pub struct Alias {
 pub:
 	as_key      string
 	args        []Var
-	module_path string
 	module_name string
 }
 
