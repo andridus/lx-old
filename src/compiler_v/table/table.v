@@ -4,7 +4,7 @@
 
 module table
 
-import types
+import compiler_v.types
 import compiler_v.ast
 
 pub struct Table {

@@ -5,8 +5,8 @@ module parser
 
 import compiler_v.ast
 import compiler_v.table
-import types
-import token
+import compiler_v.types
+import compiler_v.token
 import compiler_v.docs
 
 pub fn (mut p Parser) call_expr() !ast.ExprStmt {

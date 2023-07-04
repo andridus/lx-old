@@ -4,7 +4,7 @@ import compiler_v.table
 import compiler_v.lexer
 import os
 import compiler_v.color
-import token
+import compiler_v.token
 
 // The parse module is responsible to make an overview about files
 // and define basic informations about module compilation, that's include:

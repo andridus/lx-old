@@ -1,6 +1,6 @@
 module c
 
-import types
+import compiler_v.types
 import compiler_v.ast
 
 fn parse_arg(arg ast.Arg) string {

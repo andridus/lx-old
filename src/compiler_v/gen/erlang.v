@@ -5,7 +5,7 @@ import compiler_v.ast
 import term
 import compiler_v.table
 import os
-import types
+import compiler_v.types
 
 struct ErlGen {
 	program &ast.File

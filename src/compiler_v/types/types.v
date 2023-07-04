@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file
 module types
 
-import token
+import compiler_v.token
 
 pub enum Kind {
 	atom

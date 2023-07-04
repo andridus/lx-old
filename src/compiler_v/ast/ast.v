@@ -4,8 +4,8 @@
 
 module ast
 
-import types
-import token
+import compiler_v.types
+import compiler_v.token
 
 pub type Expr = ArrayInit
 	| AssignExpr

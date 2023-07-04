@@ -1,6 +1,6 @@
 module lexer
 
-import token
+import compiler_v.token
 import compiler_v.color
 
 pub struct Lexer {

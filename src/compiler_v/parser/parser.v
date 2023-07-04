@@ -6,10 +6,10 @@ module parser
 import os
 import compiler_v.ast
 import compiler_v.lexer
-import token
-import types
+import compiler_v.token
+import compiler_v.types
 import compiler_v.table
-import utils
+import compiler_v.utils
 import compiler_v.color
 
 struct Parser {
