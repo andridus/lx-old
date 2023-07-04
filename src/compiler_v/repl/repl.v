@@ -2,11 +2,11 @@ module repl
 
 // import lexer
 import readline
-import table
-import parser
-import color
-import gen
-import ast
+import compiler_v.table
+import compiler_v.parser
+import compiler_v.color
+import compiler_v.gen
+import compiler_v.ast
 import net
 import os
 import time

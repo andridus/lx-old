@@ -1,7 +1,7 @@
 module lexer
 
 import token
-import color
+import compiler_v.color
 
 pub struct Lexer {
 	input []u8

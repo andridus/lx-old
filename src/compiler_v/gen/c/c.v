@@ -1,8 +1,8 @@
 module c
 
 import strings
-import ast
-import table
+import compiler_v.ast
+import compiler_v.table
 import os
 
 struct CGen {
@@ -94,7 +94,8 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			if module0.is_main && node.name == 'main' {
 				g.gen_main_function(module0, node)
 			}
-			g.write(modl, '${parse_type(node.ti.kind)} ${module0.name}_${node.name}(')
+			module_name := module0.name.replace('.', '_')
+			g.write(modl, '${parse_type(node.ti.kind)} ${module_name}_${node.name}(')
 			for current < total {
 				curr := node.args[current]
 				str := parse_arg(curr)
@@ -109,7 +110,10 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			total = node.stmts.len
 			current = 0
 			for stmt in node.stmts {
-				if current + 1 == total && node.ti.kind != .void {
+				if current + 1 == total && node.ti.kind == .void {
+					g.stmt(modl, stmt)
+					g.writeln(modl, 'return 0;')
+				} else if current + 1 == total && node.ti.kind != .void {
 					g.write(modl, 'return ')
 					g.stmt(modl, stmt)
 				} else {
@@ -153,11 +157,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			g.write(modl, '${node.val}')
 		}
 		ast.BinaryExpr {
-			g.write(modl, '{op, ${node.meta.line}, \'${node.op.str()}\', ')
 			g.expr(modl, node.left)
-			g.write(modl, ', ')
+			g.write(modl, node.op.str())
 			g.expr(modl, node.right)
-			g.write(modl, '}')
 		}
 		// `user := User{name: 'Bob'}`
 		ast.StructInit {
@@ -172,7 +174,8 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		ast.CallExpr {
 			if node.is_external {
 				if !node.is_c_module {
-					g.write(modl, '${node.module_name}_')
+					module_name := node.module_name.replace('.', '_')
+					g.write(modl, '${module_name}_')
 				}
 			}
 			g.write(modl, '${node.name}(')

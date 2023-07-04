@@ -1,6 +1,6 @@
 module table
 
-import ast
+import compiler_v.ast
 
 pub enum State {
 	idle = 0
@@ -19,17 +19,20 @@ pub enum TypeMsg {
 
 pub struct Program {
 pub mut:
-	table          &Table
-	main_module    string
-	modules        map[string]Module
-	compile_order  []string
-	c_dependencies []string
-	build_folder   string
-	build_state    State
-	build_progress int
-	errors         []ProgramMsg
-	warnings       []ProgramMsg
-	infos          []ProgramMsg
+	table                  &Table
+	main_module            string
+	modules                map[string]Module
+	compile_order          []string
+	c_dependencies         []string
+	core_modules           map[string]Module
+	core_modules_path      []string
+	core_modules_constants map[string][]string
+	build_folder           string
+	build_state            State
+	build_progress         int
+	errors                 []ProgramMsg
+	warnings               []ProgramMsg
+	infos                  []ProgramMsg
 }
 
 pub struct ProgramMsg {

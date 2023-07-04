@@ -3,11 +3,11 @@
 // that can be found in the LICENSE file.
 module parser
 
-import ast
-import table
+import compiler_v.ast
+import compiler_v.table
 import types
 import token
-import docs
+import compiler_v.docs
 
 pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 	mut args := ast.CallExpr{}
@@ -236,10 +236,10 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			}
 			args << arg
 			p.program.table.register_var(arg)
-			ast_args << ast.Arg{
-				ti: ti
-				name: arg_name
-			}
+			// ast_args << ast.Arg{
+			// 	ti: ti
+			// 	name: arg_name
+			// }
 			// if ti.kind == .variadic && p.tok.kind == .comma {
 			// 	p.error('cannot use ...(variadic) with non-final parameter $arg_name')
 			// }
@@ -266,7 +266,12 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	}
 	mut final_args := []table.Var{}
 	for a in args {
-		final_args << p.program.table.find_var(a.name) or { a }
+		var := p.program.table.find_var(a.name) or { a }
+		final_args << var
+		ast_args << ast.Arg{
+			ti: var.ti
+			name: var.name
+		}
 	}
 	pos_out = p.tok.pos
 	p.program.table.register_fn(table.Fn{
@@ -297,11 +302,10 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 pub fn (p &Parser) check_fn_calls() {
 	println('check fn calls2')
 	for call in p.program.table.unknown_calls {
-		f := p.program.table.find_fn(call.name, '') or {
+		p.program.table.find_fn(call.name, '') or {
 			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
 			return
 		}
-		println(f.name)
 		// println(f.return_ti.name)
 		// println('IN AST typ=' + call.typ.name)
 	}

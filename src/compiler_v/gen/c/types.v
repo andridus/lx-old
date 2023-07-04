@@ -1,7 +1,7 @@
 module c
 
 import types
-import ast
+import compiler_v.ast
 
 fn parse_arg(arg ast.Arg) string {
 	kind := parse_type(arg.ti.kind)

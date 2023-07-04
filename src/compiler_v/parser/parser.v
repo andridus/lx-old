@@ -4,13 +4,13 @@
 module parser
 
 import os
-import ast
-import lexer
+import compiler_v.ast
+import compiler_v.lexer
 import token
 import types
-import table
+import compiler_v.table
 import utils
-import color
+import compiler_v.color
 
 struct Parser {
 	file_name  string
@@ -47,8 +47,16 @@ pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
 pub fn parse_files(prog &table.Program) {
 	mut prog0 := unsafe { prog }
 	for modl in prog0.compile_order {
-		stmts := parse_file(prog0.modules[modl], prog)
-		prog0.modules[modl].put_stmts(stmts)
+		if modl.starts_with('@') {
+			mut core_module := prog0.core_modules[modl.trim_left('@')]
+			stmts := parse_file(core_module, prog)
+			core_module.put_stmts(stmts)
+			prog0.modules[modl] = core_module
+			// prog0.modules[modl].put_stmts(stmts)
+		} else {
+			stmts := parse_file(prog0.modules[modl], prog)
+			prog0.modules[modl].put_stmts(stmts)
+		}
 	}
 }
 
@@ -518,6 +526,8 @@ fn (mut p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, righ
 
 fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_prec int) ast.Expr {
 	ti := types.get_default_type(op)
+	println('${op}: op')
+	println('op:${ti}')
 	a := ast.Expr(ast.BinaryExpr{
 		op: op
 		op_precedence: op_prec

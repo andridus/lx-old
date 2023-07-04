@@ -5,7 +5,7 @@
 module table
 
 import types
-import ast
+import compiler_v.ast
 
 pub struct Table {
 pub mut:

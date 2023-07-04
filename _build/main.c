@@ -1,14 +1,16 @@
 // Include standard functions
 #include <stdio.h>
-// MODULE 'IO'.ex
+// MODULE 'LxCore.IO'.ex
 // -------- --------
-void IO_puts(char str[]) {
+void LxCore_IO_puts(char str[]) {
 printf(str);
+return 0;
 }
 // MODULE 'HelloWorld'.ex
 // -------- --------
 void HelloWorld_main() {
-IO_puts("Olá Novo mundo\n");
+LxCore_IO_puts("Olá usando o core\n");
+return 0;
 }
 int main(int argc, char *argv[]) {
  HelloWorld_main();

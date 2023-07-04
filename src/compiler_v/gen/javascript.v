@@ -1,9 +1,9 @@
 module gen
 
 import strings
-import ast
+import compiler_v.ast
 import term
-import table
+import compiler_v.table
 
 struct JsGen {
 mut:

@@ -1,9 +1,9 @@
 module parser
 
-import table
-import lexer
+import compiler_v.table
+import compiler_v.lexer
 import os
-import color
+import compiler_v.color
 import token
 
 // The parse module is responsible to make an overview about files
@@ -13,15 +13,92 @@ import token
 // - Set the headers->functions with summary of functions that are defined in itself
 pub fn preprocess(path string, prog &table.Program) {
 	mut prog0 := unsafe { prog }
+	mut metadata := generate_core_modules(prog)
+	prog0.core_modules = metadata.move()
 	if os.is_dir(path) {
 		files := os.ls('${path}') or { []string{} }
 		for file in files {
 			parse_modules('${path}/${file}', prog)
 		}
-		prog0.compile_order = compile_order(prog)
 	} else {
 		parse_modules('${path}', prog)
-		prog0.compile_order = compile_order(prog)
+	}
+	prog0.compile_order = compile_order(prog)
+}
+
+fn generate_core_modules(prog &table.Program) map[string]table.Module {
+	mut metadata := map[string]table.Module{}
+	for path in prog.core_modules_path {
+		if os.is_dir(path) {
+			files := get_all_files_in_dir(path)
+			for file in files {
+				meta := generate_module_metadata(file, prog)
+				metadata[meta.name] = meta
+			}
+		} else {
+			meta := generate_module_metadata('${path}', prog)
+			metadata[meta.name] = meta
+		}
+	}
+	return metadata
+}
+
+fn get_all_files_in_dir(dir string) []string {
+	mut all_files := []string{}
+	if os.is_dir(dir) {
+		files := os.ls('${dir}') or { []string{} }
+		for file in files {
+			arr := get_all_files_in_dir('${dir}/${file}')
+			for a in arr {
+				all_files << a
+			}
+		}
+	} else {
+		all_files << dir
+	}
+	return all_files
+}
+
+fn generate_module_metadata(path string, prog &table.Program) table.Module {
+	// mut prog0 := unsafe { prog }
+	text := os.read_file(path) or {
+		println(err)
+		exit(0)
+	}
+	mut l := lexer.new(text)
+	l.generate_tokens()
+	mut functions := []string{}
+	tk_len := l.tokens.len
+	mut name := ''
+	mut i := 0
+	// ------ analyze entire source code of file
+	for i < tk_len {
+		match l.tokens[i].kind {
+			// Gets the name module
+			.key_defmodule {
+				i++
+				i, name = get_module_name(i, l.tokens[i], l.tokens)
+			}
+			// Define the main module when have the main function
+			// TODO: get functions with arity and put on module headers struct, event if not defined type.
+			.key_def {
+				i++
+				if i < tk_len {
+					tk := l.tokens[i]
+					if tk.kind == .ident {
+						functions << tk.lit
+					}
+				}
+			}
+			else {}
+		}
+		i++
+	}
+	return table.Module{
+		name: name
+		path: path
+		dependencies: []
+		is_main: false
 	}
 }
 
@@ -47,20 +124,10 @@ fn parse_modules(path string, prog &table.Program) {
 			// Gets the requireds module by seek source code for external function calling
 			// TODO: gets the arity of function
 			.modl {
-				mut module_required_name := []string{}
-				module_required_name << l.tokens[i].lit
-				i++
-				for j := i; j < tk_len; j++ {
-					if l.tokens[j].kind == .dot {
-						continue
-					} else if l.tokens[j].kind == .modl {
-						module_required_name << l.tokens[j].lit
-					} else {
-						break
-					}
-				}
+				mut module_required_name := ''
+				i, module_required_name = get_module_name(i, l.tokens[i], l.tokens)
 				if module_required_name.len > 0 {
-					dependencies << module_required_name.join('.')
+					dependencies << module_required_name
 				}
 			}
 			// Define the main module when have the main function
@@ -105,10 +172,18 @@ pub fn compile_order(prog &table.Program) []string {
 	for nam in uniq(dependencies) {
 		a := prog.modules[nam].name
 		if a.len == 0 {
-			println(color.fg(color.red, 0, 'COMPILER: Module ${nam} is required and wasn\'t defined in current project'))
-			exit(0)
+			// try check in core lib
+			b := prog.core_modules[nam]
+			if b.name.len > 0 {
+				// import module
+				arr << '@${b.name}'
+			} else {
+				println(color.fg(color.red, 0, 'COMPILER: Module ${nam} is required and wasn\'t defined in current project'))
+				exit(0)
+			}
+		} else {
+			arr << a
 		}
-		arr << a
 	}
 	arr << main_module
 	if main_module == '' {
@@ -135,6 +210,27 @@ fn uniq(arr []string) []string {
 }
 
 fn get_module_name(i int, tok token.Token, tokens []token.Token) (int, string) {
+	tk_len := tokens.len
+	mut i0 := i
+	mut name := []string{}
+	if i0 < tk_len && tokens[i0].kind == .modl {
+		name << tokens[i0].lit
+		i0++
+		for j := i0; j < tk_len; j++ {
+			if tokens[j].kind == .dot {
+				continue
+			} else if tokens[j].kind == .modl {
+				name << tokens[j].lit
+			} else {
+				break
+			}
+			i0++
+		}
+	}
+	return i0, name.join('.')
+}
+
+fn get_module_function_name(i int, tok token.Token, tokens []token.Token) (int, string) {
 	tk_len := tokens.len
 	mut i0 := i
 	mut name := []string{}
