@@ -1,15 +1,15 @@
 // Include standard functions
 #include <stdio.h>
-// MODULE 'LxCore.IO'.ex
+// MODULE 'Lx.IO'.ex
 // -------- --------
-void LxCore_IO_puts(char str[]) {
+void Lx_IO_puts(char str[]) {
 printf(str);
 return 0;
 }
 // MODULE 'HelloWorld'.ex
 // -------- --------
 void HelloWorld_main() {
-LxCore_IO_puts("Olá usando o alias e core\n");
+Lx_IO_puts("Olá usando o alias e core\n");
 return 0;
 }
 int main(int argc, char *argv[]) {

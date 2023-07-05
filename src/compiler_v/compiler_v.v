@@ -15,7 +15,7 @@ pub fn compile(args []string) {
 		prog := &table.Program{
 			table: &table.Table{}
 			build_folder: '_build'
-			core_modules_path: ['src/libs/builtin']
+			core_modules_path: ['src/libs']
 		}
 		parser.preprocess(path, prog)
 		parser.parse_files(prog)
