@@ -14,11 +14,15 @@ pub mut:
 }
 
 pub fn (l Lexer) get_in_out(lin int, lout int, str string) (int, int) {
-	a := l.input[lin..lout].bytestr()
-	first_of_line := seek_len_until_lb_before(l.input, lin)
-	mut initial_char := a.index(str) or { 0 }
-	initial_char += lin - first_of_line
-	return initial_char, initial_char + str.len
+	if lout >= lin {
+		a := l.input[lin..lout].bytestr()
+		first_of_line := seek_len_until_lb_before(l.input, lin)
+		mut initial_char := a.index(str) or { 0 }
+		initial_char += lin - first_of_line
+		return initial_char, initial_char + str.len
+	} else {
+		return 0, 0
+	}
 }
 
 pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in int, current_out int, line_breaks int, current_line int) string {
@@ -394,6 +398,9 @@ fn (mut l Lexer) parse_token() token.Token {
 				l.get_token_atom(u)
 			}
 		}
+		`%` {
+			l.new_token('%', .mod, 1)
+		}
 		`?` {
 			l.new_token('?', .question, 1)
 		}
@@ -419,7 +426,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token('}', .rcbr, 1)
 		}
 		`[` {
-			l.new_token('[', .rsbr, 1)
+			l.new_token('[', .lsbr, 1)
 		}
 		`]` {
 			l.new_token(']', .rsbr, 1)

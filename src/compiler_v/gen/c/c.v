@@ -3,6 +3,7 @@ module c
 import strings
 import compiler_v.ast
 import compiler_v.table
+import compiler_v.types
 import os
 
 struct CGen {
@@ -11,6 +12,10 @@ mut:
 	definitions strings.Builder
 	out_main    strings.Builder
 	out_modules map[string]strings.Builder
+	last_return bool
+	in_var_decl bool
+	var_name    string
+	var_ti      types.TypeIdent
 }
 
 pub fn gen(prog table.Program) CGen {
@@ -86,6 +91,13 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 				g.stmt(modl, stmt)
 			}
 		}
+		ast.StructDecl {
+			g.writeln(modl, 'typedef struct  {')
+			for field in node.fields {
+				g.writeln(modl, '\t${parse_type(field.ti.kind)} ${field.name};')
+			}
+			g.writeln(modl, '} ${node.ti};')
+		}
 		ast.FnDecl {
 			module0 := g.program.modules[modl]
 			mut total := node.args.len
@@ -95,7 +107,7 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 				g.gen_main_function(module0, node)
 			}
 			module_name := module0.name.replace('.', '_')
-			g.write(modl, '${parse_type(node.ti.kind)} ${module_name}_${node.name}(')
+			g.write(modl, '${parse_type_ti(node.ti)} ${module_name}_${node.name}(')
 			for current < total {
 				curr := node.args[current]
 				str := parse_arg(curr)
@@ -114,7 +126,10 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 					g.stmt(modl, stmt)
 					g.writeln(modl, 'return 0;')
 				} else if current + 1 == total && node.ti.kind != .void {
-					g.write(modl, 'return ')
+					g.last_return = true
+					if !is_defer_return(node.ti.kind) {
+						g.write(modl, 'return ')
+					}
 					g.stmt(modl, stmt)
 				} else {
 					g.stmt(modl, stmt)
@@ -133,7 +148,15 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 				}
 			}
 		}
-		else {}
+		ast.VarDecl {
+			g.in_var_decl = true
+			g.var_name = node.name
+			g.var_ti = node.ti
+			g.expr(modl, node.expr)
+		}
+		else {
+			println(node)
+		}
 	}
 }
 
@@ -163,13 +186,22 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		// `user := User{name: 'Bob'}`
 		ast.StructInit {
-			g.writeln(modl, '/*${node.ti.name}*/{')
-			for i, field in node.fields {
-				g.write(modl, '\t${field} : ')
-				g.expr(modl, node.exprs[i])
-				g.writeln(modl, ', ')
+			mut var := 'a'
+			if g.in_var_decl {
+				var = g.var_name
+				if node.ti != g.var_ti {
+					panic('error type ident wrong')
+				}
 			}
-			g.write(modl, '}')
+			g.writeln(modl, '\t${parse_type_ti(node.ti)} ${var};')
+			for i, field in node.fields {
+				g.write(modl, '\t${var}.${field} = ')
+				g.expr(modl, node.exprs[i])
+				g.writeln(modl, '; ')
+			}
+			if g.last_return {
+				g.writeln(modl, '\treturn ${var}; ')
+			}
 		}
 		ast.CallExpr {
 			if node.is_external {
@@ -210,6 +242,13 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		else {
 			println('modl: ${modl}, node: ${node}')
 		}
+	}
+}
+
+fn is_defer_return(kind types.Kind) bool {
+	return match kind {
+		.struct_ { true }
+		else { false }
 	}
 }
 

@@ -119,6 +119,9 @@ pub enum Kind {
 	key_defmodule
 	key_import
 	key_defstruct
+	key_defstructp
+	key_defenum
+	key_defenump
 	key_alias
 	key_require
 	keyword_endg
@@ -139,7 +142,7 @@ fn build_keywords() map[string]int {
 }
 
 fn build_token_str() []string {
-	mut s := []string{len: 98, init: ''}
+	mut s := []string{len: 100, init: ''}
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.eof] = 'EOF'
 	s[Kind.newline] = 'NEWLINE'
@@ -236,6 +239,8 @@ fn build_token_str() []string {
 	s[Kind.key_defmodule] = 'defmodule'
 	s[Kind.key_import] = 'import'
 	s[Kind.key_defstruct] = 'defstruct'
+	s[Kind.key_defstructp] = 'defstructp'
+	s[Kind.key_defenum] = 'defenum'
 	s[Kind.key_alias] = 'alias'
 	s[Kind.key_require] = 'require'
 	s[Kind.keyword_endg] = ''

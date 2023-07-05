@@ -91,7 +91,7 @@ pub fn (mut p Parser) read_first_token() {
 fn (mut p Parser) next_token() {
 	p.tok = p.peek_tok
 	p.peek_tok = p.lexer.generate_one_token()
-	if p.tok.kind == .newline {
+	if p.tok.kind == .newline || p.tok.kind == .line_comment {
 		p.next_token()
 	}
 }
@@ -149,8 +149,10 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 					p.check(.modl)
 				}
 			}
-			println(module_name)
 			return p.stmt()
+		}
+		.key_defstruct, .key_defstructp {
+			return p.defstruct_decl()
 		}
 		.key_def, .key_defp {
 			return p.def_decl()
@@ -245,6 +247,17 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
 	// Prefix
 	match p.tok.kind {
+		.mod {
+			if p.peek_tok.kind == .modl {
+				node1, ti1 := p.defstruct_init()
+				node = ast.Expr(node1)
+				ti = ti1
+			} else {
+				println('Anything')
+				p.next_token()
+				node, ti = p.expr(0)
+			}
+		}
 		.atom {
 			node, ti = p.atom_expr()
 		}
@@ -661,6 +674,7 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 	if p.tok.kind != .key_do {
 		for {
 			stmts << p.stmt()
+
 			// p.warn('after stmt(): tok=$p.tok.str()')
 			if p.tok.kind in [.eof, .key_end] {
 				break

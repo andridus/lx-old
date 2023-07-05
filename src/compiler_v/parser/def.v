@@ -271,6 +271,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		from_type = true
 	}
 	stmts := p.parse_block()
+
 	// Try get type from body inference
 	if from_type == false {
 		ti = stmts[stmts.len - 1].ti

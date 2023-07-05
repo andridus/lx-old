@@ -112,7 +112,7 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 				'i16' {
 					return types.new_builtin_ti(.i16, nr_muls, false)
 				}
-				'int' {
+				'int', 'integer' {
 					return types.new_builtin_ti(.int, nr_muls, false)
 				}
 				'i64' {
@@ -130,7 +130,7 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 				'u64' {
 					return types.new_builtin_ti(.u64, nr_muls, false)
 				}
-				'f32' {
+				'f32', 'float' {
 					return types.new_builtin_ti(.f32, nr_muls, false)
 				}
 				'f64' {

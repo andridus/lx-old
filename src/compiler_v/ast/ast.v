@@ -142,6 +142,7 @@ pub:
 	name   string
 	fields []Field
 	is_pub bool
+	size   int
 	meta   Meta
 	ti     types.TypeIdent
 }
@@ -370,6 +371,9 @@ pub fn (x Expr) str() string {
 		}
 		CharlistLiteral {
 			return '\'${x.val.bytestr()}\''
+		}
+		StructInit {
+			return 'struct'
 		}
 		Ident {
 			return x.name

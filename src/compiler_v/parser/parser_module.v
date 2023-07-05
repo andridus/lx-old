@@ -161,7 +161,9 @@ fn parse_modules(path string, prog &table.Program) {
 		if modl := aliases[dep] {
 			dependencies0 << modl
 		} else {
-			dependencies0 << dep
+			if name != dep {
+				dependencies0 << dep
+			}
 		}
 	}
 	prog0.modules[name] = table.Module{

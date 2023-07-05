@@ -12,6 +12,14 @@ fn parse_arg(arg ast.Arg) string {
 	}
 }
 
+fn parse_type_ti(ti types.TypeIdent) string {
+	if ti.kind == .struct_ {
+		return ti.name
+	} else {
+		return parse_type(ti.kind)
+	}
+}
+
 fn parse_type(kind types.Kind) string {
 	return match kind {
 		.atom { 'int' }

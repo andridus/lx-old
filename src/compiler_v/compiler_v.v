@@ -19,6 +19,7 @@ pub fn compile(args []string) {
 		}
 		parser.preprocess(path, prog)
 		parser.parse_files(prog)
+
 		mut generated := c.gen(prog)
 		builded_file := generated.save() or {
 			println(err.msg())

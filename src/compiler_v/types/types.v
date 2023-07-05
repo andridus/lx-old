@@ -68,6 +68,10 @@ pub:
 	nr_muls int
 }
 
+pub fn new_struct(name string) TypeIdent {
+	return new_ti(.struct_, name, 1, 0)
+}
+
 pub fn new_ti(kind Kind, name string, idx int, nr_muls int) TypeIdent {
 	return TypeIdent{
 		idx: idx

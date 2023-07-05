@@ -1,18 +1,16 @@
 // Include standard functions
-#include <stdio.h>
-// MODULE 'Lx.IO'.ex
+// MODULE 'Person'.ex
 // -------- --------
-void Lx_IO_puts(char str[]) {
-printf(str);
-return 0;
-}
-// MODULE 'HelloWorld'.ex
-// -------- --------
-void HelloWorld_main() {
-Lx_IO_puts("Olá usando o alias e core\n");
-return 0;
+typedef struct  {
+	char name;
+	int age;
+} Person;
+Person Person_main() {
+	Person b;
+	b.name = "Rich Man"; 
+	return b; 
 }
 int main(int argc, char *argv[]) {
- HelloWorld_main();
+ Person_main();
 return 0;
 }
