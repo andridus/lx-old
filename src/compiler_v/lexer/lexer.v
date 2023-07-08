@@ -613,11 +613,14 @@ fn (l Lexer) get_word(cch u8) (string, bool) {
 	mut current_ch := cch
 	mut pos := l.pos
 	start_pos := pos
-	for is_letter(current_ch) && pos < l.total {
-		pos += 1
-		current_ch = l.input[pos]
+	if current_ch == cch && is_letter(current_ch) {
+		for is_alpha(current_ch) && pos < l.total {
+			pos += 1
+			current_ch = l.input[pos]
+		}
+		return l.input[start_pos..pos].bytestr(), is_first_capital
 	}
-	return l.input[start_pos..pos].bytestr(), is_first_capital
+	return '', false
 }
 
 fn (mut l Lexer) get_number(cch u8) (string, token.Kind) {
@@ -643,6 +646,10 @@ fn (mut l Lexer) get_number(cch u8) (string, token.Kind) {
 
 fn is_letter(a u8) bool {
 	return (a >= `a` && a <= `z`) || (a >= `A` && a <= `Z`) || a == `_`
+}
+
+fn is_alpha(a u8) bool {
+	return is_digit(a) || (a >= `a` && a <= `z`) || is_capital(a) || a == `_`
 }
 
 fn is_capital(a u8) bool {

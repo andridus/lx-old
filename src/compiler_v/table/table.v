@@ -50,14 +50,23 @@ pub:
 pub struct Fn {
 pub:
 	name        string
-	args        []Var
-	return_ti   types.TypeIdent
 	is_external bool
 	is_valid    bool
 	module_path string
 	module_name string
 	def_pos_in  int
 	def_pos_out int
+pub mut:
+	return_tis        []types.TypeIdent
+	arities           []FnArity
+	idx_arity_by_args map[string]int
+}
+
+pub struct FnArity {
+pub:
+	args      []Var
+	return_ti types.TypeIdent
+	is_valid  bool
 }
 
 pub fn new_table() &Table {
@@ -119,6 +128,38 @@ pub fn (mut t Table) register_fn(new_fn Fn) {
 	t.fns[new_fn.module_name + '.' + new_fn.name] = new_fn
 }
 
+pub fn (mut t Table) register_or_update_fn(arity string, args []Var, ti types.TypeIdent, new_fn Fn) {
+	idx_name := new_fn.module_name + '.' + new_fn.name
+	mut fn0 := t.fns[idx_name]
+	empty_arity0 := FnArity{}
+	arity0 := FnArity{
+		args: args
+		return_ti: ti
+		is_valid: true
+	}
+
+	if fn0.name == new_fn.name {
+		mut tis := []types.TypeIdent{}
+		l := fn0.arities.len
+		fn0.arities << arity0
+		fn0.idx_arity_by_args[arity] = l
+		for a in fn0.arities {
+			tis << a.return_ti
+		}
+		fn0.return_tis = tis
+		t.fns[idx_name] = fn0
+	} else {
+		mut arity_names := map[string]int{}
+		arity_names[arity] = 1
+		t.fns[idx_name] = Fn{
+			...new_fn
+			return_tis: [empty_arity0.return_ti, arity0.return_ti]
+			arities: [empty_arity0, arity0]
+			idx_arity_by_args: arity_names
+		}
+	}
+}
+
 pub fn (mut t Table) register_method(ti types.TypeIdent, new_fn Fn) bool {
 	println('register method `${new_fn.name}` tiname=${ti.name} ')
 
@@ -146,6 +187,50 @@ pub fn (mut t Table) register_method(ti types.TypeIdent, new_fn Fn) bool {
 pub fn (mut t Table) new_tmp_var() string {
 	t.tmp_cnt++
 	return 'tmp${t.tmp_cnt}'
+}
+
+pub fn (t &Table) find_type_name(elem_ti &types.TypeIdent) (int, string) {
+	mut existing_idx := 0
+	mut name := elem_ti.str()
+	match elem_ti.kind {
+		.struct_ {
+			name = 'struct_${elem_ti.name}'
+			existing_idx = t.type_idxs[name]
+		}
+		else {}
+	}
+	if existing_idx > 0 {
+		return existing_idx, name
+	} else {
+		return existing_idx, name
+	}
+}
+
+pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Field) (int, string) {
+	name := 'struct_${elem_ti.name}'
+	// existing
+	existing_idx := t.type_idxs[name]
+	if existing_idx > 0 {
+		return existing_idx, name
+	}
+	// register
+	idx := t.types.len
+	mut struct_type := types.Type(types.Void{})
+	mut fields0 := []types.Field{}
+	for field in fields {
+		fields0 << types.Field{
+			name: field.name
+			type_idx: idx
+		}
+	}
+	struct_type = types.Struct{
+		idx: idx
+		name: name
+		fields: fields0
+	}
+	t.type_idxs[name] = idx
+	t.types << struct_type
+	return idx, name
 }
 
 pub fn (mut t Table) find_or_register_list_fixed(elem_ti &types.TypeIdent, size int, nr_dims int) (int, string) {

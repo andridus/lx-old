@@ -59,7 +59,9 @@ pub:
 	is_top_stmt bool
 }
 
-pub struct EmptyExpr {}
+pub struct EmptyExpr {
+	ti types.TypeIdent
+}
 
 pub struct Keyword {
 	idx   int
@@ -149,6 +151,7 @@ pub:
 
 pub struct StructInit {
 pub:
+	name   string
 	ti     types.TypeIdent
 	fields []string
 	exprs  []Expr
@@ -172,6 +175,7 @@ pub:
 pub struct FnDecl {
 pub:
 	name     string
+	arity    string
 	stmts    []Stmt
 	ti       types.TypeIdent
 	args     []Arg
@@ -183,6 +187,7 @@ pub:
 pub struct CallExpr {
 pub:
 	name        string
+	arity       string
 	args        []Expr
 	is_unknown  bool
 	is_external bool
@@ -226,6 +231,7 @@ pub:
 	output_path string
 	file_name   string
 	stmts       []Stmt
+	ti          types.TypeIdent
 }
 
 pub struct Ident {
@@ -347,6 +353,31 @@ pub:
 	inside_parens int
 }
 
+pub fn get_ti(a Expr) types.TypeIdent {
+	return match a {
+		ArrayInit { a.ti }
+		AssignExpr { a.ti }
+		BinaryExpr { a.ti }
+		BoolLiteral { a.ti }
+		CallExpr { a.ti }
+		CharlistLiteral { a.ti }
+		EmptyExpr { a.ti }
+		FloatLiteral { a.ti }
+		Ident { a.ti }
+		IfExpr { a.ti }
+		IndexExpr { a.ti }
+		IntegerLiteral { a.ti }
+		KeywordList { a.ti }
+		MethodCallExpr { a.ti }
+		PostfixExpr { a.ti }
+		PrefixExpr { a.ti }
+		SelectorExpr { a.ti }
+		StringLiteral { a.ti }
+		StructInit { a.ti }
+		UnaryExpr { a.ti }
+	}
+}
+
 pub fn (e BinaryExpr) is_inside_parens() bool {
 	return e.meta.inside_parens > 0
 }
@@ -373,7 +404,7 @@ pub fn (x Expr) str() string {
 			return '\'${x.val.bytestr()}\''
 		}
 		StructInit {
-			return 'struct'
+			return x.name
 		}
 		Ident {
 			return x.name

@@ -29,6 +29,7 @@
 3. Set summarized information about headers functions was defined in modules.
 4. Defer compilation warning. if is compiles many files and check dependency error, just wait to all files was compiled, and check if error persist, so thown.
 5. Parallel compilation. Using methods above to compile in parallel
+6. Using the TinyCC to compile to native
 
 ## Dependency between files
 
@@ -65,7 +66,8 @@ Imagine three files:
 
 
 ### To Execute
-1. Install V
-2. Install Erlang
-3. On terminal, execute
+1. Install gcc or tinycc
+2. Install V
+3. Install Erlang
+4. On terminal, execute
   `$ v run . repl`

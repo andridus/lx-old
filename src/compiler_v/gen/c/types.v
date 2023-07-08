@@ -3,12 +3,60 @@ module c
 import compiler_v.types
 import compiler_v.ast
 
-fn parse_arg(arg ast.Arg) string {
+fn parse_field(field ast.Field) string {
+	kind := parse_type(field.ti.kind)
+	mut name := field.name
+	match field.ti.kind {
+		.string { name = '*${name}' }
+		else {}
+	}
+	return '${kind} ${name}'
+}
+
+fn parse_arg_simple(arg ast.Arg, name string) string {
+	kind := parse_type(arg.ti.kind)
+	return '${kind} ${name}'
+}
+
+fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
+	kind := parse_type(arg.ti.kind)
+	match arg.ti.kind {
+		.string {
+			return '${kind} *${name}'
+		}
+		else {
+			return '${kind} ${name}'
+		}
+	}
+}
+
+fn parse_arg_simple_pointer_no_arg(arg ast.Arg) string {
+	kind := parse_type(arg.ti.kind)
+	match arg.ti.kind {
+		.string {
+			return '${kind} *'
+		}
+		else {
+			return '${kind}'
+		}
+	}
+}
+
+fn parse_arg(arg ast.Arg, name string) string {
 	kind := parse_type(arg.ti.kind)
 	if ti_is_array(arg.ti) {
-		return '${kind} ${arg.name}[]'
+		return '${kind} ${name}[]'
 	} else {
-		return '${kind} ${arg.name}'
+		return '${kind} ${name}'
+	}
+}
+
+fn parse_arg_pointer(arg ast.Arg, name string) string {
+	kind := parse_type(arg.ti.kind)
+	if ti_is_array(arg.ti) {
+		return '${kind} *${name}[]'
+	} else {
+		return '${kind} *${name}'
 	}
 }
 
@@ -39,7 +87,7 @@ fn parse_type(kind types.Kind) string {
 		.u16 { 'u16' }
 		.u32 { 'u32' }
 		.u64 { 'u64' }
-		.f32 { 'f32' }
+		.f32 { 'double' }
 		.f64 { 'f64' }
 		.string { 'char' }
 		.char { 'char' }

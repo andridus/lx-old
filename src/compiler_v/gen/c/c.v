@@ -14,8 +14,11 @@ mut:
 	out_modules map[string]strings.Builder
 	last_return bool
 	in_var_decl bool
+	var_count   int
 	var_name    string
 	var_ti      types.TypeIdent
+	fn_agg      map[string][]ast.FnDecl
+	fn_main     string
 }
 
 pub fn gen(prog table.Program) CGen {
@@ -31,7 +34,6 @@ pub fn gen(prog table.Program) CGen {
 	}
 
 	for modl in prog.compile_order {
-		// println(prog.modules[modl].stmts)
 		for stmt in prog.modules[modl].stmts {
 			g.stmt(modl, stmt)
 		}
@@ -48,12 +50,23 @@ pub fn (mut g CGen) save() !string {
 	mut order := g.program.compile_order.clone()
 	/// include std functions
 	bin << '// Include standard functions\n'.bytes()
-	for dep in g.program.c_dependencies {
+	mut deps := g.program.c_dependencies.clone()
+	deps << 'tcclib'
+	// deps << "stdarg"
+	deps << 'string'
+	mut deps_inserted := []string{}
+	for dep in deps {
+		if deps_inserted.contains(dep) {
+			continue
+		}
+		deps_inserted << dep
 		dep0 := stdlib(dep) or {
 			println(err.msg())
 			exit(0)
 		}
-		bin << '#include ${dep0}\n'.bytes()
+		if dep0 != '' {
+			bin << '#include ${dep0}\n'.bytes()
+		}
 	}
 	//
 	order.reverse()
@@ -84,6 +97,8 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			module0 := g.program.modules[modl]
 			g.writeln(modl, '// MODULE \'${module0.name}\'.ex')
 			g.stmt(modl, node.stmt)
+			g.mount_fns(modl)
+			g.mount_main()
 		}
 		ast.Block {
 			g.writeln(modl, '// -------- --------')
@@ -94,49 +109,12 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 		ast.StructDecl {
 			g.writeln(modl, 'typedef struct  {')
 			for field in node.fields {
-				g.writeln(modl, '\t${parse_type(field.ti.kind)} ${field.name};')
+				g.writeln(modl, '\t${parse_field(field)};')
 			}
-			g.writeln(modl, '} ${node.ti};')
+			g.writeln(modl, '} ${node.name};')
 		}
 		ast.FnDecl {
-			module0 := g.program.modules[modl]
-			mut total := node.args.len
-			mut current := 0
-
-			if module0.is_main && node.name == 'main' {
-				g.gen_main_function(module0, node)
-			}
-			module_name := module0.name.replace('.', '_')
-			g.write(modl, '${parse_type_ti(node.ti)} ${module_name}_${node.name}(')
-			for current < total {
-				curr := node.args[current]
-				str := parse_arg(curr)
-				g.write(modl, str)
-				current++
-				if current < total {
-					g.write(modl, ', ')
-				}
-			}
-			g.writeln(modl, ') {')
-
-			total = node.stmts.len
-			current = 0
-			for stmt in node.stmts {
-				if current + 1 == total && node.ti.kind == .void {
-					g.stmt(modl, stmt)
-					g.writeln(modl, 'return 0;')
-				} else if current + 1 == total && node.ti.kind != .void {
-					g.last_return = true
-					if !is_defer_return(node.ti.kind) {
-						g.write(modl, 'return ')
-					}
-					g.stmt(modl, stmt)
-				} else {
-					g.stmt(modl, stmt)
-				}
-				current++
-			}
-			g.writeln(modl, '}')
+			g.fn_agg[node.name] << node
 		}
 		ast.ExprStmt {
 			g.expr(modl, node.expr)
@@ -193,7 +171,8 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 					panic('error type ident wrong')
 				}
 			}
-			g.writeln(modl, '\t${parse_type_ti(node.ti)} ${var};')
+			// println(node)
+			g.writeln(modl, '\t${node.name} ${var};')
 			for i, field in node.fields {
 				g.write(modl, '\t${var}.${field} = ')
 				g.expr(modl, node.exprs[i])
@@ -204,14 +183,37 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			}
 		}
 		ast.CallExpr {
+			module_name := node.module_name.replace('.', '_')
 			if node.is_external {
 				if !node.is_c_module {
-					module_name := node.module_name.replace('.', '_')
 					g.write(modl, '${module_name}_')
 				}
 			}
 			g.write(modl, '${node.name}(')
+			name_fun_raw := '${module_name.replace('_', '.')}.${node.name}'
+			fns0 := g.program.table.fns[name_fun_raw]
+			arity_idx := fns0.idx_arity_by_args[node.arity]
+			mut arity_len := 0
+			if arity_idx < fns0.arities.len && fns0.arities.len != 0 {
+				arity_len = fns0.arities[arity_idx].args.len
+			} else {
+				arity_len = 0
+			}
+			// println()
+			if node.is_external {
+				if !node.is_c_module {
+					if arity_len == 0 {
+						g.write(modl, "${arity_len},\"${node.arity}\"")
+					} else {
+						g.write(modl, "${arity_len},\"${node.arity}\",")
+					}
+				}
+			}
+
 			for i, expr in node.args {
+				// arity_idx := fns0.idx_arity_by_args[expr.arity]
+				// arity := fns0.arities[arity_idx]
+				// println(arity)
 				g.expr(modl, expr)
 				if i != node.args.len - 1 {
 					g.write(modl, ', ')
@@ -252,9 +254,80 @@ fn is_defer_return(kind types.Kind) bool {
 	}
 }
 
-fn (mut g CGen) gen_main_function(mod table.Module, fun ast.FnDecl) {
-	g.out_main.writeln('int main(int argc, char *argv[]) {')
-	g.out_main.writeln(' ${mod.name}_${fun.name}();')
-	g.out_main.writeln('return 0;')
-	g.out_main.writeln('}')
+fn (mut g CGen) mount_fns(modl string) {
+	for _, fns in g.fn_agg {
+		g.write_fns(modl, fns)
+	}
+}
+
+fn (mut g CGen) write_fns(modl string, arr []ast.FnDecl) {
+	module0 := g.program.modules[modl]
+	module_name := module0.name.replace('.', '_')
+	if arr.len > 0 {
+		node := arr[0]
+		name_fun_raw := '${module_name.replace('_', '.')}.${node.name}'
+		fns0 := g.program.table.fns[name_fun_raw]
+		if !fns0.is_valid {
+			return
+		}
+		g.writeln(modl, 'void *${module_name}_${node.name}(int arity, char *types, ...){')
+		for a in arr {
+			arity_idx := fns0.idx_arity_by_args[a.arity]
+			arity := fns0.arities[arity_idx]
+			g.write_fn(modl, a, arity_idx, arity, fns0.arities.len)
+		}
+		g.writeln(modl, '}')
+	}
+}
+
+fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity table.FnArity, total_arities int) {
+	module0 := g.program.modules[modl]
+	if module0.is_main && node.name == 'main' {
+		module_name := module0.name.replace('.', '_')
+		g.fn_main = '${module_name}_${node.name}'
+	}
+	mut total := node.stmts.len
+	mut current := 0
+	if total_arities > 0 {
+		g.writeln(modl, 'if(arity == ${arity.args.len} && strcmp(types, "${node.arity}") == 0){')
+	} else {
+		g.writeln(modl, 'if(arity == 0) {')
+	}
+	g.writeln(modl, '\tva_list args;')
+	g.writeln(modl, '\tva_start(args, types);')
+	for arg0 in node.args {
+		var_name := '${arg0.name}'
+		// type0 := parse_type_ti(arg0.ti)
+		// arg1 := parse_arg(arg0, var_name)
+		arg1 := parse_arg_simple_pointer(arg0, var_name)
+		type0 := parse_arg_simple_pointer_no_arg(arg0)
+
+		g.writeln(modl, '\t${arg1} = va_arg(args, ${type0});')
+	}
+	g.writeln(modl, '\tva_end(args);')
+	for stmt in node.stmts {
+		if current + 1 == total && node.ti.kind == .void {
+			g.stmt(modl, stmt)
+			g.writeln(modl, '\treturn NULL;')
+		} else if current + 1 == total && node.ti.kind != .void {
+			g.last_return = true
+			if !is_defer_return(node.ti.kind) {
+				g.write(modl, '\treturn ')
+			}
+			g.stmt(modl, stmt)
+		} else {
+			g.stmt(modl, stmt)
+		}
+		current++
+	}
+	g.writeln(modl, '}')
+}
+
+fn (mut g CGen) mount_main() {
+	if g.fn_main.len > 0 {
+		g.out_main.writeln('int main(int argc, char *argv[]) {')
+		g.out_main.writeln(" ${g.fn_main}(0, \"0_\");")
+		g.out_main.writeln('return 0;')
+		g.out_main.writeln('}')
+	}
 }

@@ -25,20 +25,24 @@ pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.TypeIdent) {
 	mut is_external := true
 	mut is_local := false
+	mut is_unknown := false
+	mut is_c_module := false
 	mut tok := p.tok
+	mut arg_exprs := []ast.Expr{}
+	mut arity_num := 0
+	mut arity_args := []string{}
+	mut arity_name := ''
 	mut fun_name := token.Token{}
 	mut module_ref := [p.tok]
-	mut is_unknown := false
-	mut args := []ast.Expr{}
 	mut return_ti := types.void_ti
-	mut is_c_module := false
+	// Check if is a C module
 	if p.tok.lit == '_c_' {
 		is_c_module = true
 		module_ref = []
 	}
+	// Initial lexer position for stmt
 	p.error_pos_in = p.tok.pos - p.tok.lit.len
 
-	mut more := 0
 	if kind == .ident {
 		if p.peek_tok.kind == .dot {
 			// should be a var, check
@@ -50,16 +54,18 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			is_local = true
 		}
 	}
+	// Gets the name of module or local function
 	p.check(kind)
+	mut icount := 0
 	for p.tok.kind == .dot {
 		p.check(.dot)
 		if p.tok.kind == .ident {
-			if more > 0 {
+			if icount > 0 {
 				module_ref << fun_name
-				more = 0
+				icount = 0
 			}
 			fun_name = p.tok
-			more++
+			icount++
 		} else if p.tok.kind == .modl {
 			module_ref << p.tok
 		} else {
@@ -69,54 +75,48 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		}
 		p.next_token()
 	}
-
 	mut module_name := module_name0(module_ref)
+	// Check if is a local function
 	if is_local {
 		module_name = p.current_module
 	}
-
+	// Check if is aliased
 	aliased_name := p.program.modules[p.current_module].aliases[module_name]
 	if aliased_name.len > 0 {
 		module_name = aliased_name
 	}
+	// get module path
 	module_path := module_name.to_lower()
+	// If module placed with anything
 	if fun_name.kind == .ignore {
 		p.warn('Module ${module_name} is orphan')
 	}
-	// p.check(.modl)
-
-	// for p.tok.kind != .lpar {
-	// 	if p.tok.kind == .modl {
-	// 		module_path << p.tok.lit
-	// 	}
-	// 	println(p.tok.kind)
-	// 	if p.tok.kind == .ident {
-	// 		tok = p.tok
-	// 		fn_name = p.check_name()
-	// 	}
-	// 	p.next_token()
-	// }
-
+	/// Check the args of function
 	p.check(.lpar)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
-		return_ti = f.return_ti
-
-		for i, arg in f.args {
+		for p.tok.kind != .rpar {
 			e, ti := p.expr(0)
-			if !types.check(&arg.ti, &ti) {
-				p.error_pos_out = p.tok.pos
-				mut name0 := '`${module_name}.${fun_name.lit}`'
-				if is_local {
-					name0 = '`${fun_name.lit}`'
-				}
-				p.log_d('ERROR', 'The function ${name0} expects an argument of type `${arg.ti.name}`, but you have entered an `${ti.name}`',
-					docs.function_args_desc, docs.function_args_url, e.str())
-				// p.error('cannot use type `${ti.name}` as type `${arg.ti.name}` in argument to `${fun_name}`')
-			}
-			args << e
-			if i < f.args.len - 1 {
+			arity_num++
+			arity_args << ti.name
+			arg_exprs << e
+			if p.tok.kind != .rpar {
 				p.check(.comma)
 			}
+		}
+
+		arity_name = '${arity_num}_${arity_args.join('_')}'
+		finded := f.idx_arity_by_args[arity_name]
+		mut valid_arity := false
+		if finded > 0 {
+			a := f.arities[finded]
+			if a.is_valid {
+				valid_arity = true
+			}
+		}
+		if valid_arity == false {
+			p.error_pos_out = p.tok.pos
+			p.log_d('ERROR', 'The function `${fun_name.lit}` expects an argument of type `${arity_args.join(', ')}`, but you have entered an `${arity_args.join(', ')}`',
+				docs.function_args_desc, docs.function_args_url, '')
 		}
 		if p.tok.kind == .comma {
 			p.error('too many arguments in call to `${fun_name}`')
@@ -138,20 +138,23 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 					p.log_d('WARN', 'unknown function `${fun_name.lit}`', '', '', fun_name.lit)
 				}
 			}
-		}
-		for p.tok.kind != .rpar {
-			e, _ := p.expr(0)
-			args << e
-			if p.tok.kind != .rpar {
-				p.check(.comma)
+		} else {
+			for p.tok.kind != .rpar {
+				e, ti := p.expr(0)
+				arity_num++
+				arity_args << ti.name
+				arg_exprs << e
+				if p.tok.kind != .rpar {
+					p.check(.comma)
+				}
 			}
 		}
 	}
-
 	p.check(.rpar)
 	node := ast.CallExpr{
 		name: fun_name.lit
-		args: args
+		arity: arity_name
+		args: arg_exprs
 		is_unknown: is_unknown
 		tok: tok
 		is_external: is_external
@@ -277,6 +280,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		ti = stmts[stmts.len - 1].ti
 	}
 	mut final_args := []table.Var{}
+	mut args_overfn := '${args.len}_'
 	for a in args {
 		var := p.program.table.find_var(a.name) or { a }
 		final_args << var
@@ -284,12 +288,11 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			ti: var.ti
 			name: var.name
 		}
+		args_overfn += var.ti.name
 	}
 	pos_out = p.tok.pos
-	p.program.table.register_fn(table.Fn{
+	p.program.table.register_or_update_fn(args_overfn, final_args, ti, table.Fn{
 		name: name
-		args: final_args
-		return_ti: ti
 		is_external: false
 		is_valid: true
 		module_path: p.module_path
@@ -297,11 +300,13 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		def_pos_in: pos_in
 		def_pos_out: pos_out
 	})
+	// println(p.program.table)
 
 	return ast.FnDecl{
 		name: name
 		stmts: stmts
 		ti: ti
+		arity: args_overfn
 		args: ast_args
 		is_priv: is_priv
 		receiver: ast.Field{

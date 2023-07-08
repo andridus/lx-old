@@ -253,7 +253,6 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 				node = ast.Expr(node1)
 				ti = ti1
 			} else {
-				println('Anything')
 				p.next_token()
 				node, ti = p.expr(0)
 			}
@@ -415,12 +414,60 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 	} else {
 		p.error_pos_out = p.tok.lit.len
 		var := p.program.table.find_var(p.tok.lit) or {
-			p.log('ERROR', 'undefined variable `${p.tok.lit}`', p.tok.lit)
-
+			p.log_d('ERROR', 'undefined variable `${p.tok.lit}`', '', '', p.tok.lit)
 			table.Var{}
 		}
-		ti := var.ti
+		mut ti := var.ti
 		p.next_token()
+		if p.tok.kind == .dot {
+			p.check(.dot)
+			if p.tok.kind == .ident {
+				expr := var.expr.expr
+				match expr {
+					ast.StructInit {
+						idx, _ := p.program.table.find_type_name(expr.ti)
+						type_ := p.program.table.types[idx]
+						if type_ is types.Struct {
+							mut flds := []string{}
+							for f in type_.fields {
+								flds << f.name
+							}
+
+							if p.tok.lit in flds {
+								fld0 := p.tok.lit
+								mut idx0 := -1
+								for i0 := 0; i0 < expr.fields.len; i0++ {
+									if expr.fields[i0] == fld0 {
+										idx0 = i0
+									}
+								}
+								if idx0 >= 0 {
+									node = expr.exprs[idx0]
+									ti = ast.get_ti(node)
+									p.next_token()
+								} else {
+									println('Error on find field')
+									exit(0)
+								}
+							} else {
+								p.error_pos_out = p.tok.lit.len
+								p.log_d('ERROR', 'The field `${p.tok.lit}` not exists in struct `${expr.ti}`. Try one of ${flds}',
+									'', '', p.tok.lit)
+							}
+						}
+					}
+					else {
+						p.error_pos_out = p.tok.lit.len
+						p.log_d('ERROR', 'token `${p.tok.lit}` unacceptable after struct ',
+							'', '', p.tok.lit)
+					}
+				}
+			} else {
+				p.error_pos_out = p.tok.lit.len
+				p.log_d('ERROR', 'token `${p.tok.lit}` unacceptable after struct ', '',
+					'', p.tok.lit)
+			}
+		}
 
 		return node, ti
 	}

@@ -2,6 +2,9 @@ module c
 
 fn stdlib(str string) !string {
 	return match str {
+		'tcclib' {
+			'<tcclib.h>'
+		}
 		'assert' {
 			'<assert.h>'
 		}
@@ -89,8 +92,11 @@ fn stdlib(str string) !string {
 		'wctype' {
 			'<wctype.h>'
 		}
+		'' {
+			''
+		}
 		else {
-			error('not found stdlib')
+			error('`${str}` not found stdlib')
 		}
 	}
 }

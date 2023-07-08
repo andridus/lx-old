@@ -41,9 +41,10 @@ fn (mut p Parser) defstruct_init() (ast.StructInit, types.TypeIdent) {
 			break
 		}
 	}
+	_, name0 := p.program.table.find_type_name(ti)
 	p.check(.rcbr)
 	return ast.StructInit{
-		// name: name
+		name: name0
 		exprs: exprs
 		fields: fields
 		ti: ti
@@ -94,8 +95,9 @@ fn (mut p Parser) defstruct_decl() ast.StructDecl {
 
 	p.check(.rsbr)
 	ti := types.new_struct(name)
+	_, name0 := p.program.table.register_struct(ti, fields)
 	return ast.StructDecl{
-		name: name
+		name: name0
 		fields: fields
 		ti: ti
 		// size:
