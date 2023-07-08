@@ -25,14 +25,14 @@ pub fn compile(args []string) {
 			println(err.msg())
 			exit(0)
 		}
-		cmd := 'gcc ${builded_file} -o ${prog.build_folder}/main'
-		os.execute(cmd)
-		elapsed := sw.elapsed().milliseconds()
+		elapsed := sw.elapsed().microseconds()
 		println(color.fg(color.dark_gray, 1, '....... development summary........'))
 		println(color.fg(color.dark_gray, 0, '. Table size: `${sizeof(generated)}b`'))
-		println(color.fg(color.dark_gray, 0, '. Compiled: `${path}` at ${sw.elapsed().milliseconds() - elapsed}ms'))
+		println(color.fg(color.dark_gray, 0, '. Compiled: `${path}` at ${sw.elapsed().microseconds() - elapsed}μs'))
+		println(color.fg(color.dark_gray, 0, '. Using: TCC (https://bellard.org/tcc) Compiler'))
 		println(color.fg(color.dark_gray, 1, '..................................\n'))
-		os.execvp('${prog.build_folder}/main', []) or {
+		println(color.fg(color.dark_gray, 4, 'Program Execution:\n'))
+		os.execvp('tcc', ['-bench', '-run', builded_file]) or {
 			println(color.fg(color.red, 1, 'ERROR: ${err.msg()}'))
 		}
 	} else {
