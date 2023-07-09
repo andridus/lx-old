@@ -27,6 +27,7 @@ pub mut:
 	core_modules           map[string]Module
 	core_modules_path      []string
 	core_modules_constants map[string][]string
+	global_structs         map[string]Module
 	build_folder           string
 	build_state            State
 	build_progress         int
@@ -48,6 +49,8 @@ pub mut:
 	name         string
 	path         string
 	headers      ModuleHeaders
+	is_struct    bool
+	is_enum      bool
 	dependencies []string
 	aliases      map[string]string
 	is_compiled  bool

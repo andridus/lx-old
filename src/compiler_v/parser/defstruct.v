@@ -24,7 +24,7 @@ fn (mut p Parser) defstruct_init() (ast.StructInit, types.TypeIdent) {
 		}
 		p.next_token()
 	}
-	module_name := module_toks.join('.')
+	module_name := module_toks.join('.').replace('.', '_').to_lower()
 	ti := types.new_struct(module_name)
 	mut fields := []string{}
 	mut exprs := []ast.Expr{}
@@ -42,6 +42,7 @@ fn (mut p Parser) defstruct_init() (ast.StructInit, types.TypeIdent) {
 		}
 	}
 	_, name0 := p.program.table.find_type_name(ti)
+	println(name0)
 	p.check(.rcbr)
 	return ast.StructInit{
 		name: name0
@@ -112,7 +113,11 @@ fn (mut p Parser) check_struct_name() string {
 		p.check(.modl)
 	}
 	if p.tok.kind == .lsbr {
-		name = p.current_module
+		if name != '' {
+			name = '${p.current_module}.${name}'
+		} else {
+			name = p.current_module
+		}
 	}
-	return name
+	return name.replace('.', '_').to_lower()
 }

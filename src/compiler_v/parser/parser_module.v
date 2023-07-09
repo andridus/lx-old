@@ -114,22 +114,44 @@ fn parse_modules(path string, prog &table.Program) {
 	mut name := ''
 	mut aliases_name := ''
 	mut i := 0
-
+	mut inner := 0
+	ignore_dependencies := [token.Kind.key_defstruct, .key_defenum]
+	mut ignore_modules := []string{}
 	// ------ analyze entire source code of file
 	for i < tk_len {
 		match l.tokens[i].kind {
 			// Gets the name module
 			.key_defmodule {
 				i++
-				i, name = get_module_name(i, l.tokens[i], l.tokens)
+				if inner == 0 {
+					i, name = get_module_name(i, l.tokens[i], l.tokens)
+				}
+			}
+			.key_defstruct {
+				i++
+				mut name0 := ''
+				i, name0 = get_module_name(i, l.tokens[i], l.tokens)
+				if name0 != '' {
+					ignore_modules << '${name}.${name0}'
+				}
+			}
+			.key_do {
+				inner++
+			}
+			.key_end {
+				inner--
 			}
 			// Gets the requireds module by seek source code for external function calling
 			// TODO: gets the arity of function
 			.modl {
-				mut module_required_name := ''
-				i, module_required_name = get_module_name(i, l.tokens[i], l.tokens)
-				if module_required_name.len > 0 {
-					dependencies << module_required_name
+				if i > 0 && l.tokens[i - 1].kind !in ignore_dependencies {
+					mut module_required_name := ''
+					i, module_required_name = get_module_name(i, l.tokens[i], l.tokens)
+					if module_required_name.len > 0 {
+						if module_required_name !in ignore_modules {
+							dependencies << module_required_name
+						}
+					}
 				}
 			}
 			// Define the main module when have the main function

@@ -4,17 +4,21 @@ defmodule Person do
     name :: string,
     age :: integer
   ]
-  ## NEW: create a named struct inside Module
-  # defstruct Vehicle [model :: string, year :: integer]
-
+  ## LX Feat: Define named struct on same module
+  defstruct Vehicle [
+    model :: string,
+    year :: integer
+  ]
   def main() do
     b = %Person{name: "Person 1", age: 15}
+    v = %Person.Vehicle{model: "FIAT", year: 2014}
     Lx.IO.puts("\n----- start of test ----- \n")
     Lx.IO.puts(b.age)
     Lx.IO.puts(18.8)
     Lx.IO.puts(25)
     Lx.IO.puts("Minha String")
     Lx.IO.puts(b.name)
+    Lx.IO.puts(v.model)
     Lx.IO.puts()
     Lx.IO.puts("\n----- end of test ----- \n")
     # Lx.IO.puts("done\n")

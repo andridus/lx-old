@@ -41,21 +41,29 @@ printf("now\n");
 typedef struct  {
 	char *name;
 	int age;
-} struct_Person;
+} struct_person;
+typedef struct  {
+	char *model;
+	int year;
+} struct_person_vehicle;
 void *Person_main(int arity, char *types, ...){
 if(arity == 0 && strcmp(types, "0_") == 0){
 	va_list args;
 	va_start(args, types);
 	va_end(args);
-	struct_Person b;
+	struct_person b;
 	b.name = "Person 1"; 
 	b.age = 15; 
+	struct_person_vehicle v;
+	v.model = "FIAT"; 
+	v.year = 2014; 
 Lx_IO_puts(1,"1_string","\n----- start of test ----- \n");
 Lx_IO_puts(1,"1_int",15);
 Lx_IO_puts(1,"1_f32",18.8);
 Lx_IO_puts(1,"1_int",25);
 Lx_IO_puts(1,"1_string","Minha String");
 Lx_IO_puts(1,"1_string","Person 1");
+Lx_IO_puts(1,"1_string","FIAT");
 Lx_IO_puts(0,"0_");
 Lx_IO_puts(1,"1_string","\n----- end of test ----- \n");
 	return NULL;
