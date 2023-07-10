@@ -62,13 +62,17 @@ pub fn (mut p Parser) parse_variadic_ti() types.TypeIdent {
 	return types.new_ti(.variadic, name, idx, 0)
 }
 
-pub fn (mut p Parser) parse_ti() types.TypeIdent {
+pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
+	mut name0 := name
+	mut is_enum := false
 	mut nr_muls := 0
+	if name == 'enum_' {
+		is_enum = true
+	}
 	for p.tok.kind == .amp {
 		p.check(.amp)
 		nr_muls++
 	}
-	name := p.tok.lit
 	match p.tok.kind {
 		// list
 		.lsbr {
@@ -92,7 +96,7 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 			defer {
 				p.next_token()
 			}
-			match name {
+			match p.tok.lit {
 				// map
 				'map' {
 					return p.parse_map_ti(nr_muls)
@@ -147,15 +151,39 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 				}
 				// struct / enum / placeholder
 				else {
-					// struct / enum
-					mut idx := p.program.table.find_type_idx(name)
-					// add placeholder
-					if idx == 0 {
-						idx = p.program.table.add_placeholder_type(name)
+					if p.tok.kind == .modl {
+						name0 = name + p.get_mdl_name()
 					}
+					if p.peek_tok.kind == .arrob && name != 'enum_' {
+						name0 = 'enum_' + name0
+						is_enum = true
+						p.check(.modl)
+					}
+					// struct
+					mut idx := p.program.table.find_type_idx(name0)
+					// add placeholder
+
+					if idx >= 0 {
+						// idx = p.program.table.add_placeholder_type(name0)
+						if is_enum {
+							return types.new_enum(name0)
+							// p.program.table.types[idx]
+						}
+					}
+
 					return types.new_ti(.placeholder, name, idx, nr_muls)
 				}
 			}
 		}
 	}
+}
+
+pub fn (mut p Parser) parse_ti() types.TypeIdent {
+	mut nr_muls := 0
+	for p.tok.kind == .amp {
+		p.check(.amp)
+		nr_muls++
+	}
+	// name := p.tok.lit
+	return p.parse_ti_name('')
 }

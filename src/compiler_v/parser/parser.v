@@ -96,6 +96,26 @@ fn (mut p Parser) next_token() {
 	}
 }
 
+fn (mut p Parser) peek_next_token(num int) token.Token {
+	mut num0 := num
+	pos := p.lexer.pos
+	lines := p.lexer.lines
+	pos_inline := p.lexer.pos_inline
+	mut peek_tok := p.lexer.generate_one_token()
+	for num0 - 1 > 0 {
+		peek_tok = p.lexer.generate_one_token()
+		for peek_tok.kind == .newline || peek_tok.kind == .line_comment {
+			peek_tok = p.lexer.generate_one_token()
+		}
+		num0--
+	}
+
+	p.lexer.pos = pos
+	p.lexer.lines = lines
+	p.lexer.pos_inline = pos_inline
+	return peek_tok
+}
+
 fn (mut p Parser) check(expected token.Kind) {
 	if p.tok.kind != expected {
 		s := 'syntax error: unexpected `${p.tok.kind.str()}` , expecting `${expected.str()}`'
@@ -153,6 +173,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 		}
 		.key_defstruct, .key_defstructp {
 			return p.defstruct_decl()
+		}
+		.key_defenum, .key_defenump {
+			return p.defenum_decl()
 		}
 		.key_def, .key_defp {
 			return p.def_decl()
@@ -290,13 +313,38 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			p.inside_parens--
 		}
 		.modl {
-			node1, ti1 := p.call_from_module(.modl) or {
-				p.warn('Error')
-				exit(0)
-				// p.warn('Module ${module_name(module_ref)} is orphan')
+			mut num := 1
+			mut nt := p.peek_next_token(num)
+			if p.tok.kind == .modl {
+				for nt.kind == .dot {
+					num++
+					nt = p.peek_next_token(num)
+					if nt.kind == .modl {
+						num++
+						nt = p.peek_next_token(num)
+					} else {
+						break
+					}
+				}
+				num++
 			}
-			node = ast.Expr(node1)
-			ti = ti1
+			nt = p.peek_next_token(num)
+
+			if nt.kind == .arrob {
+				node1, ti1 := p.call_enum() or {
+					p.warn('Error')
+					exit(0)
+				}
+				node = ast.Expr(node1)
+				ti = ti1
+			} else {
+				node1, ti1 := p.call_from_module(.modl) or {
+					p.warn('Error')
+					exit(0)
+				}
+				ti = ti1
+				node = ast.Expr(node1)
+			}
 		}
 		else {
 			p.error_pos_in = p.tok.lit.len
@@ -708,9 +756,45 @@ pub fn (p &Parser) warn_d(s string, desc string, url string) {
 		p.error_pos_out, 1, p.tok.line_nr))
 }
 
+fn (mut p Parser) get_mdl_name() string {
+	if p.tok.kind == .modl {
+		mut module_toks := [p.tok.lit]
+		p.check(.modl)
+		for p.tok.kind == .dot {
+			p.check(.dot)
+			if p.tok.kind == .modl {
+				module_toks << p.tok.lit
+			}
+		}
+		return module_toks.join('.').replace('.', '_').to_lower()
+	} else {
+		return ''
+	}
+}
+
+fn (mut p Parser) check_name_or_mdl() string {
+	mut name := ''
+	if p.tok.kind == .ident {
+		name = p.tok.lit
+		p.check(.ident)
+	} else if p.tok.kind == .modl {
+		module_name := module_name0([])
+		println(module_name)
+		p.check(.ident)
+	}
+
+	return name
+}
+
 fn (mut p Parser) check_name() string {
 	name := p.tok.lit
 	p.check(.ident)
+	return name
+}
+
+fn (mut p Parser) check_atom() string {
+	name := p.tok.lit
+	p.check(.atom)
 	return name
 }
 
@@ -732,4 +816,20 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 
 	// println('nr exprs in block = $exprs.len')
 	return stmts
+}
+
+fn (mut p Parser) check_modl_name() string {
+	mut name := ''
+	if p.tok.kind == .modl {
+		name = p.tok.lit
+		p.check(.modl)
+	}
+	if p.tok.kind == .lsbr {
+		if name != '' {
+			name = '${p.current_module}.${name}'
+		} else {
+			name = p.current_module
+		}
+	}
+	return name.replace('.', '_').to_lower()
 }

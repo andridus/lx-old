@@ -127,6 +127,14 @@ pub fn (mut l Lexer) generate_one_token() token.Token {
 	return l.parse_token()
 }
 
+// pub fn (mut l Lexer) generate_next_token(num int) token.Token {
+// 	mut tk := token.Token{}
+// 	for i:= 0; i<=num; i++ {
+// 	 tk = l.generate_one_token()
+// 	}
+// 	return tk
+// }
+
 pub fn (mut l Lexer) generate_tokens() {
 	for l.pos < l.total {
 		tok := l.parse_token()
@@ -224,10 +232,12 @@ fn (mut l Lexer) parse_token() token.Token {
 							l.match_else()
 						}
 					} else {
-						l.match_else()
+						l.advance(-2)
+						l.new_token('@', .arrob, 1)
 					}
 				} else {
-					l.match_else()
+					l.advance(-1)
+					l.new_token('@', .arrob, 1)
 				}
 			} else if l.match_next_char(`m`) {
 				if l.match_next_char(`o`) {
@@ -393,7 +403,7 @@ fn (mut l Lexer) parse_token() token.Token {
 		}
 		`:` {
 			if l.match_next_char(`:`) {
-				l.new_token('::', .typedef, 2)
+				l.new_token('::', .typedef, 1)
 			} else {
 				l.get_token_atom(u)
 			}
@@ -489,6 +499,7 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 
 fn (mut l Lexer) match_else() token.Token {
 	s := l.input[l.pos]
+
 	return l.get_token_word(s) or {
 		l.get_token_integer(s) or {
 			// l.advance(1)
@@ -514,7 +525,7 @@ fn (mut l Lexer) get_token_atom(bt u8) token.Token {
 		return l.new_token(str, token.Kind.atom, str.len + 2)
 	} else if is_letter(current) {
 		start_pos := pos
-		for current != 46 && current != 32 && current != 10 && pos < l.total {
+		for current != 46 && current != 44 && current != 32 && current != 10 && pos < l.total {
 			pos++
 			current = l.input[pos]
 		}

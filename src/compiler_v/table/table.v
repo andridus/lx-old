@@ -233,6 +233,26 @@ pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Fiel
 	return idx, name
 }
 
+pub fn (mut t Table) register_enum(elem_ti &types.TypeIdent, values []string) (int, string) {
+	name := 'enum_${elem_ti.name}'
+	// existing
+	existing_idx := t.type_idxs[name]
+	if existing_idx > 0 {
+		return existing_idx, name
+	}
+	// register
+	idx := t.types.len
+	mut enum_type := types.Type(types.Void{})
+	enum_type = types.Enum{
+		idx: idx
+		name: name
+		values: values
+	}
+	t.type_idxs[name] = idx
+	t.types << enum_type
+	return idx, name
+}
+
 pub fn (mut t Table) find_or_register_list_fixed(elem_ti &types.TypeIdent, size int, nr_dims int) (int, string) {
 	name := 'list_fixed_${elem_ti.name}_${size}' + if nr_dims > 1 { '_${nr_dims}d' } else { '' }
 	// existing

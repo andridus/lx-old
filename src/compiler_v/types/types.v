@@ -69,7 +69,11 @@ pub:
 }
 
 pub fn new_struct(name string) TypeIdent {
-	return new_ti(.struct_, name, 1, 0)
+	return new_ti(.struct_, name, 20, 0)
+}
+
+pub fn new_enum(name string) TypeIdent {
+	return new_ti(.enum_, name, 21, 0)
 }
 
 pub fn new_ti(kind Kind, name string, idx int, nr_muls int) TypeIdent {
@@ -262,8 +266,9 @@ pub:
 
 pub struct Enum {
 pub:
-	idx  int
-	name string
+	idx    int
+	name   string
+	values []string
 }
 
 pub struct Struct {

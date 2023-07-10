@@ -11,6 +11,7 @@ pub type Expr = ArrayInit
 	| AssignExpr
 	| BinaryExpr
 	| BoolLiteral
+	| CallEnum
 	| CallExpr
 	| CharlistLiteral
 	| EmptyExpr
@@ -29,6 +30,7 @@ pub type Expr = ArrayInit
 	| UnaryExpr
 
 pub type Stmt = Block
+	| EnumDecl
 	| ExprStmt
 	| FnDecl
 	| ForCStmt
@@ -149,6 +151,17 @@ pub:
 	ti     types.TypeIdent
 }
 
+pub struct EnumDecl {
+pub:
+	name   string
+	values []string
+	starts int
+	is_pub bool
+	size   int
+	meta   Meta
+	ti     types.TypeIdent
+}
+
 pub struct StructInit {
 pub:
 	name   string
@@ -182,6 +195,18 @@ pub:
 	is_priv  bool
 	receiver Field
 	meta     Meta
+}
+
+pub struct CallEnum {
+pub:
+	name        string
+	value       string
+	is_unknown  bool
+	is_external bool
+	module_path string
+	module_name string
+	meta        Meta
+	ti          types.TypeIdent
 }
 
 pub struct CallExpr {
@@ -360,6 +385,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		BinaryExpr { a.ti }
 		BoolLiteral { a.ti }
 		CallExpr { a.ti }
+		CallEnum { a.ti }
 		CharlistLiteral { a.ti }
 		EmptyExpr { a.ti }
 		FloatLiteral { a.ti }

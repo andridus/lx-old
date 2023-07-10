@@ -42,7 +42,6 @@ fn (mut p Parser) defstruct_init() (ast.StructInit, types.TypeIdent) {
 		}
 	}
 	_, name0 := p.program.table.find_type_name(ti)
-	println(name0)
 	p.check(.rcbr)
 	return ast.StructInit{
 		name: name0
@@ -63,7 +62,7 @@ fn (mut p Parser) defstruct_decl() ast.StructDecl {
 		p.check(.key_defstruct)
 	}
 
-	name := p.check_struct_name()
+	name := p.check_modl_name()
 	p.check(.lsbr)
 
 	// GET Fields
@@ -104,20 +103,4 @@ fn (mut p Parser) defstruct_decl() ast.StructDecl {
 		// size:
 		is_pub: !is_priv
 	}
-}
-
-fn (mut p Parser) check_struct_name() string {
-	mut name := ''
-	if p.tok.kind == .modl {
-		name = p.tok.lit
-		p.check(.modl)
-	}
-	if p.tok.kind == .lsbr {
-		if name != '' {
-			name = '${p.current_module}.${name}'
-		} else {
-			name = p.current_module
-		}
-	}
-	return name.replace('.', '_').to_lower()
 }

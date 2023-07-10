@@ -113,6 +113,19 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			}
 			g.writeln(modl, '} ${node.name};')
 		}
+		ast.EnumDecl {
+			g.writeln(modl, 'typedef enum  {')
+			mut i := 0
+			for val in node.values {
+				if i == 0 {
+					g.writeln(modl, '\t${node.name}_${val.to_upper()}=1,')
+				} else {
+					g.writeln(modl, '\t${node.name}_${val.to_upper()},')
+				}
+				i++
+			}
+			g.writeln(modl, '} ${node.name};')
+		}
 		ast.FnDecl {
 			g.fn_agg[node.name] << node
 		}
@@ -180,6 +193,15 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			}
 			if g.last_return {
 				g.writeln(modl, '\treturn ${var}; ')
+			}
+		}
+		ast.CallEnum {
+			if g.in_var_decl {
+				println(g.var_ti)
+				g.write(modl, '${g.var_ti} ${g.var_name} = ')
+				g.writeln(modl, '${node.name}_${node.value.to_upper()};')
+			} else {
+				g.writeln(modl, '${node.name}_${node.value.to_upper()}')
 			}
 		}
 		ast.CallExpr {
@@ -299,6 +321,7 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 		var_name := '${arg0.name}'
 		// type0 := parse_type_ti(arg0.ti)
 		// arg1 := parse_arg(arg0, var_name)
+		println(arg0)
 		arg1 := parse_arg_simple_pointer(arg0, var_name)
 		type0 := parse_arg_simple_pointer_no_arg(arg0)
 

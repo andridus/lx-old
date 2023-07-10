@@ -135,6 +135,14 @@ fn parse_modules(path string, prog &table.Program) {
 					ignore_modules << '${name}.${name0}'
 				}
 			}
+			.key_defenum {
+				i++
+				mut name0 := ''
+				i, name0 = get_module_name(i, l.tokens[i], l.tokens)
+				if name0 != '' {
+					ignore_modules << '${name}.${name0}'
+				}
+			}
 			.key_do {
 				inner++
 			}

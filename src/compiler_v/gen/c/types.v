@@ -19,7 +19,7 @@ fn parse_arg_simple(arg ast.Arg, name string) string {
 }
 
 fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
-	kind := parse_type(arg.ti.kind)
+	kind := parse_type_ti(arg.ti)
 	match arg.ti.kind {
 		.string {
 			return '${kind} *${name}'
@@ -31,7 +31,7 @@ fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
 }
 
 fn parse_arg_simple_pointer_no_arg(arg ast.Arg) string {
-	kind := parse_type(arg.ti.kind)
+	kind := parse_type_ti(arg.ti)
 	match arg.ti.kind {
 		.string {
 			return '${kind} *'
@@ -61,7 +61,7 @@ fn parse_arg_pointer(arg ast.Arg, name string) string {
 }
 
 fn parse_type_ti(ti types.TypeIdent) string {
-	if ti.kind == .struct_ {
+	if ti.kind in [.struct_, .enum_] {
 		return ti.name
 	} else {
 		return parse_type(ti.kind)

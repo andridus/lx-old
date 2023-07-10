@@ -93,6 +93,8 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	}
 	/// Check the args of function
 	p.check(.lpar)
+	// println('$fun_name.lit, $module_name')
+	// println(p.program.table)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		for p.tok.kind != .rpar {
 			e, ti := p.expr(0)
@@ -107,6 +109,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		arity_name = '${arity_num}_${arity_args.join('_')}'
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
+
 		if finded > 0 {
 			a := f.arities[finded]
 			if a.is_valid {
@@ -115,6 +118,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		}
 		if valid_arity == false {
 			p.error_pos_out = p.tok.pos
+
 			p.log_d('ERROR', 'The function `${fun_name.lit}` expects an argument of type `${arity_args.join(', ')}`, but you have entered an `${arity_args.join(', ')}`',
 				docs.function_args_desc, docs.function_args_url, '')
 		}
@@ -240,7 +244,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		// parse type of ARG
 		mut ti := types.void_ti
 		if p.tok.kind == .typedef {
-			p.next_token()
+			p.check(.typedef)
 			ti = p.parse_ti()
 		}
 		for arg_name in arg_names {
@@ -282,12 +286,13 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	mut final_args := []table.Var{}
 	mut args_overfn := '${args.len}_'
 	for a in args {
-		var := p.program.table.find_var(a.name) or { a }
-		final_args << var
-		ast_args << ast.Arg{
-			ti: var.ti
-			name: var.name
+		// var := p.program.table.find_var(a.name) or { a }
+		var := ast.Arg{
+			ti: a.ti
+			name: a.name
 		}
+		final_args << a
+		ast_args << var
 		args_overfn += var.ti.name
 	}
 	pos_out = p.tok.pos
