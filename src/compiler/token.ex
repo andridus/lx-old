@@ -3,13 +3,14 @@
 # that can be found in the LICENSE file.
 
 defmodule Compiler.Token do
+  alias Compiler.Token
   @moduledoc """
     Collection of token definitions to Lx compiler
   """
   defstruct [
-    kind        :: __MODULE__.Kind
+    kind        :: Token.Kind
     literal     :: string
-    value       :: LiteralValue
+    value       :: Token.LiteralValue
     line_num    :: integer
     pos         :: integer
     pos_inline  :: integer
@@ -36,6 +37,7 @@ defmodule Compiler.Token do
     :key_keyword, :key_and, :key_or, :key_true, :key_false, :key_else, :key_nil, :key_when,
     :key_not, :key_in, :key_fn, :key_do, :key_end, :key_catch, :key_rescue, :key_after, :key_def, :key_defp, :key_defmacro, :key_defmacrop, :key_defmodule, :key_import, :key_defstruct, :key_defenum, :key_deftype, :key_alias, :key_require,
   ]
+end
 
   pub @token_str build_token_string()
 
@@ -46,7 +48,7 @@ defmodule Compiler.Token do
     Generate all strings for Kinds
   """
   def build_token_string :: []keyword do
-    for {key, value} <- __MODULE__.Kind.items(), do: {key, to_string(value) }
+    for {key, value} <- Token.Kind.items(), do: {key, to_string(value) }
   end
 
   @doc """
@@ -54,7 +56,7 @@ defmodule Compiler.Token do
      - Kind
      - Token
   """
-  def to_string(kind :: __MODULE__.Kind) :: string do
+  def to_string(kind :: Token.Kind) :: string do
     case kind do
       # Flow
       :ignore -> "IGNORE"
@@ -157,7 +159,7 @@ defmodule Compiler.Token do
       :key_require, -> "require"
     end
   end
-  def to_string(token :: __MODULE__) :: string do
+  def to_string(token :: Token) :: string do
     "[#{token.kind.to_string()}] '#{token.literal}'"
   end
 
