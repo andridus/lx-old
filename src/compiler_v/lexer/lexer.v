@@ -142,6 +142,7 @@ pub fn (mut l Lexer) generate_tokens() {
 			l.tokens << tok
 		}
 	}
+
 	if l.tokens.len > 0 {
 		l.tokens << l.new_token_eof()
 	}
@@ -229,6 +230,7 @@ fn (mut l Lexer) parse_token() token.Token {
 							l.advance(qtd)
 							l.get_text_delim(token.Kind.doc, '"""', '"""')
 						} else {
+							l.advance(-3)
 							l.match_else()
 						}
 					} else {
@@ -442,6 +444,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token(']', .rsbr, 1)
 		}
 		else {
+			// l.advance(-1)
 			l.match_else()
 		}
 	}
@@ -502,9 +505,8 @@ fn (mut l Lexer) match_else() token.Token {
 
 	return l.get_token_word(s) or {
 		l.get_token_integer(s) or {
-			// l.advance(1)
-			// l.parse_token()
-			l.new_token('[i]', .ignore, 1)
+			l.advance(1)
+			return l.parse_token()
 		}
 	}
 }
@@ -524,13 +526,8 @@ fn (mut l Lexer) get_token_atom(bt u8) token.Token {
 		str := l.input[start_pos..pos - 1].bytestr()
 		return l.new_token(str, token.Kind.atom, str.len + 2)
 	} else if is_letter(current) {
-		start_pos := pos
-		for current != 46 && current != 44 && current != 32 && current != 10 && pos < l.total {
-			pos++
-			current = l.input[pos]
-		}
-		str := l.input[start_pos..pos].bytestr()
-		return l.new_token(str, token.Kind.atom, str.len)
+		term, _ := l.get_word(current)
+		return l.new_token(term, token.Kind.atom, term.len)
 	} else {
 		if pos < l.total {
 			if l.input[pos] == 32 {
@@ -605,6 +602,7 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 		return l.new_token(l.input[start_pos..(l.pos - delim_end.len)].bytestr(), kind,
 			0)
 	} else {
+		println('ignore ${l.input[l.pos]}')
 		return l.new_token('', .ignore, 1)
 	}
 }

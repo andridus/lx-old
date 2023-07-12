@@ -9,11 +9,14 @@ pub enum Kind {
 	atom
 	placeholder
 	void
+	nil_
+	any_
 	voidptr
 	charptr
 	byteptr
 	const_
 	enum_
+	result_
 	struct_
 	int
 	i8
@@ -74,6 +77,10 @@ pub fn new_struct(name string) TypeIdent {
 
 pub fn new_enum(name string) TypeIdent {
 	return new_ti(.enum_, name, 21, 0)
+}
+
+pub fn new_result(name string) TypeIdent {
+	return new_ti(.result_, name, 22, 0)
 }
 
 pub fn new_ti(kind Kind, name string, idx int, nr_muls int) TypeIdent {
@@ -148,6 +155,12 @@ pub fn (k Kind) str() string {
 		.void {
 			'void'
 		}
+		.nil_ {
+			'nil'
+		}
+		.any_ {
+			'any'
+		}
 		.voidptr {
 			'voidptr'
 		}
@@ -162,6 +175,9 @@ pub fn (k Kind) str() string {
 		}
 		.enum_ {
 			'enum'
+		}
+		.result_ {
+			'result'
 		}
 		.struct_ {
 			'struct'
@@ -243,6 +259,8 @@ pub:
 	idx  int
 	name string
 }
+
+pub struct Nil {}
 
 pub struct Void {}
 
@@ -360,6 +378,10 @@ pub:
 	ti  TypeIdent
 }
 
+pub fn (t Nil) str() string {
+	return 'nil'
+}
+
 pub fn (t Void) str() string {
 	return 'void'
 }
@@ -429,6 +451,7 @@ pub fn (t Variadic) str() string {
 }
 
 pub const (
+	nil_type     = Nil{}
 	void_type    = Void{}
 	voidptr_type = Voidptr{}
 	charptr_type = Charptr{}
@@ -450,6 +473,8 @@ pub const (
 
 pub fn type_from_token(tok token.Token) TypeIdent {
 	return match tok.kind {
+		.key_any { types.any_ti }
+		.key_nil { types.nil_ti }
 		.integer { types.int_ti }
 		.float { types.float_ti }
 		.str { types.string_ti }
@@ -459,6 +484,8 @@ pub fn type_from_token(tok token.Token) TypeIdent {
 
 pub const (
 	void_ti     = new_builtin_ti(.void, 0, false)
+	nil_ti      = new_builtin_ti(.nil_, 0, false)
+	any_ti      = new_builtin_ti(.any_, 0, false)
 	int_ti      = new_builtin_ti(.int, 0, false)
 	number_ti   = new_builtin_ti(.number, 0, false)
 	float_ti    = new_builtin_ti(.f32, 0, false)

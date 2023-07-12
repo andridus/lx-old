@@ -29,6 +29,13 @@ mut:
 	error_pos_in     int
 	error_pos_out    int
 	inside_parens    int
+	compiler_options []CompilerOptions = [.empty]
+}
+
+enum CompilerOptions {
+	empty
+	disable_type_match
+	ensure_left_type // ensure the left type over right type
 }
 
 pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
@@ -55,6 +62,7 @@ pub fn parse_files(prog &table.Program) {
 			// prog0.modules[modl].put_stmts(stmts)
 		} else {
 			stmts := parse_file(prog0.modules[modl], prog)
+
 			prog0.modules[modl].put_stmts(stmts)
 		}
 	}
@@ -91,7 +99,7 @@ pub fn (mut p Parser) read_first_token() {
 fn (mut p Parser) next_token() {
 	p.tok = p.peek_tok
 	p.peek_tok = p.lexer.generate_one_token()
-	if p.tok.kind == .newline || p.tok.kind == .line_comment {
+	if p.tok.kind in [.newline, .line_comment, .moduledoc, .doc] {
 		p.next_token()
 	}
 }
@@ -104,7 +112,7 @@ fn (mut p Parser) peek_next_token(num int) token.Token {
 	mut peek_tok := p.lexer.generate_one_token()
 	for num0 - 1 > 0 {
 		peek_tok = p.lexer.generate_one_token()
-		for peek_tok.kind == .newline || peek_tok.kind == .line_comment {
+		for peek_tok.kind in [.newline, .line_comment, .moduledoc, .doc] {
 			peek_tok = p.lexer.generate_one_token()
 		}
 		num0--
@@ -157,6 +165,23 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			p.next_token()
 			return p.stmt()
 		}
+		.atom {
+			if p.peek_tok.kind != .newline {
+				return p.expr_stmt()
+			} else {
+				match p.tok.lit {
+					'COMPILER__disable_type_match__' {
+						p.compiler_options << .disable_type_match
+					}
+					'COMPILER__ensure_left_type__' {
+						p.compiler_options << .ensure_left_type
+					}
+					else {}
+				}
+				p.next_token()
+				return p.stmt()
+			}
+		}
 		.key_alias {
 			mut module_name := []token.Token{}
 			p.check(.key_alias)
@@ -187,7 +212,7 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			return ast.Module{}
 		}
 		else {
-			if p.tok.kind == .ident && p.peek_tok.kind == .assign {
+			if p.tok.kind == .ident && p.peek_tok.kind in [.assign, .typedef] {
 				return p.var_decl()
 			} else {
 				return p.expr_stmt()
@@ -235,8 +260,28 @@ fn (mut p Parser) module_decl() ast.Module {
 
 fn (mut p Parser) var_decl() ast.VarDecl {
 	name := p.tok.lit
-	p.read_first_token()
-	expr, ti := p.expr(token.lowest_prec)
+	mut ti := types.void_ti
+	mut expr := ast.Expr(ast.EmptyExpr{})
+
+	if p.peek_tok.kind == .typedef {
+		mut ti1 := types.void_ti
+		p.next_token()
+		p.next_token()
+		ti1 = p.parse_ti()
+		p.next_token()
+		expr, ti = p.expr(token.lowest_prec)
+		if CompilerOptions.ensure_left_type in p.compiler_options {
+			ti = ti1
+			println(ti1.kind)
+		}
+		if ti.kind != ti1.kind {
+			println('Var type not accept functions returns!')
+			exit(0)
+		}
+	} else {
+		p.read_first_token()
+		expr, ti = p.expr(token.lowest_prec)
+	}
 	if _ := p.program.table.find_var(name) {
 		p.error('rebinding of `${name}`')
 	}
@@ -249,7 +294,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 			ti: ti
 		}
 	})
-
+	p.compiler_options = []
 	return ast.VarDecl{
 		name: name
 		expr: expr
@@ -289,12 +334,18 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.key_keyword {
 			node, ti = p.keyword_list_expr()
 		}
+		.key_if {
+			node, ti = p.if_expr()
+		}
 		.str {
 			if p.peek_tok.kind == .colon_space {
 				node, ti = p.keyword_list_expr()
 			} else {
 				node, ti = p.string_expr()
 			}
+		}
+		.key_true, .key_false {
+			node, ti = p.parse_boolean()
 		}
 		.integer {
 			node, ti = p.parse_number_literal()
@@ -373,6 +424,19 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		}
 	}
 	return node, ti
+}
+
+fn (mut p Parser) if_expr() (ast.Expr, types.TypeIdent) {
+	p.check(.key_if)
+	cond, ti := p.expr(0)
+	println(cond)
+	stmts := p.parse_block()
+	node := ast.IfExpr{
+		cond: cond
+		stmts: stmts
+		ti: ti
+	}
+	return node, node.ti
 }
 
 fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
@@ -554,6 +618,23 @@ fn (mut p Parser) index_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 		left: left
 		index: index
 	})
+	return node, ti
+}
+
+fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
+	mut node := ast.Expr(ast.EmptyExpr{})
+	mut ti := types.int_ti
+	if p.tok.kind == .key_true {
+		node = ast.Expr(ast.BoolLiteral{
+			val: true
+		})
+		ti = types.bool_ti
+	} else if p.tok.kind == .key_false {
+		node = ast.Expr(ast.BoolLiteral{
+			val: false
+		})
+	}
+	p.next_token()
 	return node, ti
 }
 
@@ -788,7 +869,11 @@ fn (mut p Parser) check_name_or_mdl() string {
 
 fn (mut p Parser) check_name() string {
 	name := p.tok.lit
-	p.check(.ident)
+	if p.tok.kind == .key_nil {
+		p.check(.key_nil)
+	} else if p.tok.kind == .ident {
+		p.check(.ident)
+	}
 	return name
 }
 
@@ -802,7 +887,7 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 	p.check(.key_do)
 	mut stmts := []ast.Stmt{}
 
-	if p.tok.kind != .key_do {
+	if p.tok.kind != .key_end {
 		for {
 			stmts << p.stmt()
 

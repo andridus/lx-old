@@ -1,16 +1,10 @@
-# Copyright (c) 2023 Helder de Sousa. All rights reserved.
-# Use of this source code is governed by an MIT license
-# that can be found in the LICENSE file.
+defmodule Lx.Compiler.Token do
+  alias Lx.Compiler.Token
 
-defmodule Compiler.Token do
-  alias Compiler.Token
-  @moduledoc """
-    Collection of token definitions to Lx compiler
-  """
   defstruct [
     kind        :: Token.Kind
     literal     :: string
-    value       :: Token.LiteralValue
+    value       ::Token.LiteralValue
     line_num    :: integer
     pos         :: integer
     pos_inline  :: integer
@@ -44,18 +38,10 @@ end
 
   #### ------------- functions -----------------
 
-  @doc """
-    Generate all strings for Kinds
-  """
   def build_token_string :: []keyword do
     for {key, value} <- Token.Kind.items(), do: {key, to_string(value) }
   end
 
-  @doc """
-    Converts to string
-     - Kind
-     - Token
-  """
   def to_string(kind :: Token.Kind) :: string do
     case kind do
       # Flow

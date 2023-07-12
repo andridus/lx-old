@@ -101,6 +101,12 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				'map' {
 					return p.parse_map_ti(nr_muls)
 				}
+				'nil' {
+					return types.new_builtin_ti(.nil_, nr_muls, false)
+				}
+				'any' {
+					return types.new_builtin_ti(.any_, nr_muls, false)
+				}
 				'voidptr' {
 					return types.new_builtin_ti(.voidptr, nr_muls, false)
 				}
@@ -151,26 +157,39 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				}
 				// struct / enum / placeholder
 				else {
+					mut is_result := false
 					if p.tok.kind == .modl {
 						name0 = name + p.get_mdl_name()
-					}
-					if p.peek_tok.kind == .arrob && name != 'enum_' {
+					} else if p.peek_tok.kind == .arrob && name != 'enum_' {
 						name0 = 'enum_' + name0
 						is_enum = true
 						p.check(.modl)
+					} else if p.tok.kind == .lcbr && p.peek_tok.lit == 'ok' {
+						// IF result like {ok}integer, should be return {:ok, integer} or {:error, atom}
+						p.check(.lcbr)
+						p.check(.atom)
+						if p.tok.kind == .rcbr && p.peek_tok.kind in [.ident, .atom, .modl] {
+							name0 = 'result_${p.peek_tok.lit}'
+							is_result = true
+							p.check(.rcbr)
+						} else {
+							println('Tuple not implemented yet')
+							exit(0)
+						}
 					}
+
 					// struct
 					mut idx := p.program.table.find_type_idx(name0)
 					// add placeholder
 
+					if is_result {
+						return types.new_result(name0)
+					}
 					if idx >= 0 {
-						// idx = p.program.table.add_placeholder_type(name0)
 						if is_enum {
 							return types.new_enum(name0)
-							// p.program.table.types[idx]
 						}
 					}
-
 					return types.new_ti(.placeholder, name, idx, nr_muls)
 				}
 			}

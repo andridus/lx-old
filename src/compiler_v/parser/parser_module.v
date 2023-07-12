@@ -133,6 +133,7 @@ fn parse_modules(path string, prog &table.Program) {
 				i, name0 = get_module_name(i, l.tokens[i], l.tokens)
 				if name0 != '' {
 					ignore_modules << '${name}.${name0}'
+					ignore_modules << name0
 				}
 			}
 			.key_defenum {
@@ -141,6 +142,7 @@ fn parse_modules(path string, prog &table.Program) {
 				i, name0 = get_module_name(i, l.tokens[i], l.tokens)
 				if name0 != '' {
 					ignore_modules << '${name}.${name0}'
+					ignore_modules << name0
 				}
 			}
 			.key_do {
@@ -171,6 +173,7 @@ fn parse_modules(path string, prog &table.Program) {
 				a := aliases_name.clone().split('.').reverse().first()
 				aliases[a] = aliases_name
 				aliases_name = ''
+				i--
 			}
 			// TODO: get functions with arity and put on module headers struct, event if not defined type.
 			.key_def {
@@ -184,23 +187,44 @@ fn parse_modules(path string, prog &table.Program) {
 			}
 			else {}
 		}
+
 		i++
 	}
 	mut dependencies0 := []string{}
+	// println('aliases: $aliases')
 	for dep in dependencies {
-		if modl := aliases[dep] {
-			dependencies0 << modl
-		} else {
-			if name != dep {
+		mut inserted := false
+		for k, v in aliases {
+			if dep.starts_with(k) {
+				// println('dep: $dep, k: $k, value; $v, !in $ignore_modules')
+				if dep == k && k !in ignore_modules {
+					dependencies0 << v
+				} else {
+					dependencies0 << dep.replace_once(k, v)
+				}
+				inserted = true
+			}
+		}
+		if inserted == false {
+			if dep !in ignore_modules {
 				dependencies0 << dep
 			}
 		}
+		// if modl := aliases[dep] {
+		// 	println('name: $modl')
+		// 	dependencies0 << modl
+		// } else {
+		// 	println('one: $dep')
+		// 	if name != dep && dep !in ignore_modules {
+		// 		dependencies0 << dep
+		// 	}
+		// }
 	}
 	prog0.modules[name] = table.Module{
 		name: name
 		path: path
 		aliases: aliases
-		dependencies: dependencies0
+		dependencies: uniq(dependencies0)
 		is_main: is_main
 	}
 }
@@ -219,7 +243,8 @@ pub fn compile_order(prog &table.Program) []string {
 		dependencies.prepend(prog.modules[req].dependencies)
 	}
 	mut arr := []string{}
-	for nam in uniq(dependencies) {
+
+	for nam in dependencies {
 		modl := prog.modules[nam]
 		a := modl.name
 		if a.len == 0 {
@@ -268,15 +293,16 @@ fn get_module_name(i int, tok token.Token, tokens []token.Token) (int, string) {
 	if i0 < tk_len && tokens[i0].kind == .modl {
 		name << tokens[i0].lit
 		i0++
-		for j := i0; j < tk_len; j++ {
-			if tokens[j].kind == .dot {
-				continue
-			} else if tokens[j].kind == .modl {
-				name << tokens[j].lit
+		for tokens[i0].kind == .dot {
+			if tokens[i0].kind == .dot {
+				i0++
+			}
+			if tokens[i0].kind == .modl {
+				name << tokens[i0].lit
+				i0++
 			} else {
 				break
 			}
-			i0++
 		}
 	}
 	return i0, name.join('.')

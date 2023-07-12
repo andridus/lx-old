@@ -1,0 +1,2 @@
+#!/bin/bash
+v run . -c compiler/$1

@@ -321,7 +321,6 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 		var_name := '${arg0.name}'
 		// type0 := parse_type_ti(arg0.ti)
 		// arg1 := parse_arg(arg0, var_name)
-		println(arg0)
 		arg1 := parse_arg_simple_pointer(arg0, var_name)
 		type0 := parse_arg_simple_pointer_no_arg(arg0)
 

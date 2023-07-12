@@ -8,6 +8,7 @@ import compiler_v.table
 import compiler_v.types
 import compiler_v.token
 import compiler_v.docs
+import compiler_v.color
 
 pub fn (mut p Parser) call_expr() !ast.ExprStmt {
 	mut args := ast.CallExpr{}
@@ -109,17 +110,31 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		arity_name = '${arity_num}_${arity_args.join('_')}'
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
-
 		if finded > 0 {
 			a := f.arities[finded]
 			if a.is_valid {
 				valid_arity = true
 			}
+			return_ti = a.return_ti
 		}
 		if valid_arity == false {
-			p.error_pos_out = p.tok.pos
+			mut args_ := []string{}
+			for _, a in f.arities {
+				arg_len := a.args.len
+				if arg_len > 0 {
+					mut args0 := []string{}
+					for a1 in a.args {
+						args0 << a1.ti.str()
+					}
 
-			p.log_d('ERROR', 'The function `${fun_name.lit}` expects an argument of type `${arity_args.join(', ')}`, but you have entered an `${arity_args.join(', ')}`',
+					args_ << color.fg(color.white, 0, '${fun_name.lit}(${args0.join(', ')})')
+				} else {
+					args_ << color.fg(color.white, 0, '${fun_name.lit}()')
+				}
+			}
+			p.error_pos_out = p.tok.pos
+			fun_name0 := color.fg(color.white, 0, '${fun_name.lit}(${arity_args.join(', ')})')
+			p.log_d('ERROR', 'The function ${fun_name0} ${color.fg(color.red, 0, 'not exists, check one of')} ${args_.join(' | ')}',
 				docs.function_args_desc, docs.function_args_url, '')
 		}
 		if p.tok.kind == .comma {
@@ -155,6 +170,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		}
 	}
 	p.check(.rpar)
+
 	node := ast.CallExpr{
 		name: fun_name.lit
 		arity: arity_name
@@ -236,6 +252,8 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	mut ast_args := []ast.Arg{}
 
 	for p.tok.kind != .rpar {
+		mut is_nil := false
+		is_nil = p.tok.kind == .key_nil
 		mut arg_names := [p.check_name()]
 		for p.tok.kind == .comma {
 			p.check(.comma)
@@ -243,7 +261,9 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 		// parse type of ARG
 		mut ti := types.void_ti
-		if p.tok.kind == .typedef {
+		if is_nil {
+			ti = types.nil_ti
+		} else if p.tok.kind == .typedef {
 			p.check(.typedef)
 			ti = p.parse_ti()
 		}
@@ -281,7 +301,9 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 
 	// Try get type from body inference
 	if from_type == false {
-		ti = stmts[stmts.len - 1].ti
+		if stmts.len > 0 {
+			ti = stmts[stmts.len - 1].ti
+		}
 	}
 	mut final_args := []table.Var{}
 	mut args_overfn := '${args.len}_'
@@ -295,6 +317,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		ast_args << var
 		args_overfn += var.ti.name
 	}
+
 	pos_out = p.tok.pos
 	p.program.table.register_or_update_fn(args_overfn, final_args, ti, table.Fn{
 		name: name

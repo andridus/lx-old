@@ -73,12 +73,15 @@ fn parse_type(kind types.Kind) string {
 		.atom { 'int' }
 		.placeholder { 'placeholder' }
 		.void { 'void' }
+		.nil_ { 'nil' }
+		.any_ { 'any' }
 		.voidptr { 'voidptr' }
 		.charptr { 'charptr' }
 		.byteptr { 'byteptr' }
 		.const_ { 'const' }
 		.enum_ { 'enum' }
 		.struct_ { 'struct' }
+		.result_ { 'result' }
 		.int { 'int' }
 		.i8 { 'i8' }
 		.i16 { 'i16' }
