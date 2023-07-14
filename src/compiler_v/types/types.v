@@ -491,6 +491,7 @@ pub const (
 	float_ti    = new_builtin_ti(.f32, 0, false)
 	string_ti   = new_builtin_ti(.string, 0, false)
 	charlist_ti = new_builtin_ti(.char, 0, true)
+	tuple_ti    = new_builtin_ti(.tuple, 0, false)
 	bool_ti     = new_builtin_ti(.bool, 0, false)
 	atom_ti     = new_builtin_ti(.atom, 0, false)
 )

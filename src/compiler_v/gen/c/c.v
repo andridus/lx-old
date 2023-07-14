@@ -264,7 +264,7 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		ast.EmptyExpr {}
 		else {
-			println('modl: ${modl}, node: ${node}')
+			// println('modl: ${modl}, node: ${node}')
 		}
 	}
 }

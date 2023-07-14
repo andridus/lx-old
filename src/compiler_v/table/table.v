@@ -109,6 +109,15 @@ pub fn (mut t Table) register_var(v Var) {
 	t.local_vars[v.name] = v
 }
 
+pub fn (mut t Table) register_alias(ident string, modl string) {
+	t.global_aliases[ident] = modl
+}
+
+pub fn (mut t Table) find_alias(ident string) string {
+	id := t.global_aliases[ident]
+	return if id.len > 0 { id } else { ident }
+}
+
 pub fn (mut t Table) update_var_ti(v Var, ti types.TypeIdent) {
 	t.local_vars[v.name] = Var{
 		...v

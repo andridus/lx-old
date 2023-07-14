@@ -227,23 +227,6 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	} else {
 		p.check(.key_def)
 	}
-	// ### if is a method
-
-	// if p.tok.kind == .lpar {
-	// 	is_method = true
-	// 	p.next_token()
-	// 	rec_name = p.check_name()
-	// 	if p.tok.kind == .key_mut {
-	// 		p.next_token()
-	// 	}
-	// 	rec_ti = p.parse_ti()
-	// 	p.program.table.register_var(table.Var{
-	// 		name: rec_name
-	// 		ti: rec_ti
-	// 	})
-	// 	p.check(.rpar)
-	// }
-
 	name := p.check_name()
 	p.check(.lpar)
 
@@ -265,6 +248,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			ti = types.nil_ti
 		} else if p.tok.kind == .typedef {
 			p.check(.typedef)
+
 			ti = p.parse_ti()
 		}
 		for arg_name in arg_names {

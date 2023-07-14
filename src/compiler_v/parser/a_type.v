@@ -92,6 +92,37 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 			}
 			return p.parse_variadic_ti()
 		}
+		.modl {
+			name0 = name + p.get_mdl_name()
+			name0 = p.program.table.find_alias(name0).to_lower().replace('.', '_')
+
+			if p.peek_tok.kind == .arrob && name != 'enum_' {
+				p.check(.modl)
+				p.check(.arrob)
+				name0 = 'enum_' + name0
+				is_enum = true
+			} else if name == 'enum_' {
+				p.check(.modl)
+			} else {
+				name0 = 'struct_' + name0
+			}
+			mut idx := p.program.table.find_type_idx(name0)
+
+			if idx >= 0 {
+				if is_enum {
+					return types.new_enum(name0)
+				}
+				for i, t in p.program.table.types {
+					if i == idx {
+						if t is types.Struct {
+							return types.new_struct(name0)
+						}
+					}
+				}
+			}
+			p.error('Module is not a type ident')
+			exit(0)
+		}
 		else {
 			defer {
 				p.next_token()
@@ -158,13 +189,7 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				// struct / enum / placeholder
 				else {
 					mut is_result := false
-					if p.tok.kind == .modl {
-						name0 = name + p.get_mdl_name()
-					} else if p.peek_tok.kind == .arrob && name != 'enum_' {
-						name0 = 'enum_' + name0
-						is_enum = true
-						p.check(.modl)
-					} else if p.tok.kind == .lcbr && p.peek_tok.lit == 'ok' {
+					if p.tok.kind == .lcbr && p.peek_tok.lit == 'ok' {
 						// IF result like {ok}integer, should be return {:ok, integer} or {:error, atom}
 						p.check(.lcbr)
 						p.check(.atom)
@@ -184,11 +209,6 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 
 					if is_result {
 						return types.new_result(name0)
-					}
-					if idx >= 0 {
-						if is_enum {
-							return types.new_enum(name0)
-						}
 					}
 					return types.new_ti(.placeholder, name, idx, nr_muls)
 				}

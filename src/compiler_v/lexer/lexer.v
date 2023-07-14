@@ -524,6 +524,7 @@ fn (mut l Lexer) get_token_atom(bt u8) token.Token {
 			pos++
 		}
 		str := l.input[start_pos..pos - 1].bytestr()
+
 		return l.new_token(str, token.Kind.atom, str.len + 2)
 	} else if is_letter(current) {
 		term, _ := l.get_word(current)

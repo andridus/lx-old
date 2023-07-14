@@ -29,6 +29,7 @@ mut:
 	error_pos_in     int
 	error_pos_out    int
 	inside_parens    int
+	inside_ifcase    int
 	compiler_options []CompilerOptions = [.empty]
 }
 
@@ -183,17 +184,20 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			}
 		}
 		.key_alias {
-			mut module_name := []token.Token{}
+			mut module_name := []string{}
 			p.check(.key_alias)
-			module_name << p.tok
+			module_name << p.tok.lit
 			p.check(.modl)
 			for p.tok.kind == .dot {
 				p.check(.dot)
 				if p.tok.kind == .modl {
-					module_name << p.tok
+					module_name << p.tok.lit
 					p.check(.modl)
 				}
 			}
+			module_name_0 := module_name.join('.')
+			last := module_name.reverse().first()
+			p.program.table.register_alias(last, module_name_0)
 			return p.stmt()
 		}
 		.key_defstruct, .key_defstructp {
@@ -272,7 +276,6 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		expr, ti = p.expr(token.lowest_prec)
 		if CompilerOptions.ensure_left_type in p.compiler_options {
 			ti = ti1
-			println(ti1.kind)
 		}
 		if ti.kind != ti1.kind {
 			println('Var type not accept functions returns!')
@@ -331,6 +334,9 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.ident {
 			node, ti = p.ident_expr()
 		}
+		.key_nil {
+			node, ti = p.parse_nil_literal()
+		}
 		.key_keyword {
 			node, ti = p.keyword_list_expr()
 		}
@@ -355,6 +361,9 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		}
 		.charlist {
 			node, ti = p.charlist_expr()
+		}
+		.lcbr {
+			node, ti = p.tuple_expr()
 		}
 		.lpar {
 			p.check(.lpar)
@@ -427,13 +436,21 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 }
 
 fn (mut p Parser) if_expr() (ast.Expr, types.TypeIdent) {
+	mut else_stmts := []ast.Stmt{}
 	p.check(.key_if)
+	p.inside_ifcase++
 	cond, ti := p.expr(0)
-	println(cond)
 	stmts := p.parse_block()
+	if p.tok.kind == .key_else {
+		p.check(.key_else)
+		else_stmts = p.parse_block()
+	}
+	p.inside_ifcase--
+
 	node := ast.IfExpr{
 		cond: cond
 		stmts: stmts
+		else_stmts: else_stmts
 		ti: ti
 	}
 	return node, node.ti
@@ -475,6 +492,23 @@ fn (mut p Parser) charlist_expr() (ast.Expr, types.TypeIdent) {
 		p.expr(0)
 	}
 	return node, types.string_ti
+}
+
+fn (mut p Parser) tuple_expr() (ast.Expr, types.TypeIdent) {
+	p.check(.lcbr)
+	node0, _ := p.expr(0)
+	mut values := [node0]
+	for p.tok.kind == .comma {
+		p.check(.comma)
+		node1, _ := p.expr(0)
+		values << node1
+	}
+	p.check(.rcbr)
+
+	node := ast.TupleLiteral{
+		values: values
+	}
+	return node, node.ti
 }
 
 fn (mut p Parser) keyword_list_expr() (ast.Expr, types.TypeIdent) {
@@ -601,7 +635,6 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 	} else {
 		p.check(.atom)
 		p.program.table.find_or_new_atom(p.tok.lit)
-		p.next_token()
 	}
 	return node, types.atom_ti
 }
@@ -636,6 +669,12 @@ fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
 	}
 	p.next_token()
 	return node, ti
+}
+
+fn (mut p Parser) parse_nil_literal() (ast.Expr, types.TypeIdent) {
+	node := ast.Expr(ast.NilLiteral{})
+	p.next_token()
+	return node, types.nil_ti
 }
 
 fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
@@ -730,8 +769,8 @@ fn (mut p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, righ
 
 fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_prec int) ast.Expr {
 	ti := types.get_default_type(op)
-	println('${op}: op')
-	println('op:${ti}')
+	// println('${op}: op')
+	// println('op:${ti}')
 	a := ast.Expr(ast.BinaryExpr{
 		op: op
 		op_precedence: op_prec
@@ -847,7 +886,7 @@ fn (mut p Parser) get_mdl_name() string {
 				module_toks << p.tok.lit
 			}
 		}
-		return module_toks.join('.').replace('.', '_').to_lower()
+		return module_toks.join('.').replace('.', '_')
 	} else {
 		return ''
 	}
@@ -859,8 +898,7 @@ fn (mut p Parser) check_name_or_mdl() string {
 		name = p.tok.lit
 		p.check(.ident)
 	} else if p.tok.kind == .modl {
-		module_name := module_name0([])
-		println(module_name)
+		// module_name := module_name0([])
 		p.check(.ident)
 	}
 
@@ -884,7 +922,11 @@ fn (mut p Parser) check_atom() string {
 }
 
 pub fn (mut p Parser) parse_block() []ast.Stmt {
-	p.check(.key_do)
+	if p.inside_ifcase > 0 && p.tok.kind != .key_do {
+	} else {
+		p.check(.key_do)
+	}
+
 	mut stmts := []ast.Stmt{}
 
 	if p.tok.kind != .key_end {
@@ -895,10 +937,15 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 			if p.tok.kind in [.eof, .key_end] {
 				break
 			}
+			if p.inside_ifcase > 0 && p.tok.kind == .key_else {
+				break
+			}
 		}
 	}
-	p.check(.key_end)
 
+	if p.tok.kind == .key_end {
+		p.check(.key_end)
+	}
 	// println('nr exprs in block = $exprs.len')
 	return stmts
 }

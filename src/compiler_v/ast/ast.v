@@ -22,11 +22,13 @@ pub type Expr = ArrayInit
 	| IntegerLiteral
 	| KeywordList
 	| MethodCallExpr
+	| NilLiteral
 	| PostfixExpr
 	| PrefixExpr
 	| SelectorExpr
 	| StringLiteral
 	| StructInit
+	| TupleLiteral
 	| UnaryExpr
 
 pub type Stmt = Block
@@ -82,6 +84,13 @@ pub:
 	ti   types.TypeIdent = types.int_ti
 }
 
+pub struct NilLiteral {
+pub:
+	val  int
+	meta Meta
+	ti   types.TypeIdent = types.nil_ti
+}
+
 pub struct FloatLiteral {
 pub:
 	val  f32
@@ -101,6 +110,13 @@ pub:
 	val  []u8
 	meta Meta
 	ti   types.TypeIdent = types.charlist_ti
+}
+
+pub struct TupleLiteral {
+pub:
+	values []Expr
+	meta   Meta
+	ti     types.TypeIdent = types.tuple_ti
 }
 
 pub struct BoolLiteral {
@@ -387,6 +403,8 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		CallExpr { a.ti }
 		CallEnum { a.ti }
 		CharlistLiteral { a.ti }
+		TupleLiteral { a.ti }
+		NilLiteral { a.ti }
 		EmptyExpr { a.ti }
 		FloatLiteral { a.ti }
 		Ident { a.ti }
