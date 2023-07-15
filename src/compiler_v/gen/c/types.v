@@ -73,8 +73,9 @@ fn parse_type(kind types.Kind) string {
 		.atom { 'int' }
 		.placeholder { 'placeholder' }
 		.void { 'void' }
-		.nil_ { 'nil' }
-		.any_ { 'any' }
+		.nil_ { 'void *' }
+		.any_ { 'void *' }
+		.pointer { 'void *' }
 		.voidptr { 'voidptr' }
 		.charptr { 'charptr' }
 		.byteptr { 'byteptr' }
@@ -94,7 +95,7 @@ fn parse_type(kind types.Kind) string {
 		.f64 { 'f64' }
 		.string { 'char' }
 		.char { 'char' }
-		.bool { 'bool' }
+		.bool { 'int' }
 		.list { 'list' }
 		.list_fixed { 'list' }
 		.tuple { 'tuple' }

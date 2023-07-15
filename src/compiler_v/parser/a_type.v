@@ -138,6 +138,9 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				'any' {
 					return types.new_builtin_ti(.any_, nr_muls, false)
 				}
+				'pointer' {
+					return types.new_builtin_ti(.pointer, nr_muls, false)
+				}
 				'voidptr' {
 					return types.new_builtin_ti(.voidptr, nr_muls, false)
 				}

@@ -8,6 +8,10 @@ defmodule Lx do
     Main Execution
   """
   def main() do
-    Builtin.print("Olá Mundo")
+    if 1 do
+      Builtin.print("Olá Mundo")
+    else
+      Builtin.print("Oh No!")
+    end
   end
 end

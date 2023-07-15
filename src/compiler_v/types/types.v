@@ -11,6 +11,7 @@ pub enum Kind {
 	void
 	nil_
 	any_
+	pointer
 	voidptr
 	charptr
 	byteptr
@@ -54,6 +55,7 @@ pub type Type = Atom
 	| ListFixed
 	| Map
 	| MultiReturn
+	| Nil
 	| Placeholder
 	| String
 	| Struct
@@ -160,6 +162,9 @@ pub fn (k Kind) str() string {
 		}
 		.any_ {
 			'any'
+		}
+		.pointer {
+			'pointer'
 		}
 		.voidptr {
 			'voidptr'
@@ -303,6 +308,7 @@ pub struct Field {
 pub:
 	name     string
 	type_idx int
+	ti       TypeIdent
 }
 
 pub struct Int {
@@ -451,6 +457,7 @@ pub fn (t Variadic) str() string {
 }
 
 pub const (
+	atom_type    = Atom{}
 	nil_type     = Nil{}
 	void_type    = Void{}
 	voidptr_type = Voidptr{}
@@ -471,7 +478,66 @@ pub const (
 	bool_type    = Bool{}
 )
 
-pub fn type_from_token(tok token.Token) TypeIdent {
+pub fn type_from_ti(ti TypeIdent) Type {
+	return match ti.kind {
+		.atom {
+			types.atom_type
+		}
+		.void {
+			types.void_type
+		}
+		.nil_ {
+			types.nil_type
+		}
+		.any_ {
+			types.void_type
+		}
+		.pointer {
+			types.voidptr_type
+		}
+		.voidptr {
+			types.voidptr_type
+		}
+		.charptr {
+			types.charptr_type
+		}
+		.byteptr {
+			types.byteptr_type
+		}
+		.int {
+			types.int_type
+		}
+		.f32 {
+			types.f32_type
+		}
+		.string {
+			types.string_type
+		}
+		.char {
+			types.char_type
+		}
+		.bool {
+			types.bool_type
+		}
+		else {
+			types.void_type
+		}
+	}
+}
+
+pub fn type_from_token(tok token.Token) Type {
+	return match tok.kind {
+		.key_any { types.void_type }
+		.key_nil { types.nil_type }
+		.key_true, .key_false { types.bool_type }
+		.integer { types.int_type }
+		.float { types.f32_type }
+		.str { types.string_type }
+		else { types.void_type }
+	}
+}
+
+pub fn ti_from_token(tok token.Token) TypeIdent {
 	return match tok.kind {
 		.key_any { types.any_ti }
 		.key_nil { types.nil_ti }
@@ -483,6 +549,7 @@ pub fn type_from_token(tok token.Token) TypeIdent {
 }
 
 pub const (
+	pointer_ti  = new_builtin_ti(.pointer, 0, false)
 	void_ti     = new_builtin_ti(.void, 0, false)
 	nil_ti      = new_builtin_ti(.nil_, 0, false)
 	any_ti      = new_builtin_ti(.any_, 0, false)

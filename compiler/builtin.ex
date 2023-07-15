@@ -41,7 +41,7 @@ defmodule Lx.Compiler.Builtin do
     Closes file opened
   """
   def close_file(file :: FILE) :: {:ok}bool do
-    result = :_c_.close(file)
+    result = :_c_.fclose(file.ptr) :: int
     if result == nil do
       {:error, "cant close file"}
     else

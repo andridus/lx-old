@@ -30,6 +30,7 @@ pub:
 	name   string
 	ti     types.TypeIdent
 	is_mut bool
+	type_  types.Type
 	expr   ast.ExprStmt
 }
 
@@ -230,6 +231,7 @@ pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Fiel
 		fields0 << types.Field{
 			name: field.name
 			type_idx: idx
+			ti: field.ti
 		}
 	}
 	struct_type = types.Struct{
@@ -399,8 +401,10 @@ pub fn (t &Table) find_type_idx(name string) int {
 [inline]
 pub fn (t &Table) find_type(name string) ?types.Type {
 	idx := t.type_idxs[name]
-	if idx > 0 {
-		return t.types[idx]
+	for idx0, type0 in t.types {
+		if idx0 == idx && name.starts_with('struct_') {
+			return type0
+		}
 	}
 	return none
 }

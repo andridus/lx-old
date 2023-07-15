@@ -152,10 +152,13 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 }
 
 fn (mut g CGen) expr(modl string, node ast.Expr) {
-	// println('cgen expr()')
+	g.mount_var_decl(modl, node)
 	match node {
 		ast.IntegerLiteral {
 			g.write(modl, node.val.str())
+		}
+		ast.NilLiteral {
+			g.write(modl, 'NULL')
 		}
 		ast.FloatLiteral {
 			g.write(modl, node.val.str())
@@ -166,6 +169,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		ast.StringLiteral {
 			g.write(modl, "\"${node.val}\"")
+		}
+		ast.TupleLiteral {
+			g.write(modl, '"tuple"')
 		}
 		ast.CharlistLiteral {
 			g.write(modl, '${node.val}')
@@ -185,7 +191,7 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 				}
 			}
 			// println(node)
-			g.writeln(modl, '\t${node.name} ${var};')
+			// g.writeln(modl, '\t${node.name} ${var};')
 			for i, field in node.fields {
 				g.write(modl, '\t${var}.${field} = ')
 				g.expr(modl, node.exprs[i])
@@ -196,19 +202,31 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			}
 		}
 		ast.CallEnum {
-			if g.in_var_decl {
-				println(g.var_ti)
-				g.write(modl, '${g.var_ti} ${g.var_name} = ')
-				g.writeln(modl, '${node.name}_${node.value.to_upper()};')
-			} else {
-				g.writeln(modl, '${node.name}_${node.value.to_upper()}')
-			}
+			// if g.in_var_decl {
+			// 	println(g.var_ti)
+			// 	g.write(modl, '${g.var_ti} ${g.var_name} = ')
+			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()};')
+			// } else {
+			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()}')
+			// }
+		}
+		ast.CallField {
+			mut path := node.parent_path.clone()
+			path << node.name
+			g.write(modl, '${path.join('.')}')
+			// if g.in_var_decl {
+			// 	println(g.var_ti)
+			// 	g.write(modl, '${g.var_ti} ${g.var_name} = ')
+			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()};')
+			// } else {
+			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()}')
+			// }
 		}
 		ast.CallExpr {
 			module_name := node.module_name.replace('.', '_')
 			if node.is_external {
 				if !node.is_c_module {
-					g.write(modl, '${module_name}_')
+					g.write(modl, '\t${module_name}_')
 				}
 			}
 			g.write(modl, '${node.name}(')
@@ -248,12 +266,13 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		ast.BoolLiteral {
 			if node.val == true {
-				g.write(modl, '{atom, ${node.meta.line}, true}')
+				g.write(modl, '1')
 			} else {
-				g.write(modl, '{atom, ${node.meta.line}, false}')
+				g.write(modl, '0')
 			}
 		}
 		ast.IfExpr {
+			g.endln(modl)
 			g.write(modl, 'if (')
 			g.expr(modl, node.cond)
 			g.writeln(modl, ') {')
@@ -261,11 +280,33 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 				g.stmt(modl, stmt)
 			}
 			g.writeln(modl, '}')
+			if node.else_stmts.len > 0 {
+				g.writeln(modl, ' else {')
+				for stmt in node.else_stmts {
+					g.stmt(modl, stmt)
+				}
+				g.writeln(modl, '}')
+			}
 		}
 		ast.EmptyExpr {}
 		else {
 			// println('modl: ${modl}, node: ${node}')
 		}
+	}
+}
+
+fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
+	if g.in_var_decl {
+		var := g.var_name
+		arg1 := parse_type_ti(g.var_ti)
+		g.writeln(modl, '${arg1} ${var};')
+		g.write(modl, '${var} = ')
+		// if node.ti != g.var_ti {
+		// 	panic('error type ident wrong')
+		// }
+		g.var_name = ''
+		g.var_ti = types.void_ti
+		g.in_var_decl = false
 	}
 }
 
@@ -318,7 +359,7 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	g.writeln(modl, '\tva_list args;')
 	g.writeln(modl, '\tva_start(args, types);')
 	for arg0 in node.args {
-		var_name := '${arg0.name}'
+		mut var_name := '${arg0.name}'
 		// type0 := parse_type_ti(arg0.ti)
 		// arg1 := parse_arg(arg0, var_name)
 		arg1 := parse_arg_simple_pointer(arg0, var_name)
@@ -334,9 +375,19 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 		} else if current + 1 == total && node.ti.kind != .void {
 			g.last_return = true
 			if !is_defer_return(node.ti.kind) {
-				g.write(modl, '\treturn ')
+				if ast.is_literal_from_stmt(stmt) {
+					arg1 := parse_type_ti(stmt.ti)
+					g.writeln(modl, '\t${arg1} *__return__;')
+					g.write(modl, '\t*__return__ = ')
+					g.stmt(modl, stmt)
+					g.writeln(modl, '\treturn __return__;')
+				} else {
+					g.stmt(modl, stmt)
+					g.writeln(modl, '\treturn NULL;')
+				}
+			} else {
+				g.stmt(modl, stmt)
 			}
-			g.stmt(modl, stmt)
 		} else {
 			g.stmt(modl, stmt)
 		}

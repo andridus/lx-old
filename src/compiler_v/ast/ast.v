@@ -13,6 +13,7 @@ pub type Expr = ArrayInit
 	| BoolLiteral
 	| CallEnum
 	| CallExpr
+	| CallField
 	| CharlistLiteral
 	| EmptyExpr
 	| FloatLiteral
@@ -48,12 +49,6 @@ fn (expr Expr) msg() string {
 	return 'OK'
 }
 
-pub struct ExprStmt {
-pub:
-	expr Expr
-	ti   types.TypeIdent
-}
-
 pub struct Block {
 pub:
 	stmts       []Stmt
@@ -61,6 +56,23 @@ pub:
 	name        string
 	args        []Arg
 	is_top_stmt bool
+}
+
+pub struct EnumDecl {
+pub:
+	name   string
+	values []string
+	starts int
+	is_pub bool
+	size   int
+	meta   Meta
+	ti     types.TypeIdent
+}
+
+pub struct ExprStmt {
+pub:
+	expr Expr
+	ti   types.TypeIdent
 }
 
 pub struct EmptyExpr {
@@ -147,7 +159,7 @@ pub:
 	stmt             Stmt
 	is_parent_module bool
 	meta             Meta
-	ti               types.TypeIdent // TODO: compatibility with call `ti` from every ast.Stmt
+	ti               types.TypeIdent
 }
 
 pub struct Field {
@@ -161,17 +173,6 @@ pub struct StructDecl {
 pub:
 	name   string
 	fields []Field
-	is_pub bool
-	size   int
-	meta   Meta
-	ti     types.TypeIdent
-}
-
-pub struct EnumDecl {
-pub:
-	name   string
-	values []string
-	starts int
 	is_pub bool
 	size   int
 	meta   Meta
@@ -221,6 +222,15 @@ pub:
 	is_external bool
 	module_path string
 	module_name string
+	meta        Meta
+	ti          types.TypeIdent
+}
+
+pub struct CallField {
+pub:
+	name        string
+	parent_path []string
+	value       string
 	meta        Meta
 	ti          types.TypeIdent
 }
@@ -402,6 +412,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		BoolLiteral { a.ti }
 		CallExpr { a.ti }
 		CallEnum { a.ti }
+		CallField { a.ti }
 		CharlistLiteral { a.ti }
 		TupleLiteral { a.ti }
 		NilLiteral { a.ti }
@@ -506,5 +517,24 @@ pub fn type_from_token(tok token.Token) types.TypeIdent {
 		.float { types.float_ti }
 		.str { types.string_ti }
 		else { types.void_ti }
+	}
+}
+
+pub fn is_literal_from_expr(expr Expr) bool {
+	return match expr {
+		BoolLiteral, CharlistLiteral, FloatLiteral, IntegerLiteral, NilLiteral, StringLiteral,
+		StructInit, TupleLiteral {
+			true
+		}
+		else {
+			false
+		}
+	}
+}
+
+pub fn is_literal_from_stmt(stmt Stmt) bool {
+	return match stmt {
+		ExprStmt { is_literal_from_expr(stmt.expr) }
+		else { false }
 	}
 }

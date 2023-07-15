@@ -94,14 +94,13 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	}
 	/// Check the args of function
 	p.check(.lpar)
-	// println('$fun_name.lit, $module_name')
-	// println(p.program.table)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		for p.tok.kind != .rpar {
 			e, ti := p.expr(0)
 			arity_num++
 			arity_args << ti.name
 			arg_exprs << e
+
 			if p.tok.kind != .rpar {
 				p.check(.comma)
 			}
@@ -171,6 +170,10 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	}
 	p.check(.rpar)
 
+	if p.tok.kind == .typedef {
+		p.check(.typedef)
+		return_ti = p.parse_ti()
+	}
 	node := ast.CallExpr{
 		name: fun_name.lit
 		arity: arity_name
@@ -252,9 +255,11 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			ti = p.parse_ti()
 		}
 		for arg_name in arg_names {
+			typ0 := p.program.table.find_type(ti.str()) or { types.type_from_ti(ti) }
 			arg := table.Var{
 				name: arg_name
 				ti: ti
+				type_: typ0
 			}
 			args << arg
 			p.program.table.register_var(arg)
