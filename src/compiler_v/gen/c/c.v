@@ -145,6 +145,7 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			g.var_name = node.name
 			g.var_ti = node.ti
 			g.expr(modl, node.expr)
+			g.endln(modl)
 		}
 		else {
 			println(node)
@@ -308,6 +309,7 @@ fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
 	if g.in_var_decl {
 		var := g.var_name
 		arg1 := parse_type_ti(g.var_ti)
+		g.writeln(modl, '')
 		g.writeln(modl, '${arg1} *${var};')
 		if g.var_ti.kind !in [.void, .pointer, .nil_] {
 			g.writeln(modl, '${var} = malloc(sizeof(${arg1}));')

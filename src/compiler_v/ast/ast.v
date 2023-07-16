@@ -71,7 +71,7 @@ pub:
 
 pub struct ExprStmt {
 pub:
-	expr Expr
+	expr Expr = EmptyExpr{}
 	ti   types.TypeIdent
 }
 
@@ -252,7 +252,7 @@ pub:
 
 pub struct MethodCallExpr {
 pub:
-	expr       Expr
+	expr       Expr = EmptyExpr{}
 	name       string
 	args       []Expr
 	is_unknown bool
@@ -271,7 +271,7 @@ pub:
 pub struct VarDecl {
 pub:
 	name string
-	expr Expr
+	expr Expr = EmptyExpr{}
 	ti   types.TypeIdent
 	meta Meta
 }

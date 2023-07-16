@@ -30,6 +30,7 @@ pub:
 	name   string
 	ti     types.TypeIdent
 	is_mut bool
+	is_arg bool
 	type_  types.Type
 	expr   ast.ExprStmt
 }

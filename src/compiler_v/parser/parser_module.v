@@ -256,7 +256,7 @@ pub fn compile_order(prog &table.Program) []string {
 				arr << '@${b.name}'
 			} else {
 				println(color.fg(color.red, 0, 'COMPILER: Module ${nam} is required and wasn\'t defined in current project'))
-				exit(0)
+				exit(1)
 			}
 		} else {
 			arr << a
@@ -265,7 +265,7 @@ pub fn compile_order(prog &table.Program) []string {
 	arr << main_module
 	if main_module == '' {
 		println(color.fg(color.red, 0, "COMPILER: Main module wasn't defined in current project"))
-		exit(0)
+		exit(1)
 	}
 	return arr
 }
