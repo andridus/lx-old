@@ -71,3 +71,6 @@ Imagine three files:
 3. Install Erlang
 4. On terminal, execute
   `$ v run . repl`
+
+### To Execute Tests
+1. Execute the tests suite with `./test.sh` bash script
