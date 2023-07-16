@@ -96,7 +96,15 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	p.check(.lpar)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		for p.tok.kind != .rpar {
-			e, ti := p.expr(0)
+			mut e, ti := p.expr(0)
+			match e {
+				ast.Ident {
+					mut a := e as ast.Ident
+					a.set_pointer()
+					e = ast.Expr(a)
+				}
+				else {}
+			}
 			arity_num++
 			arity_args << ti.name
 			arg_exprs << e
@@ -119,16 +127,18 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		if valid_arity == false {
 			mut args_ := []string{}
 			for _, a in f.arities {
-				arg_len := a.args.len
-				if arg_len > 0 {
-					mut args0 := []string{}
-					for a1 in a.args {
-						args0 << a1.ti.str()
-					}
+				if a.is_valid {
+					arg_len := a.args.len
+					if arg_len > 0 {
+						mut args0 := []string{}
+						for a1 in a.args {
+							args0 << a1.ti.str()
+						}
 
-					args_ << color.fg(color.white, 0, '${fun_name.lit}(${args0.join(', ')})')
-				} else {
-					args_ << color.fg(color.white, 0, '${fun_name.lit}()')
+						args_ << color.fg(color.white, 0, '${fun_name.lit}(${args0.join(', ')})')
+					} else {
+						args_ << color.fg(color.white, 0, '${fun_name.lit}()')
+					}
 				}
 			}
 			p.error_pos_out = p.tok.pos
@@ -295,7 +305,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 	}
 	mut final_args := []table.Var{}
-	mut args_overfn := '${args.len}_'
+	mut args_overfn := '${args.len}'
 	for a in args {
 		// var := p.program.table.find_var(a.name) or { a }
 		var := ast.Arg{
@@ -304,7 +314,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 		final_args << a
 		ast_args << var
-		args_overfn += var.ti.name
+		args_overfn += '_${var.ti.name}'
 	}
 
 	pos_out = p.tok.pos

@@ -1,26 +1,31 @@
 defmodule Operations do
 
-  def sum(a, b) do
+  def sum(a :: int, b ::int) :: int do
     a + b
   end
-  def sub(a, b) do
+  def sub( a :: int, b ::int) do
     a - b
   end
-  def mul(a, b) do
+  def mul(a :: int, b :: int) do
     a * b
   end
-  def div(a, b) do
+  def div(a ::int, b :: int) do
     a / b
   end
   def main() do
-    sum(1,2)
-    sub(2,1)
-    mul(3,2)
-    div(2,2)
+    a = sum(1,2)
+    b = sub(2,1)
+    c = mul(3,2)
+    d = div(2,2)
 
-    3 = sum(1,2)
-    1 = sub(2,1)
-    6 = mul(3,2)
-    4 = div(2,2)
+    :_c_.printf("%d %d %d %d\n", a, b, c, d )
+    :_c_.printf("\n")
+    :_c_.printf("*****************\n\n")
+
+    # VALIDATE PATTERN MATCHING
+    # 3 = sum(1,2)
+    # 1 = sub(2,1)
+    # 6 = mul(3,2)
+    # 4 = div(2,2)
   end
 end

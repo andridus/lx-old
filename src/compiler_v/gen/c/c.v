@@ -131,13 +131,14 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 		}
 		ast.ExprStmt {
 			g.expr(modl, node.expr)
-			match node.expr {
-				// no ; after an if expression
-				ast.IfExpr {}
-				else {
-					g.endln(modl)
-				}
-			}
+			// match node.expr {
+			// 	// no ; after an if expression
+			// 	ast.IfExpr {}
+			// 	else {
+
+			// 	}
+			// }
+			g.endln(modl)
 		}
 		ast.VarDecl {
 			g.in_var_decl = true
@@ -254,6 +255,14 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 				// arity_idx := fns0.idx_arity_by_args[expr.arity]
 				// arity := fns0.arities[arity_idx]
 				// println(arity)
+				match expr {
+					ast.Ident {
+						if expr.is_pointer() {
+							g.write(modl, '*')
+						}
+					}
+					else {}
+				}
 				g.expr(modl, expr)
 				if i != node.args.len - 1 {
 					g.write(modl, ', ')
@@ -299,7 +308,10 @@ fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
 	if g.in_var_decl {
 		var := g.var_name
 		arg1 := parse_type_ti(g.var_ti)
-		g.writeln(modl, '${arg1} ${var};')
+		g.writeln(modl, '${arg1} *${var};')
+		if g.var_ti.kind !in [.void, .pointer, .nil_] {
+			g.writeln(modl, '${var} = malloc(sizeof(${arg1}));')
+		}
 		g.write(modl, '${var} = ')
 		// if node.ti != g.var_ti {
 		// 	panic('error type ident wrong')
@@ -339,6 +351,7 @@ fn (mut g CGen) write_fns(modl string, arr []ast.FnDecl) {
 			arity := fns0.arities[arity_idx]
 			g.write_fn(modl, a, arity_idx, arity, fns0.arities.len)
 		}
+		g.writeln(modl, '\treturn NULL;')
 		g.writeln(modl, '}')
 	}
 }
@@ -360,11 +373,8 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	g.writeln(modl, '\tva_start(args, types);')
 	for arg0 in node.args {
 		mut var_name := '${arg0.name}'
-		// type0 := parse_type_ti(arg0.ti)
-		// arg1 := parse_arg(arg0, var_name)
 		arg1 := parse_arg_simple_pointer(arg0, var_name)
 		type0 := parse_arg_simple_pointer_no_arg(arg0)
-
 		g.writeln(modl, '\t${arg1} = va_arg(args, ${type0});')
 	}
 	g.writeln(modl, '\tva_end(args);')
@@ -377,13 +387,38 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 			if !is_defer_return(node.ti.kind) {
 				if ast.is_literal_from_stmt(stmt) {
 					arg1 := parse_type_ti(stmt.ti)
-					g.writeln(modl, '\t${arg1} *__return__;')
+					g.writeln(modl, ';\t${arg1} *__return__;')
+					if stmt.ti.kind != .void {
+						g.writeln(modl, '\t__return__ = malloc(sizeof(${arg1}));')
+					}
 					g.write(modl, '\t*__return__ = ')
 					g.stmt(modl, stmt)
 					g.writeln(modl, '\treturn __return__;')
 				} else {
-					g.stmt(modl, stmt)
-					g.writeln(modl, '\treturn NULL;')
+					if stmt.ti.kind == .void {
+						g.stmt(modl, stmt)
+						g.writeln(modl, ';\treturn NULL;')
+					} else {
+						arg1 := parse_type_ti(stmt.ti)
+						g.writeln(modl, ';\t${arg1} *__return__;')
+						if stmt.ti.kind != .void {
+							g.writeln(modl, '\t__return__ = malloc(sizeof(${arg1}));')
+						}
+						match stmt {
+							ast.ExprStmt {
+								match stmt.expr {
+									ast.CallExpr {}
+									else {
+										g.write(modl, '*')
+									}
+								}
+							}
+							else {}
+						}
+						g.write(modl, '__return__ = ')
+						g.stmt(modl, stmt)
+						g.writeln(modl, '\treturn __return__;')
+					}
 				}
 			} else {
 				g.stmt(modl, stmt)
@@ -399,7 +434,7 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 fn (mut g CGen) mount_main() {
 	if g.fn_main.len > 0 {
 		g.out_main.writeln('int main(int argc, char *argv[]) {')
-		g.out_main.writeln(" ${g.fn_main}(0, \"0_\");")
+		g.out_main.writeln(" ${g.fn_main}(0, \"0\");")
 		g.out_main.writeln('return 0;')
 		g.out_main.writeln('}')
 	}

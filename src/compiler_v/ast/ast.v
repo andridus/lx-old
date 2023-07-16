@@ -292,6 +292,20 @@ pub:
 	value    string
 	meta     Meta
 	ti       types.TypeIdent
+mut:
+	is_pointer bool
+}
+
+pub fn (i Ident) is_pointer() bool {
+	return i.is_pointer == true
+}
+
+pub fn (mut i Ident) set_pointer() {
+	i.is_pointer = true
+}
+
+pub fn (mut i Ident) unset_pointer() {
+	i.is_pointer = false
 }
 
 pub struct BinaryExpr {
