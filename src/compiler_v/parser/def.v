@@ -95,7 +95,6 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	/// Check the args of function
 	p.check(.lpar)
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
-
 		for p.tok.kind != .rpar {
 			mut e, ti := p.expr(0)
 			match e {
@@ -176,15 +175,15 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 				match e {
 					ast.Ident {
 						mut a := e as ast.Ident
-					 c := p.program.table.find_var(a.name) or {table.Var{}}
-					 ex := c.expr.expr
-					 match ex {
-						ast.EmptyExpr {}
-						else {
-							a.set_pointer()
-							e = ast.Expr(a)
+						c := p.program.table.find_var(a.name) or { table.Var{} }
+						ex := c.expr.expr
+						match ex {
+							ast.EmptyExpr {}
+							else {
+								a.set_pointer()
+								e = ast.Expr(a)
+							}
 						}
-					 }
 					}
 					else {}
 				}

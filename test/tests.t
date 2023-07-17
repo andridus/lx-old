@@ -2,7 +2,7 @@
 2_using_alias
 3_modules
 4_functions
-5_using_core
+5_using_builtin_functions
 6_struct
 7_enum
 8_type_inference

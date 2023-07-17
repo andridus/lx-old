@@ -5,7 +5,4 @@ defmodule IO do
   def puts(integer :: int) :: int do
    :_c_.printf("%d\n", integer)
   end
-  def sum(a :: int, b :: int ) :: int do
-    a + b
-  end
 end

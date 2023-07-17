@@ -204,13 +204,13 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			}
 		}
 		ast.CallEnum {
-			// if g.in_var_decl {
-			// 	println(g.var_ti)
-			// 	g.write(modl, '${g.var_ti} ${g.var_name} = ')
-			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()};')
-			// } else {
-			// 	g.writeln(modl, '${node.name}_${node.value.to_upper()}')
-			// }
+			if g.in_var_decl {
+				println(g.var_ti)
+				g.write(modl, '${g.var_ti} ${g.var_name} = ')
+				g.writeln(modl, '${node.name}_${node.value.to_upper()};')
+			} else {
+				g.writeln(modl, '${node.name}_${node.value.to_upper()}')
+			}
 		}
 		ast.CallField {
 			mut path := node.parent_path.clone()
@@ -311,10 +311,14 @@ fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
 		arg1 := parse_type_ti(g.var_ti)
 		g.writeln(modl, '')
 		g.writeln(modl, '${arg1} *${var};')
-		if g.var_ti.kind !in [.void, .pointer, .nil_] {
+		if g.var_ti.kind !in [.void_, .pointer_, .nil_] {
 			g.writeln(modl, '${var} = malloc(sizeof(${arg1}));')
 		}
-		g.write(modl, '${var} = ')
+		if g.var_ti.kind == .enum_ {
+			g.write(modl, '*${var} = ')
+		} else {
+			g.write(modl, '${var} = ')
+		}
 		// if node.ti != g.var_ti {
 		// 	panic('error type ident wrong')
 		// }
@@ -381,29 +385,29 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	}
 	g.writeln(modl, '\tva_end(args);')
 	for stmt in node.stmts {
-		if current + 1 == total && node.ti.kind == .void {
+		if current + 1 == total && node.ti.kind == .void_ {
 			g.stmt(modl, stmt)
 			g.writeln(modl, '\treturn NULL;')
-		} else if current + 1 == total && node.ti.kind != .void {
+		} else if current + 1 == total && node.ti.kind != .void_ {
 			g.last_return = true
 			if !is_defer_return(node.ti.kind) {
 				if ast.is_literal_from_stmt(stmt) {
 					arg1 := parse_type_ti(stmt.ti)
 					g.writeln(modl, ';\t${arg1} *__return__;')
-					if stmt.ti.kind != .void {
+					if stmt.ti.kind != .void_ {
 						g.writeln(modl, '\t__return__ = malloc(sizeof(${arg1}));')
 					}
 					g.write(modl, '\t*__return__ = ')
 					g.stmt(modl, stmt)
 					g.writeln(modl, '\treturn __return__;')
 				} else {
-					if stmt.ti.kind == .void {
+					if stmt.ti.kind == .void_ {
 						g.stmt(modl, stmt)
 						g.writeln(modl, ';\treturn NULL;')
 					} else {
 						arg1 := parse_type_ti(stmt.ti)
 						g.writeln(modl, ';\t${arg1} *__return__;')
-						if stmt.ti.kind != .void {
+						if stmt.ti.kind != .void_ {
 							g.writeln(modl, '\t__return__ = malloc(sizeof(${arg1}));')
 						}
 						match stmt {

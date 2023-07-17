@@ -1,4 +1,4 @@
-defmodule HelloWorld do
+defmodule UsingAlias do
 
   alias Lx.IO
 

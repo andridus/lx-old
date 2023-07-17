@@ -7,7 +7,7 @@ fn parse_field(field ast.Field) string {
 	kind := parse_type(field.ti.kind)
 	mut name := field.name
 	match field.ti.kind {
-		.string { name = '*${name}' }
+		.string_ { name = '*${name}' }
 		else {}
 	}
 	return '${kind} ${name}'
@@ -21,7 +21,7 @@ fn parse_arg_simple(arg ast.Arg, name string) string {
 fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
 	kind := parse_type_ti(arg.ti)
 	match arg.ti.kind {
-		.string {
+		.string_ {
 			return '${kind} *${name}'
 		}
 		else {
@@ -33,7 +33,7 @@ fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
 fn parse_arg_simple_pointer_no_arg(arg ast.Arg) string {
 	kind := parse_type_ti(arg.ti)
 	match arg.ti.kind {
-		.string {
+		.string_ {
 			return '${kind} *'
 		}
 		else {
@@ -70,42 +70,26 @@ fn parse_type_ti(ti types.TypeIdent) string {
 
 fn parse_type(kind types.Kind) string {
 	return match kind {
-		.atom { 'int' }
-		.placeholder { 'placeholder' }
-		.void { 'void' }
+		.atom_ { 'int' }
+		.void_ { 'void' }
 		.nil_ { 'void *' }
 		.any_ { 'void *' }
-		.pointer { 'void *' }
-		.voidptr { 'voidptr' }
-		.charptr { 'charptr' }
-		.byteptr { 'byteptr' }
-		.const_ { 'const' }
+		.pointer_ { 'void *' }
 		.enum_ { 'enum' }
 		.struct_ { 'struct' }
 		.result_ { 'result' }
-		.int { 'int' }
-		.i8 { 'i8' }
-		.i16 { 'i16' }
-		.i64 { 'i64' }
-		.byte { 'byte' }
-		.u16 { 'u16' }
-		.u32 { 'u32' }
-		.u64 { 'u64' }
-		.f32 { 'double' }
-		.f64 { 'f64' }
-		.string { 'char' }
-		.char { 'char' }
-		.bool { 'int' }
-		.list { 'list' }
-		.list_fixed { 'list' }
-		.tuple { 'tuple' }
-		.map { 'map' }
-		.multi_return { 'multi' }
-		.variadic { 'variadic' }
-		.number { 'number' }
+		.integer_ { 'int' }
+		.float_ { 'double' }
+		.string_ { 'char' }
+		.char_ { 'char' }
+		.bool_ { 'int' }
+		.list_ { 'list' }
+		.list_fixed_ { 'list' }
+		.tuple_ { 'tuple' }
+		.map_ { 'map' }
 	}
 }
 
 fn ti_is_array(ti types.TypeIdent) bool {
-	return ti.kind in [.string, .list, .list_fixed, .tuple]
+	return ti.kind in [.string_, .list_, .list_fixed_, .tuple_]
 }

@@ -4,7 +4,7 @@
 // MODULE 'Operations'.ex
 // -------- --------
 void *Operations_sum(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_int_int") == 0){
+if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
 	va_list args;
 	va_start(args, types);
 	int a = va_arg(args, int);
@@ -18,7 +18,7 @@ if(arity == 2 && strcmp(types, "2_int_int") == 0){
 	return NULL;
 }
 void *Operations_sub(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_int_int") == 0){
+if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
 	va_list args;
 	va_start(args, types);
 	int a = va_arg(args, int);
@@ -32,7 +32,7 @@ if(arity == 2 && strcmp(types, "2_int_int") == 0){
 	return NULL;
 }
 void *Operations_mul(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_int_int") == 0){
+if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
 	va_list args;
 	va_start(args, types);
 	int a = va_arg(args, int);
@@ -46,7 +46,7 @@ if(arity == 2 && strcmp(types, "2_int_int") == 0){
 	return NULL;
 }
 void *Operations_div(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_int_int") == 0){
+if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
 	va_list args;
 	va_start(args, types);
 	int a = va_arg(args, int);
@@ -67,19 +67,19 @@ if(arity == 0 && strcmp(types, "0") == 0){
 
 int *a;
 a = malloc(sizeof(int));
-a = 	Operations_sum(2,"2_int_int",1, 2);
+a = 	Operations_sum(2,"2_integer_integer",1, 2);
 
 int *b;
 b = malloc(sizeof(int));
-b = 	Operations_sub(2,"2_int_int",2, 1);
+b = 	Operations_sub(2,"2_integer_integer",2, 1);
 
 int *c;
 c = malloc(sizeof(int));
-c = 	Operations_mul(2,"2_int_int",3, 2);
+c = 	Operations_mul(2,"2_integer_integer",3, 2);
 
 int *d;
 d = malloc(sizeof(int));
-d = 	Operations_div(2,"2_int_int",2, 2);
+d = 	Operations_div(2,"2_integer_integer",2, 2);
 printf("%d %d %d %d\n", *a, *b, *c, *d);
 printf("\n");
 printf("*****************\n\n");
