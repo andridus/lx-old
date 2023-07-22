@@ -19,6 +19,7 @@ mut:
 	var_ti      types.TypeIdent
 	fn_agg      map[string][]ast.FnDecl
 	fn_main     string
+	fn_main_ti  types.TypeIdent
 }
 
 pub fn gen(prog table.Program) CGen {
@@ -68,6 +69,19 @@ pub fn (mut g CGen) save() !string {
 			bin << '#include ${dep0}\n'.bytes()
 		}
 	}
+	// own libs
+	// MODULE 'C'.ex
+
+	bin << '
+		typedef enum { NIL, ATOM, FLOAT, INTEGER, STRING, VOID } LxTypes;
+		void * lx_print(void ** str, LxTypes tp) {
+			if (tp == ATOM) { printf("%s",str);}
+			else if (tp == INTEGER) { printf("%d",(*(int *) str));}
+			else if (tp == STRING) { printf("%s", str);}
+			else if (tp == FLOAT) { printf("%lf", (*(double *) str));}
+			else if (tp == VOID) { printf("nil");}
+			else { printf("can\'t print object");}
+		}\n'.bytes()
 	//
 	order.reverse()
 	for modl in order {
@@ -168,6 +182,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		ast.UnaryExpr {
 			g.expr(modl, node.left)
 			g.write(modl, ' ${node.op} ')
+		}
+		ast.Atom {
+			g.write(modl, "\"${node.value}\"")
 		}
 		ast.StringLiteral {
 			g.write(modl, "\"${node.val}\"")
@@ -367,6 +384,7 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	if module0.is_main && node.name == 'main' {
 		module_name := module0.name.replace('.', '_')
 		g.fn_main = '${module_name}_${node.name}'
+		g.fn_main_ti = node.ti
 	}
 	mut total := node.stmts.len
 	mut current := 0
@@ -397,7 +415,11 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 					if stmt.ti.kind != .void_ {
 						g.writeln(modl, '\t__return__ = malloc(sizeof(${arg1}));')
 					}
-					g.write(modl, '\t*__return__ = ')
+
+					if stmt.ti.kind !in [.string_, .atom_] {
+						g.write(modl, '*')
+					}
+					g.write(modl, '__return__ = ')
 					g.stmt(modl, stmt)
 					g.writeln(modl, '\treturn __return__;')
 				} else {
@@ -415,7 +437,9 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 								match stmt.expr {
 									ast.CallExpr {}
 									else {
-										g.write(modl, '*')
+										if stmt.ti.kind !in [.string_, .atom_] {
+											g.write(modl, '*')
+										}
 									}
 								}
 							}
@@ -440,7 +464,13 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 fn (mut g CGen) mount_main() {
 	if g.fn_main.len > 0 {
 		g.out_main.writeln('int main(int argc, char *argv[]) {')
-		g.out_main.writeln(" ${g.fn_main}(0, \"0\");")
+		g.out_main.writeln('void *result;')
+		g.out_main.writeln("result = ${g.fn_main}(0, \"0\");")
+		g.out_main.writeln('if(result != NULL){')
+		g.out_main.writeln('lx_print((void *)result,${g.fn_main_ti.str().to_upper()});')
+		g.out_main.writeln('}else{')
+		g.out_main.writeln('printf("nil\\n");')
+		g.out_main.writeln('}')
 		g.out_main.writeln('return 0;')
 		g.out_main.writeln('}')
 	}

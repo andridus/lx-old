@@ -3,15 +3,16 @@ defmodule Operations do
   def sum(a :: int, b ::int) :: int do
     a + b
   end
-  def sub( a :: int, b ::int) do
+  def sub( a :: int, b ::int) :: int do
     a - b
   end
-  def mul(a :: int, b :: int) do
+  def mul(a :: int, b :: int) :: int do
     a * b
   end
-  def div(a ::int, b :: int) do
+  def div(a ::int, b :: int)  :: int do
     a / b
   end
+
   def main() do
     a = sum(1,2)
     b = sub(2,1)

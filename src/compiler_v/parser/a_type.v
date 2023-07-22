@@ -95,6 +95,9 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				'nil' {
 					return types.new_builtin_ti(.nil_, false)
 				}
+				'atom' {
+					return types.new_builtin_ti(.atom_, false)
+				}
 				'any' {
 					return types.new_builtin_ti(.any_, false)
 				}

@@ -115,6 +115,9 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		}
 
 		arity_name = '${arity_num}_${arity_args.join('_')}'
+		if arity_name == '0_' {
+			arity_name = '0'
+		}
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
 		if finded > 0 {
@@ -145,7 +148,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			p.error_pos_out = p.tok.pos
 			fun_name0 := color.fg(color.white, 0, '${fun_name.lit}(${arity_args.join(', ')})')
 			p.log_d('ERROR', 'The function ${fun_name0} ${color.fg(color.red, 0, 'not exists, check one of')} ${args_.join(' | ')}',
-				docs.function_args_desc, docs.function_args_url, '')
+				docs.function_args_desc, docs.function_args_url, fun_name.lit)
 		}
 		if p.tok.kind == .comma {
 			p.error('too many arguments in call to `${fun_name}`')
@@ -313,7 +316,6 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		from_type = true
 	}
 	stmts := p.parse_block()
-
 	// Try get type from body inference
 	if from_type == false {
 		if stmts.len > 0 {

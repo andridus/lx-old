@@ -8,6 +8,7 @@ import compiler_v.types
 import compiler_v.token
 
 pub type Expr = AssignExpr
+	| Atom
 	| BinaryExpr
 	| BoolLiteral
 	| CallEnum
@@ -257,6 +258,15 @@ pub:
 	ti       types.TypeIdent
 mut:
 	is_pointer bool
+}
+
+pub struct Atom {
+pub:
+	name     string
+	tok_kind token.Kind
+	value    string
+	meta     Meta
+	ti       types.TypeIdent = types.atom_ti
 }
 
 pub struct BinaryExpr {

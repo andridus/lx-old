@@ -267,7 +267,7 @@ pub fn compile_order(prog &table.Program) []string {
 		println(color.fg(color.red, 0, "COMPILER: Main module wasn't defined in current project"))
 		exit(1)
 	}
-	return arr
+	return uniq(arr)
 }
 
 fn uniq(arr []string) []string {

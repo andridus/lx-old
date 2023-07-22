@@ -70,7 +70,7 @@ fn parse_type_ti(ti types.TypeIdent) string {
 
 fn parse_type(kind types.Kind) string {
 	return match kind {
-		.atom_ { 'int' }
+		.atom_ { 'char' }
 		.void_ { 'void' }
 		.nil_ { 'void *' }
 		.any_ { 'void *' }

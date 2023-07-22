@@ -19,7 +19,7 @@ pub fn (l Lexer) get_code_between_line_breaks(color0 int, from int, current_in i
 	lb_after := seek_lb_after(l.input, from)
 	mut lines := []string{}
 	// lines << color.fg(color.dark_gray, 1, '----------')
-	mut curr_line := current_line - 2
+	mut curr_line := current_line - 1
 	for i0 := lb_before; i0 <= lb_after; i0++ {
 		if l.input[i0] == 10 && i0 != lb_before {
 			i0++

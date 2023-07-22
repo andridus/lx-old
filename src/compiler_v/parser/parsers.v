@@ -97,7 +97,6 @@ fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
 
 fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
-
 	node = ast.Ident{
 		name: p.tok.lit
 		tok_kind: p.tok.kind
@@ -109,9 +108,15 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 		}
 		return a, b
 	} else {
-		p.check(.atom)
+		node = ast.Atom{
+			name: p.tok.lit
+			value: p.tok.lit
+			tok_kind: p.tok.kind
+		}
 		p.program.table.find_or_new_atom(p.tok.lit)
+		p.check(.atom)
 	}
+
 	return node, types.atom_ti
 }
 

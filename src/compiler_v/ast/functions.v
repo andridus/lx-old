@@ -33,6 +33,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		EmptyExpr { a.ti }
 		FloatLiteral { a.ti }
 		Ident { a.ti }
+		Atom { a.ti }
 		IfExpr { a.ti }
 		IntegerLiteral { a.ti }
 		KeywordList { a.ti }

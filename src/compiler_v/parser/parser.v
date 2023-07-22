@@ -134,7 +134,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 					'COMPILER__ensure_left_type__' {
 						p.compiler_options << .ensure_left_type
 					}
-					else {}
+					else {
+						return p.expr_stmt()
+					}
 				}
 				p.next_token()
 				return p.stmt()

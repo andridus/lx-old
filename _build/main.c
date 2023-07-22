@@ -1,93 +1,76 @@
 // Include standard functions
 #include <tcclib.h>
 #include <string.h>
-// MODULE 'Operations'.ex
+
+		typedef enum { NIL, ATOM, FLOAT, INTEGER, STRING, VOID } LxTypes;
+		void * lx_print(void ** str, LxTypes tp) {
+			if (tp == ATOM) { printf("%s",str);}
+			else if (tp == INTEGER) { printf("%d",(*(int *) str));}
+			else if (tp == STRING) { printf("%s", str);}
+			else if (tp == FLOAT) { printf("%lf", (*(double *) str));}
+			else if (tp == VOID) { printf("nil");}
+			else { printf("can't print object");}
+		}
+// MODULE 'Animals'.ex
 // -------- --------
-void *Operations_sum(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
+typedef enum  {
+	enum_animals_kind_DOG=1,
+	enum_animals_kind_CAT,
+	enum_animals_kind_RABBIT,
+} enum_animals_kind;
+void *Animals_print(int arity, char *types, ...){
+if(arity == 1 && strcmp(types, "1_string") == 0){
 	va_list args;
 	va_start(args, types);
-	int a = va_arg(args, int);
-	int b = va_arg(args, int);
+	char *a = va_arg(args, char *);
 	va_end(args);
-;	int *__return__;
-	__return__ = malloc(sizeof(int));
-*__return__ = a+b;
-	return __return__;
+printf(a);
+	return NULL;
+}
+if(arity == 1 && strcmp(types, "1_enum_animals_kind") == 0){
+	va_list args;
+	va_start(args, types);
+	enum_animals_kind a = va_arg(args, enum_animals_kind);
+	va_end(args);
+printf("%d\n", a);
+	return NULL;
 }
 	return NULL;
 }
-void *Operations_sub(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
-	va_list args;
-	va_start(args, types);
-	int a = va_arg(args, int);
-	int b = va_arg(args, int);
-	va_end(args);
-;	int *__return__;
-	__return__ = malloc(sizeof(int));
-*__return__ = a-b;
-	return __return__;
-}
-	return NULL;
-}
-void *Operations_mul(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
-	va_list args;
-	va_start(args, types);
-	int a = va_arg(args, int);
-	int b = va_arg(args, int);
-	va_end(args);
-;	int *__return__;
-	__return__ = malloc(sizeof(int));
-*__return__ = a*b;
-	return __return__;
-}
-	return NULL;
-}
-void *Operations_div(int arity, char *types, ...){
-if(arity == 2 && strcmp(types, "2_integer_integer") == 0){
-	va_list args;
-	va_start(args, types);
-	int a = va_arg(args, int);
-	int b = va_arg(args, int);
-	va_end(args);
-;	int *__return__;
-	__return__ = malloc(sizeof(int));
-*__return__ = a/b;
-	return __return__;
-}
-	return NULL;
-}
-void *Operations_main(int arity, char *types, ...){
+void *Animals_main(int arity, char *types, ...){
 if(arity == 0 && strcmp(types, "0") == 0){
 	va_list args;
 	va_start(args, types);
 	va_end(args);
 
-int *a;
-a = malloc(sizeof(int));
-a = 	Operations_sum(2,"2_integer_integer",1, 2);
+enum_animals_kind *dog;
+dog = malloc(sizeof(enum_animals_kind));
+*dog = enum_animals_kind_DOG
+;
 
-int *b;
-b = malloc(sizeof(int));
-b = 	Operations_sub(2,"2_integer_integer",2, 1);
+enum_animals_kind *cat;
+cat = malloc(sizeof(enum_animals_kind));
+*cat = enum_animals_kind_CAT
+;
 
-int *c;
-c = malloc(sizeof(int));
-c = 	Operations_mul(2,"2_integer_integer",3, 2);
-
-int *d;
-d = malloc(sizeof(int));
-d = 	Operations_div(2,"2_integer_integer",2, 2);
-printf("%d %d %d %d\n", *a, *b, *c, *d);
-printf("\n");
-printf("*****************\n\n");
+enum_animals_kind *rabbit;
+rabbit = malloc(sizeof(enum_animals_kind));
+*rabbit = enum_animals_kind_RABBIT
+;
+	Animals_print(1,"1_enum_animals_kind",*dog);
+	Animals_print(1,"1_string","olá mundo \n");
+	Animals_print(1,"1_enum_animals_kind",*rabbit);
 	return NULL;
 }
 	return NULL;
 }
 int main(int argc, char *argv[]) {
- Operations_main(0, "0");
+void *result;
+result = Animals_main(0, "0");
+if(result != NULL){
+lx_print((void *)result,VOID);
+}else{
+printf("nil\n");
+}
 return 0;
 }
