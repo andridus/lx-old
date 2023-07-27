@@ -21,6 +21,7 @@ pub fn compile(args []string) {
 		parser.parse_files(prog)
 
 		mut generated := c.gen(prog)
+
 		builded_file := generated.save() or {
 			println(err.msg())
 			exit(0)

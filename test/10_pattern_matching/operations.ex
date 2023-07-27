@@ -23,10 +23,10 @@ defmodule Operations do
     :_c_.printf("\n")
     :_c_.printf("*****************\n\n")
 
-    # VALIDATE PATTERN MATCHING
-    # 3 = sum(1,2)
-    # 1 = sub(2,1)
-    # 6 = mul(3,2)
-    # 4 = div(2,2)
+    # VALIDATE PATTERN MATCHING WITH TERMS
+    3 = sum(1,2)
+    1 = sub(2,1)
+    6 = mul(3,2)
+    4 = div(8,2)
   end
 end

@@ -7,8 +7,13 @@ pub fn (l Lexer) get_in_out(lin int, lout int, str string) (int, int) {
 		a := l.input[lin..lout].bytestr()
 		first_of_line := seek_len_until_lb_before(l.input, lin)
 		mut initial_char := a.index(str) or { 0 }
-		initial_char += lin - first_of_line
-		return initial_char, initial_char + str.len
+		initial_char += lin - first_of_line - 5
+		last_char := initial_char + (lout - lin)
+		if initial_char != 0 {
+			return initial_char, last_char
+		} else {
+			return str.len, lout - lin
+		}
 	} else {
 		return 0, 0
 	}

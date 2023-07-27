@@ -29,6 +29,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		CallField { a.ti }
 		CharlistLiteral { a.ti }
 		TupleLiteral { a.ti }
+		MatchExpr { a.left_ti }
 		NilLiteral { a.ti }
 		EmptyExpr { a.ti }
 		FloatLiteral { a.ti }

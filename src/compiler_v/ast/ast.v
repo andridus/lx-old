@@ -21,6 +21,7 @@ pub type Expr = AssignExpr
 	| IfExpr
 	| IntegerLiteral
 	| KeywordList
+	| MatchExpr
 	| NilLiteral
 	| PostfixExpr
 	| PrefixExpr
@@ -238,6 +239,15 @@ pub:
 	expr Expr = EmptyExpr{}
 	ti   types.TypeIdent
 	meta Meta
+}
+
+pub struct MatchExpr {
+pub:
+	left     Expr
+	right    Expr
+	meta     Meta
+	left_ti  types.TypeIdent
+	right_ti types.TypeIdent
 }
 
 pub struct File {

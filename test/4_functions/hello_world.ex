@@ -3,8 +3,8 @@ defmodule HelloWorld do
     a + b
   end
   def main() do
-    IO.puts("Hello Lx World\n")
     a = sum(5,2)
+    IO.puts("Hello Lx World\n")
     IO.puts(a)
   end
 end

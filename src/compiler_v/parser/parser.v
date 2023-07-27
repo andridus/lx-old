@@ -175,8 +175,8 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 			return ast.Module{}
 		}
 		else {
-			if p.tok.kind == .ident && p.peek_tok.kind in [.assign, .typedef] {
-				return p.var_decl()
+			if p.peek_tok.kind in [.assign, .typedef] {
+				return p.pattern_matching()
 			} else {
 				return p.expr_stmt()
 			}
