@@ -26,7 +26,6 @@ pub fn compile(args []string) {
 			println(err.msg())
 			exit(0)
 		}
-		// println(prog)
 		elapsed := sw.elapsed().microseconds()
 		println(color.fg(color.dark_gray, 1, '....... development summary........'))
 		println(color.fg(color.dark_gray, 0, '. Table size: `${sizeof(generated)}b`'))

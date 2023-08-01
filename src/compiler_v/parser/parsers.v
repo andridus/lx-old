@@ -146,6 +146,7 @@ fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
 		val: p.tok.lit
 	}
 	if p.peek_tok.kind != .hash {
+		// TODO: interpolate string
 		p.next_token()
 		return node, types.string_ti
 	}
@@ -158,6 +159,31 @@ fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
 		p.expr(0)
 	}
 	return node, types.string_ti
+}
+
+fn (mut p Parser) string_concat_expr() (ast.Expr, types.TypeIdent) {
+	mut left := ast.Expr(ast.EmptyExpr{})
+	mut left_ti := types.void_ti
+	if p.tok.kind == .str {
+		left, left_ti = p.string_expr()
+	} else if p.tok.kind == .ident {
+		left, left_ti = p.ident_expr()
+	}
+	if left_ti.kind != .string_ {
+		println('${left} is not a string type')
+		exit(0)
+	}
+	// left, left_ti := p.expr(0)
+	p.check(.string_concat)
+	right, right_ti := p.expr(0)
+	if right_ti.kind != .string_ {
+		println('${right} is not a string type')
+		exit(0)
+	}
+	return ast.Expr(ast.StringConcatExpr{
+		left: left
+		right: right
+	}), types.string_ti
 }
 
 fn (mut p Parser) charlist_expr() (ast.Expr, types.TypeIdent) {

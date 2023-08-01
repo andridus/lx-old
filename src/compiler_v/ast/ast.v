@@ -25,6 +25,7 @@ pub type Expr = AssignExpr
 	| NilLiteral
 	| PostfixExpr
 	| PrefixExpr
+	| StringConcatExpr
 	| StringLiteral
 	| StructInit
 	| TupleLiteral
@@ -277,6 +278,14 @@ pub:
 	value    string
 	meta     Meta
 	ti       types.TypeIdent = types.atom_ti
+}
+
+pub struct StringConcatExpr {
+pub:
+	left  Expr
+	right Expr
+	meta  Meta
+	ti    types.TypeIdent = types.string_ti
 }
 
 pub struct BinaryExpr {

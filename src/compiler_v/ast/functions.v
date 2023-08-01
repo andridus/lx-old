@@ -41,6 +41,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		PostfixExpr { a.ti }
 		PrefixExpr { a.ti }
 		StringLiteral { a.ti }
+		StringConcatExpr { a.ti }
 		StructInit { a.ti }
 		UnaryExpr { a.ti }
 	}

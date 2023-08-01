@@ -91,8 +91,9 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 			current = l.input[l.pos]
 			l.pos++
 		}
-		return l.new_token(l.input[start_pos..(l.pos - delim_end.len)].bytestr(), kind,
-			0)
+		str := l.input[start_pos..(l.pos - delim_end.len)].bytestr().trim(' ').replace('\n',
+			'\\n')
+		return l.new_token(str, kind, 0)
 	} else {
 		println('ignore ${l.input[l.pos]}')
 		return l.new_token('', .ignore, 1)

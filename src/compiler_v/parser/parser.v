@@ -203,7 +203,11 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			node, ti = p.atom_expr()
 		}
 		.ident {
-			node, ti = p.ident_expr()
+			if p.peek_tok.kind == .string_concat {
+				node, ti = p.string_concat_expr()
+			} else {
+				node, ti = p.ident_expr()
+			}
 		}
 		.key_nil {
 			node, ti = p.parse_nil_literal()
@@ -214,8 +218,13 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.key_if {
 			node, ti = p.if_expr()
 		}
+		.multistring {
+			node, ti = p.string_expr()
+		}
 		.str {
-			if p.peek_tok.kind == .colon_space {
+			if p.peek_tok.kind == .string_concat {
+				node, ti = p.string_concat_expr()
+			} else if p.peek_tok.kind == .colon_space {
 				node, ti = p.keyword_list_expr()
 			} else {
 				node, ti = p.string_expr()

@@ -110,6 +110,35 @@ pub fn (mut g CGen) save() !string {
 	else if (type == STRING && strcmp((char *)left, (char *)right)) { return left; }
 	else { printf("DONT MATCH"); exit(0); }
 	}\n'.bytes()
+	bin << '
+	int strcat2(char *s,char *t){
+		for(;*s!=\'\\0\';s++){}
+		while((*s++ = *t++)!=\'\\0\'){}
+		t=\'\\0\';
+		return 0;
+	}
+	void * lx_string_concat(int num, ...) {
+	char *result;
+	result = malloc(sizeof(char) * 256);
+	result = "\0";
+	if (num > 0)
+	{
+		int i;
+		va_list ptr;
+		va_start(ptr, num);
+		for (i = 0; i < num; i++)
+		{
+			char *str = va_arg(ptr, char *);
+			if(i ==0){
+				strcpy(result, str);
+			} else {
+				strcat2(result, str);
+			}
+		}
+		va_end(ptr);
+		}
+		return result;
+	}\n'.bytes()
 	//
 	order.reverse()
 	for modl in order {
@@ -147,6 +176,30 @@ pub fn (mut g CGen) writeln(modl string, s string) {
 
 fn (mut g CGen) endln(modl string) {
 	g.writeln(modl, ';')
+}
+
+fn (mut g CGen) get_args_concat(node ast.Expr) []string {
+	mut args := []string{}
+	match node {
+		ast.StringLiteral {
+			args << "\"${node.val}\""
+		}
+		ast.Ident {
+			if v := g.local_vars_binding[node.name] {
+				args << v
+			} else {
+				args << node.name
+			}
+		}
+		ast.StringConcatExpr {
+			args0 := g.get_args_concat(node.left)
+			args.insert(args.len, args0)
+			args1 := g.get_args_concat(node.right)
+			args.insert(args.len, args1)
+		}
+		else {}
+	}
+	return args
 }
 
 fn (mut g CGen) stmt(modl string, node ast.Stmt) {
@@ -231,6 +284,19 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		}
 		ast.CharlistLiteral {
 			g.write(modl, '${node.val}')
+		}
+		ast.StringConcatExpr {
+			// 3, "Hello, ", var_1, "!")
+			// tmpvar := g.temp_var(modl, types.string_ti)
+			args := g.get_args_concat(node)
+			g.write(modl, '(char *)lx_string_concat(${args.len},')
+			for i := 0; i < args.len; i++ {
+				g.write(modl, args[i])
+				if i + 1 < args.len {
+					g.write(modl, ',')
+				}
+			}
+			g.write(modl, ')')
 		}
 		ast.BinaryExpr {
 			g.in_binary_exp = true
