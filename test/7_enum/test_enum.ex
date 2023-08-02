@@ -2,10 +2,10 @@ defmodule Animals do
   ## Elixir default: creates a Person struct
   defenum Kind [ :dog, :cat, :rabbit ]
   def print(a :: string) do
-    :_c_.printf(a)
+    :_v_.println(a)
   end
   def print(a :: Animals.Kind@) do
-    :_c_.printf("%d\n", a)
+    :_v_.println(a)
   end
   def main() do
     dog = Animals.Kind@dog

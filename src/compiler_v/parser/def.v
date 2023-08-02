@@ -28,6 +28,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	mut is_local := false
 	mut is_unknown := false
 	mut is_c_module := false
+	mut is_v_module := false
 	mut tok := p.tok
 	mut arg_exprs := []ast.Expr{}
 	mut arity_num := 0
@@ -38,6 +39,10 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 	mut return_ti := types.void_ti
 	// Check if is a C module
 	if p.tok.lit == '_c_' {
+		is_c_module = true
+		module_ref = []
+	}
+	if p.tok.lit == '_v_' {
 		is_c_module = true
 		module_ref = []
 	}
@@ -154,7 +159,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			p.error('too many arguments in call to `${fun_name}`')
 		}
 	} else {
-		if is_c_module == false {
+		if is_c_module == false && is_v_module == false {
 			is_unknown = true
 			p.error_pos_out = p.tok.pos
 			if is_local {
@@ -213,10 +218,14 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		module_path: module_path
 		module_name: module_name
 		is_c_module: is_c_module
+		is_v_module: is_v_module
 		ti: return_ti
 	}
 	if is_c_module {
 		p.program.c_dependencies << module_name
+	}
+	if is_v_module {
+		p.program.v_dependencies << module_name
 	}
 	if is_unknown {
 		p.program.table.unknown_calls << node

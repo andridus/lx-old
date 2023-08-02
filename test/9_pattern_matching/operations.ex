@@ -19,9 +19,13 @@ defmodule Operations do
     c = mul(3,2)
     d = div(2,2)
 
-    :_c_.printf("%d %d %d %d\n", a, b, c, d )
-    :_c_.printf("\n")
-    :_c_.printf("*****************\n\n")
+    :_v_.println(a)
+    :_v_.println(b)
+    :_v_.println(c)
+    :_v_.println(d)
+    :_v_.println("#{a} #{b} #{c} #{d}")
+    :_v_.println("\n")
+    :_v_.println("*****************\n\n")
 
     # VALIDATE PATTERN MATCHING WITH TERMS
     3 = sum(1,2)

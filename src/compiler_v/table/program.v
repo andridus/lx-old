@@ -24,6 +24,7 @@ pub mut:
 	modules                map[string]Module
 	compile_order          []string
 	c_dependencies         []string
+	v_dependencies         []string
 	core_modules           map[string]Module
 	core_modules_path      []string
 	core_modules_constants map[string][]string

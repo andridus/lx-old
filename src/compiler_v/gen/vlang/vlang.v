@@ -1,4 +1,4 @@
-module c
+module vlang
 
 import strings
 import compiler_v.ast
@@ -6,7 +6,7 @@ import compiler_v.table
 import compiler_v.types
 import os
 
-struct CGen {
+struct VGen {
 	program &table.Program
 mut:
 	definitions          strings.Builder
@@ -35,13 +35,13 @@ mut:
 	fn_main_ti           types.TypeIdent
 }
 
-pub fn gen(prog table.Program) CGen {
+pub fn gen(prog table.Program) VGen {
 	mut outm := map[string]strings.Builder{}
 	for o in prog.compile_order {
 		outm[o] = strings.new_builder(100)
 	}
 
-	mut g := CGen{
+	mut g := VGen{
 		program: &prog
 		out_main: strings.new_builder(100)
 		out_function: strings.new_builder(100)
@@ -57,23 +57,23 @@ pub fn gen(prog table.Program) CGen {
 	return g
 }
 
-pub fn (mut g CGen) main_function() string {
+pub fn (mut g VGen) main_function() string {
 	return g.out_main.str()
 }
 
-pub fn (mut g CGen) save() !string {
+pub fn (mut g VGen) save() !string {
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()
 	/// include std functions
 	bin << '// Include standard functions\n'.bytes()
 	mut deps := g.program.c_dependencies.clone()
 	// deps << 'tcclib'
-	deps << 'stdlib'
-	deps << 'stdio'
-	deps << 'stdarg'
+	// deps << 'stdlib'
+	// deps << 'stdio'
+	// deps << 'stdarg'
 
-	// deps << "stdarg"
-	deps << 'string'
+	// // deps << "stdarg"
+	// deps << 'string'
 	mut deps_inserted := []string{}
 	for dep in deps {
 		if deps_inserted.contains(dep) {
@@ -89,68 +89,54 @@ pub fn (mut g CGen) save() !string {
 		}
 	}
 	// own libs
-	// MODULE 'C'.ex
-
-	bin << '
-		typedef enum { NIL, ATOM, FLOAT, INTEGER, STRING, VOID } LxTypes;
-		void * lx_print(void ** str, LxTypes tp) {
-			if (tp == ATOM) { printf("%s",str);}
-			else if (tp == INTEGER) { printf("%d",(*(int *) str));}
-			else if (tp == STRING) { printf("%s", str);}
-			else if (tp == FLOAT) { printf("%lf", (*(double *) str));}
-			else if (tp == VOID) { printf("nil");}
-			else { printf("can\'t print object");}
-		}\n'.bytes()
-
-	bin << '
-	void * lx_match(void ** left, LxTypes type, void ** right) {
-	if (type == ATOM && (*(int *)left) == (*(int *)right)) { return left; }
-	else if (type == FLOAT  && (*(double *)left) == (*(double *)right)) { return left; }
-	else if (type == INTEGER && (*(int *)left) == (*(int *)right)) { return left; }
-	else if (type == STRING && strcmp((char *)left, (char *)right)) { return left; }
-	else { printf("DONT MATCH"); exit(0); }
-	}\n'.bytes()
-	bin << '
-	int strcat2(char *s,char *t){
-		for(;*s!=\'\\0\';s++){}
-		while((*s++ = *t++)!=\'\\0\'){}
-		t=\'\\0\';
-		return 0;
-	}
-	void * lx_string_concat(int num, ...) {
-	char *result;
-	result = malloc(sizeof(char) * 256);
-	result = "\\0";
-	if (num > 0)
-	{
-		int i;
-		va_list ptr;
-		va_start(ptr, num);
-		for (i = 0; i < num; i++)
-		{
-			char *str = va_arg(ptr, char *);
-			if(i ==0){
-				strcpy(result, str);
-			} else {
-				strcat2(result, str);
+	bin << 'type AnyType = int | string | Atom | Nil\n'.bytes()
+	bin << 'fn (t AnyType) str() string {
+		return match t {
+			int {
+				r := t as int
+				\'\$r\'
+			}
+			else {
+				\'undefined\'
 			}
 		}
-		va_end(ptr);
-		}
-		return result;
 	}\n'.bytes()
-	//
+	bin << 'fn lx_to_int(value AnyType) int {
+		return match value {
+			int { value}
+			else {
+				eprintln("to_int: invalid conversion")
+				exit(0)
+			}
+		}
+	}\n'.bytes()
+	bin << '
+	fn lx_match(left AnyType, right AnyType) AnyType {
+		if typeof(left).name == typeof(right).name {
+			if left == right {
+				return left
+			} else {
+				 panic(\' \$left = \$right don`t match  broken\')
+				 }
+		} else {
+			panic(\'broken\')
+		}
+	}\n'.bytes()
+	bin << 'struct Nil {}\n'.bytes()
+	bin << 'struct Atom {\n\tval string\n  ref int\n}\n'.bytes()
+	bin << 'fn (a Atom) str() string { return \':\${a.val}\' }\n'.bytes()
+
 	order.reverse()
 	for modl in order {
 		bin << g.out_modules[modl]
 	}
 	bin << g.out_main
-	filepath := '${g.program.build_folder}/main.c'
+	filepath := '${g.program.build_folder}/main.v'
 	os.write_file(filepath, bin.bytestr())!
 	return filepath
 }
 
-pub fn (mut g CGen) write(modl string, s string) {
+pub fn (mut g VGen) write(modl string, s string) {
 	if g.in_expr_decl {
 		g.out_expr.writeln(s)
 	} else {
@@ -162,7 +148,7 @@ pub fn (mut g CGen) write(modl string, s string) {
 	}
 }
 
-pub fn (mut g CGen) writeln(modl string, s string) {
+pub fn (mut g VGen) writeln(modl string, s string) {
 	if g.in_expr_decl {
 		g.out_expr.writeln(s)
 	} else {
@@ -174,11 +160,11 @@ pub fn (mut g CGen) writeln(modl string, s string) {
 	}
 }
 
-fn (mut g CGen) endln(modl string) {
-	g.writeln(modl, ';')
+fn (mut g VGen) endln(modl string) {
+	g.writeln(modl, '')
 }
 
-fn (mut g CGen) get_args_concat(node ast.Expr) []string {
+fn (mut g VGen) get_args_concat(node ast.Expr) []string {
 	mut args := []string{}
 	match node {
 		ast.StringLiteral {
@@ -202,7 +188,7 @@ fn (mut g CGen) get_args_concat(node ast.Expr) []string {
 	return args
 }
 
-fn (mut g CGen) stmt(modl string, node ast.Stmt) {
+fn (mut g VGen) stmt(modl string, node ast.Stmt) {
 	match node {
 		ast.Module {
 			module0 := g.program.modules[modl]
@@ -225,17 +211,13 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 			g.writeln(modl, '} ${node.name};')
 		}
 		ast.EnumDecl {
-			g.writeln(modl, 'typedef enum  {')
+			g.writeln(modl, 'enum ${node.name.to_upper()} {')
 			mut i := 0
 			for val in node.values {
-				if i == 0 {
-					g.writeln(modl, '\t${node.name}_${val.to_upper()}=1,')
-				} else {
-					g.writeln(modl, '\t${node.name}_${val.to_upper()},')
-				}
+				g.writeln(modl, '\t__${val.to_lower()}__')
 				i++
 			}
-			g.writeln(modl, '} ${node.name};')
+			g.writeln(modl, '}')
 		}
 		ast.FnDecl {
 			g.fn_agg[node.name] << node
@@ -257,14 +239,14 @@ fn (mut g CGen) stmt(modl string, node ast.Stmt) {
 	}
 }
 
-fn (mut g CGen) expr(modl string, node ast.Expr) {
+fn (mut g VGen) expr(modl string, node ast.Expr) {
 	g.mount_var_decl(modl, node)
 	match node {
 		ast.IntegerLiteral {
 			g.write(modl, node.val.str())
 		}
 		ast.NilLiteral {
-			g.write(modl, 'NULL')
+			g.write(modl, 'Nil{}')
 		}
 		ast.FloatLiteral {
 			g.write(modl, node.val.str())
@@ -274,7 +256,7 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			g.write(modl, ' ${node.op} ')
 		}
 		ast.Atom {
-			g.write(modl, "\"${node.value}\"")
+			g.write(modl, "Atom{val: \"${node.value}\"}")
 		}
 		ast.StringLiteral {
 			g.write(modl, "\"${node.val}\"")
@@ -289,14 +271,14 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			// 3, "Hello, ", var_1, "!")
 			// tmpvar := g.temp_var(modl, types.string_ti)
 			args := g.get_args_concat(node)
-			g.write(modl, '(char *)lx_string_concat(${args.len},')
+			g.write(modl, '[')
 			for i := 0; i < args.len; i++ {
 				g.write(modl, args[i])
 				if i + 1 < args.len {
 					g.write(modl, ',')
 				}
 			}
-			g.write(modl, ')')
+			g.write(modl, '].join(\'\')')
 		}
 		ast.BinaryExpr {
 			g.in_binary_exp = true
@@ -316,42 +298,37 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			mut right_var := ''
 
 			left_var = g.temp_var(modl, node.left_ti)
-			if ast.is_literal_from_expr(node.left) {
-				g.write(modl, '*')
-			}
-			g.write(modl, '${left_var} = ')
-			g.expr(modl, node.left)
-			g.writeln(modl, ';')
-			left_is_caller = true
-			right_var = g.temp_var(modl, node.right_ti)
-			if ast.is_literal_from_expr(node.right) {
-				g.write(modl, '*')
-			}
-			g.write(modl, '${right_var} = ')
-			g.expr(modl, node.right)
-			g.writeln(modl, ';')
-			right_is_caller = true
+			// if ast.is_literal_from_expr(node.left) {
+			// 	g.write(modl, '*')
+			// }
+			// g.write(modl, '${left_var} = ')
+			// g.expr(modl, node.left)
+			// left_is_caller = true
+			// right_var = g.temp_var(modl, node.right_ti)
+			// g.write(modl, '${right_var} = ')
+			// g.expr(modl, node.right)
+			// right_is_caller = true
 
+			type0 := parse_type(node.left_ti.kind)
 			tmp_ := g.temp_var(modl, node.left_ti)
-			g.write(modl, '${tmp_} = lx_match(')
+			g.write(modl, '${tmp_} := lx_to_${type0}(lx_match(')
 			if left_is_caller {
-				g.write(modl, '(void *) ${left_var}')
+				g.expr(modl, node.left)
+				// g.write(modl, '${left_var}')
 			} else {
-				g.write(modl, '(void *)')
 				g.expr(modl, node.left)
 			}
-			g.write(modl, ', ')
-			g.write(modl, node.left_ti.str().to_upper())
+			// g.write(modl, ', ')
+			// g.write(modl, node.left_ti.str().to_upper())
 			g.write(modl, ', ')
 			if right_is_caller {
-				g.write(modl, '(void *) ${right_var}')
+				 g.expr(modl, node.right)
+				// g.write(modl, '${right_var}')
 			} else {
-				g.write(modl, '(void *)')
 				g.expr(modl, node.right)
 			}
-			g.write(modl, ')')
+			g.writeln(modl, '))')
 			if g.is_last_statement {
-				g.writeln(modl, ';')
 				g.write(modl, 'return ${tmp_}')
 			}
 		}
@@ -375,9 +352,9 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 		ast.CallEnum {
 			if g.in_var_decl {
 				g.write(modl, '${g.var_ti} ${g.var_name} = ')
-				g.writeln(modl, '${node.name}_${node.value.to_upper()};')
+				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
 			} else {
-				g.writeln(modl, '${node.name}_${node.value.to_upper()}')
+				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
 			}
 		}
 		ast.CallField {
@@ -386,32 +363,33 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 			g.write(modl, '${path.join('.')}')
 		}
 		ast.CallExpr {
-			g.in_expr_decl = true
-			defer {
-				g.var_count++
-				typ := parse_type_ti(node.ti)
-				g.in_expr_decl = false
-				if !node.is_c_module {
-					g.write(modl, '(${typ} *)')
-				}
-				g.write(modl, '${g.out_expr}'.replace('\n', ''))
-			}
+			// g.in_expr_decl = true
+			// defer {
+			// 	g.var_count++
+			// 	typ := parse_type_ti(node.ti)
+			// 	g.in_expr_decl = false
+			// 	// if !node.is_c_module {
+			// 	// 	g.write(modl, '(${typ} *)')
+			// 	// }
+			// 	g.write(modl, '${g.out_expr}'.replace('\n', ''))
+			// }
 
 			module_name := node.module_name.replace('.', '_')
 			if node.is_external {
 				if !node.is_c_module {
-					g.write(modl, '\t${module_name}_')
+					g.write(modl, '\t${module_name}_'.to_lower())
 				}
 			}
 			if node.is_c_module {
-				g.write(modl, '${node.name}(')
-			} else {
-				g.write(modl, '${node.name}_${node.arity}(')
+				g.write(modl, '${node.name}('.to_lower())
+			}
+			else if node.is_v_module {
+				g.write(modl, '${node.name}('.to_lower())
+			}
+			else {
+				g.write(modl, '${node.name}_${node.arity}('.to_lower())
 			}
 
-			if node.is_c_module {
-				g.in_ident_c = true
-			}
 			for i, expr in node.args {
 				g.expr(modl, expr)
 
@@ -419,20 +397,13 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 					g.write(modl, ', ')
 				}
 			}
-			g.in_ident_c = false
 			g.write(modl, ')')
 		}
 		ast.Ident {
 			if v := g.local_vars_binding[node.name] {
-				s := g.local_vars_binding_t[node.name]
-				if s != 'char *' {
-					g.write(modl, '*')
-				}
+				// s := g.local_vars_binding_t[node.name]
 				g.write(modl, v)
 			} else {
-				if g.in_ident_c {
-					g.write(modl, '*')
-				}
 				g.write(modl, node.name)
 			}
 		}
@@ -465,7 +436,7 @@ fn (mut g CGen) expr(modl string, node ast.Expr) {
 	}
 }
 
-fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
+fn (mut g VGen) mount_var_decl(modl string, node ast.Expr) {
 	if g.in_var_decl {
 		var := g.var_name
 		g.var_count++
@@ -474,11 +445,7 @@ fn (mut g CGen) mount_var_decl(modl string, node ast.Expr) {
 		g.out_expr_type[arg1] << tmp_var
 		g.local_vars_binding[var] = tmp_var
 		g.local_vars_binding_t[var] = arg1
-		if g.var_ti.kind == .enum_ {
-			g.write(modl, '*${tmp_var} = ')
-		} else {
-			g.write(modl, '${tmp_var} = ')
-		}
+		g.write(modl, '${tmp_var} := ')
 		g.var_name = ''
 		g.var_ti = types.void_ti
 		g.in_var_decl = false
@@ -492,24 +459,21 @@ fn is_defer_return(kind types.Kind) bool {
 	}
 }
 
-fn (mut g CGen) temp_var(modl string, type0 types.TypeIdent) string {
+fn (mut g VGen) temp_var(modl string, type0 types.TypeIdent) string {
 	g.var_count++
 	tmp_var := 'tmpvar_${g.var_count}'
-	type1 := parse_type_ti(type0)
-	g.writeln(modl, '\t${type1} *${tmp_var};')
-	if type0.kind != .void_ {
-		g.writeln(modl, '\t${tmp_var} = malloc(sizeof(${type1}));')
-	}
+	// type1 := parse_type_ti(type0)
+	// g.write(modl, '${tmp_var}')
 	return tmp_var
 }
 
-fn (mut g CGen) mount_fns(modl string) {
+fn (mut g VGen) mount_fns(modl string) {
 	for _, fns in g.fn_agg {
 		g.write_fns(modl, fns)
 	}
 }
 
-fn (mut g CGen) write_fns(modl string, arr []ast.FnDecl) {
+fn (mut g VGen) write_fns(modl string, arr []ast.FnDecl) {
 	module0 := g.program.modules[modl]
 	module_name := module0.name.replace('.', '_')
 	if arr.len > 0 {
@@ -527,7 +491,7 @@ fn (mut g CGen) write_fns(modl string, arr []ast.FnDecl) {
 	}
 }
 
-fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity table.FnArity, total_arities int) {
+fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity table.FnArity, total_arities int) {
 	module0 := g.program.modules[modl]
 	module_name := module0.name.replace('.', '_')
 	if module0.is_main && node.name == 'main' {
@@ -537,7 +501,7 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	mut total := node.stmts.len
 	mut current := 0
 	if total_arities > 0 {
-		g.write(modl, 'void *${module_name}_${node.name}_${node.arity}(')
+		g.write(modl, 'fn ${module_name}_${node.name}_${node.arity}('.to_lower())
 		mut i0 := 0
 		for arg0 in node.args {
 			mut var_name := '${arg0.name}'
@@ -546,55 +510,55 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 			tmp_var := 'var_${g.var_count}'
 			g.local_vars_binding[var_name] = tmp_var
 			g.local_vars_binding_t[var_name] = type0
-			g.write(modl, '${type0} ${var_name}')
+
+			g.write(modl, '${var_name} ')
+			if arg0.ti.kind == .enum_ {
+				g.write(modl, '${type0.to_upper()}')
+			} else {
+				g.write(modl, '${type0}')
+			}
 			if i0 + 1 < node.args.len {
 				g.write(modl, ', ')
 			}
 			i0++
 		}
-		g.writeln(modl, '){')
+		return_ti := parse_type_ti(node.ti)
+		g.writeln(modl, ') ${return_ti} {')
 	} else {
 		g.writeln(modl, 'void *${module_name}_${node.name}_0(){')
 	}
 	if node.arity != '0' {
 		for arg0 in node.args {
 			mut var_name := '${arg0.name}'
-			type0 := parse_arg_simple_pointer_no_arg(arg0)
+			type0 := parse_arg(arg0)
 			g.var_count++
 			tmp_var := 'var_${g.var_count}'
 			g.local_vars_binding[var_name] = tmp_var
 			g.local_vars_binding_t[var_name] = type0
-
-			if type0 == 'char *' {
-				g.writeln(modl, '${type0} ${tmp_var};')
-				g.writeln(modl, '${tmp_var} = ${var_name};')
-			} else {
-				g.writeln(modl, '${type0} *${tmp_var};')
-				g.writeln(modl, '${tmp_var} = &${var_name};')
-			}
+			g.writeln(modl, '${tmp_var} := ${var_name}')
 		}
 	}
 	g.in_function_decl = true
 	for stmt in node.stmts {
 		if current + 1 == total && node.ti.kind == .void_ {
 			g.stmt(modl, stmt)
-			g.writeln(modl, '\treturn NULL;')
+			g.writeln(modl, 'return Nil{}')
 		} else if current + 1 == total && node.ti.kind != .void_ {
 			g.is_last_statement = true
 			if !is_defer_return(node.ti.kind) {
 				if ast.is_literal_from_stmt(stmt) {
 					tmp_ := g.temp_var(modl, stmt.ti)
-					if stmt.ti.kind !in [.string_, .atom_] {
-						g.write(modl, '*')
-					}
-					g.write(modl, '${tmp_} = ')
+					// if stmt.ti.kind !in [.string_, .atom_] {
+					// 	g.write(modl, '*')
+					// }
+					g.write(modl, '$tmp_ := ')
 
 					g.stmt(modl, stmt)
-					g.writeln(modl, '\treturn ${tmp_};')
+					g.writeln(modl, '\treturn ${tmp_}')
 				} else {
 					if stmt.ti.kind == .void_ {
 						g.stmt(modl, stmt)
-						g.writeln(modl, ';\treturn NULL;')
+						g.writeln(modl, '\treturn Nil{}')
 					} else {
 						mut dont_return := false
 						tmp_ := g.temp_var(modl, stmt.ti)
@@ -606,9 +570,6 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 										dont_return = true
 									}
 									else {
-										if stmt.ti.kind !in [.string_, .atom_] {
-											g.write(modl, '*')
-										}
 									}
 								}
 							}
@@ -617,9 +578,9 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 						if dont_return {
 							g.stmt(modl, stmt)
 						} else {
-							g.write(modl, '${tmp_} = ')
+							g.write(modl, '${tmp_} := ')
 							g.stmt(modl, stmt)
-							g.writeln(modl, '\treturn ${tmp_};')
+							g.writeln(modl, '\treturn ${tmp_}')
 						}
 					}
 				}
@@ -634,49 +595,22 @@ fn (mut g CGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 	}
 	{
 		g.in_function_decl = false
-		for typ, vars in g.out_expr_type {
-			g.write(modl, '\t${typ} ')
-
-			for i := 0; i < vars.len; i++ {
-				g.write(modl, '*${vars[i]}')
-				if i + 1 < vars.len {
-					g.write(modl, ', ')
-				}
-			}
-			g.writeln(modl, ';')
-			for i := 0; i < vars.len; i++ {
-				if typ != 'void' {
-					if vars[i] != 'void' {
-						g.write(modl, '${vars[i]} = malloc(sizeof(${typ}))')
-						g.writeln(modl, '; ')
-					}
-				}
-			}
-			g.writeln(modl, '')
-		}
 		g.writeln(modl, g.out_function.str())
-		for _, vars in g.out_expr_type {
-			for v in vars {
-				g.writeln(modl, 'free(${v});')
-			}
-		}
 		g.local_vars.clear()
 		// g.out_exprs.clear()
 	}
 	g.writeln(modl, '}')
 }
 
-fn (mut g CGen) mount_main() {
+fn (mut g VGen) mount_main() {
 	if g.fn_main.len > 0 {
-		g.out_main.writeln('int main(int argc, char *argv[]) {')
-		g.out_main.writeln('void *result;')
-		g.out_main.writeln('result = ${g.fn_main}_0();')
-		g.out_main.writeln('if(result != NULL){')
-		g.out_main.writeln('lx_print((void *)result,${g.fn_main_ti.str().to_upper()});')
+		g.out_main.writeln('fn main(){')
+		g.out_main.writeln('result := ${g.fn_main.to_lower()}_0()')
+		g.out_main.writeln('if typeof(result).name != \'Nil\' {')
+		g.out_main.writeln('println(result)')
 		g.out_main.writeln('}else{')
-		g.out_main.writeln('printf("nil\\n");')
+		g.out_main.writeln('println("nil\\n")')
 		g.out_main.writeln('}')
-		g.out_main.writeln('return 0;')
 		g.out_main.writeln('}')
 	}
 }
