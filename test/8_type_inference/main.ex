@@ -6,5 +6,6 @@ defmodule Main do
 
   def main() do
     sum(1,2)
+    :ok
   end
 end

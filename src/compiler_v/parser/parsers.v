@@ -10,6 +10,7 @@ fn (mut p Parser) expr_stmt() ast.ExprStmt {
 	return ast.ExprStmt{
 		expr: exp
 		ti: ti
+		is_used: p.in_var_expr
 	}
 }
 
@@ -43,7 +44,9 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 }
 
 fn (mut p Parser) parse_nil_literal() (ast.Expr, types.TypeIdent) {
-	node := ast.Expr(ast.NilLiteral{})
+	node := ast.Expr(ast.NilLiteral{
+		is_used: p.in_var_expr
+	})
 	p.next_token()
 	return node, types.nil_ti
 }
@@ -54,11 +57,13 @@ fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
 	if p.tok.kind == .float {
 		node = ast.Expr(ast.FloatLiteral{
 			val: unsafe { p.tok.value.fval }
+			is_used: p.in_var_expr
 		})
 		ti = types.float_ti
 	} else {
 		node = ast.Expr(ast.IntegerLiteral{
 			val: unsafe { p.tok.value.ival }
+			is_used: p.in_var_expr
 		})
 	}
 	p.next_token()
@@ -78,17 +83,30 @@ fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
 	return expr, ti
 }
 
+fn (mut p Parser) not_expr() (ast.Expr, types.TypeIdent) {
+	p.check(.bang)
+	expr, ti := p.expr(0)
+	node := ast.Expr(ast.NotExpr{
+		expr: expr
+		ti: ti
+		is_used: p.in_var_expr
+	})
+
+	return node, ti
+}
+
 fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
 	mut node := ast.Expr(ast.EmptyExpr{})
-	mut ti := types.integer_ti
+	ti := types.bool_ti
 	if p.tok.kind == .key_true {
 		node = ast.Expr(ast.BoolLiteral{
 			val: true
+			is_used: p.in_var_expr
 		})
-		ti = types.bool_ti
 	} else if p.tok.kind == .key_false {
 		node = ast.Expr(ast.BoolLiteral{
 			val: false
+			is_used: p.in_var_expr
 		})
 	}
 	p.next_token()
@@ -100,6 +118,7 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 	node = ast.Ident{
 		name: p.tok.lit
 		tok_kind: p.tok.kind
+		is_used: p.in_var_expr
 	}
 	if p.peek_tok.kind == .dot {
 		a, b := p.call_from_module(.atom) or {
@@ -112,6 +131,7 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 			name: p.tok.lit
 			value: p.tok.lit
 			tok_kind: p.tok.kind
+			is_used: p.in_var_expr
 		}
 		p.program.table.find_or_new_atom(p.tok.lit)
 		p.check(.atom)
@@ -137,6 +157,7 @@ fn (mut p Parser) if_expr() (ast.Expr, types.TypeIdent) {
 		stmts: stmts
 		else_stmts: else_stmts
 		ti: ti
+		is_used: p.in_var_expr
 	}
 	return node, node.ti
 }
@@ -183,6 +204,7 @@ fn (mut p Parser) string_concat_expr() (ast.Expr, types.TypeIdent) {
 	return ast.Expr(ast.StringConcatExpr{
 		left: left
 		right: right
+		is_used: p.in_var_expr
 	}), types.string_ti
 }
 
@@ -268,6 +290,7 @@ fn (mut p Parser) block_expr(is_top_stmt bool) ast.Block {
 		name: filename_without_extension(p.file_name)
 		stmts: stmts
 		is_top_stmt: is_top_stmt
+		is_used: p.in_var_expr
 	}
 }
 

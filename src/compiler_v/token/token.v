@@ -37,7 +37,6 @@ pub enum Kind {
 	// Operators
 	typedef // :, ::
 	bang // !
-	not // !
 	plus // +
 	minus // -
 	mul // *
@@ -144,7 +143,7 @@ fn build_keywords() map[string]int {
 }
 
 fn build_token_str() []string {
-	mut s := []string{len: 102, init: ''}
+	mut s := []string{len: 101, init: ''}
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.eof] = 'EOF'
 	s[Kind.newline] = 'NEWLINE'
@@ -163,7 +162,6 @@ fn build_token_str() []string {
 	s[Kind.colon] = ':'
 	s[Kind.typedef] = '::'
 	s[Kind.bang] = '!'
-	s[Kind.not] = '!'
 	s[Kind.plus] = '+'
 	s[Kind.minus] = '-'
 	s[Kind.mul] = '*'
@@ -201,10 +199,10 @@ fn build_token_str() []string {
 	s[Kind.ne] = '!='
 	s[Kind.sne] = '!=='
 	s[Kind.eqt] = '~='
-	s[Kind.gt] = '<'
-	s[Kind.lt] = '>'
-	s[Kind.ge] = '<='
-	s[Kind.le] = '>-'
+	s[Kind.gt] = '>'
+	s[Kind.lt] = '<'
+	s[Kind.ge] = '>='
+	s[Kind.le] = '<='
 	s[Kind.modl] = 'module'
 	s[Kind.line_comment] = 'comment'
 	s[Kind.doc] = 'doc'
@@ -411,7 +409,7 @@ pub fn (tok Token) is_unary() bool {
 		// `+` | `-` | `!` |  `*` | `&`
 		Kind.plus,
 		Kind.minus,
-		Kind.not,
+		Kind.bang,
 		Kind.mul,
 		Kind.amp,
 		Kind.key_not,

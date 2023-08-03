@@ -23,6 +23,7 @@ mut:
 	peek_tok         token.Token
 	return_ti        types.TypeIdent
 	current_module   string
+	in_var_expr      bool
 	error_pos_inline int
 	error_pos_in     int
 	error_pos_out    int
@@ -232,6 +233,9 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		}
 		.key_true, .key_false {
 			node, ti = p.parse_boolean()
+		}
+		.bang {
+			node, ti = p.not_expr()
 		}
 		.integer {
 			node, ti = p.parse_number_literal()

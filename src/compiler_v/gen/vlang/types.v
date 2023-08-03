@@ -6,28 +6,17 @@ import compiler_v.ast
 fn parse_field(field ast.Field) string {
 	kind := parse_type(field.ti.kind)
 	mut name := field.name
-	match field.ti.kind {
-		.string_ { name = '*${name}' }
-		else {}
-	}
-	return '${kind} ${name}'
+	return '${name} ${kind}'
 }
 
 fn parse_arg_simple(arg ast.Arg, name string) string {
 	kind := parse_type(arg.ti.kind)
-	return '${kind} ${name}'
+	return '${name} ${kind}'
 }
 
 fn parse_arg_simple_pointer(arg ast.Arg, name string) string {
 	kind := parse_type_ti(arg.ti)
-	match arg.ti.kind {
-		.string_ {
-			return '${kind} *${name}'
-		}
-		else {
-			return '${kind} ${name}'
-		}
-	}
+	return '${name} ${kind}'
 }
 
 fn parse_arg_simple_pointer_no_arg(arg ast.Arg) string {
@@ -44,19 +33,15 @@ fn parse_arg_simple_pointer_no_arg(arg ast.Arg) string {
 
 fn parse_arg(arg ast.Arg) string {
 	kind := parse_type(arg.ti.kind)
-	if ti_is_array(arg.ti) {
-		return '${kind}[]'
-	} else {
-		return '${kind}'
-	}
+	return '${kind}'
 }
 
 fn parse_arg_pointer(arg ast.Arg, name string) string {
 	kind := parse_type(arg.ti.kind)
 	if ti_is_array(arg.ti) {
-		return '${kind} *${name}[]'
+		return '${name} ${kind}[]'
 	} else {
-		return '${kind} *${name}'
+		return '${name} ${kind}'
 	}
 }
 

@@ -167,9 +167,6 @@ pub const (
 
 pub fn get_default_type(kind token.Kind) TypeIdent {
 	return match kind {
-		.not {
-			types.integer_ti
-		}
 		.plus {
 			types.integer_ti
 		}
@@ -190,6 +187,45 @@ pub fn get_default_type(kind token.Kind) TypeIdent {
 		}
 		.pipe {
 			types.integer_ti
+		}
+		.eq {
+			types.bool_ti
+		}
+		.seq {
+			types.bool_ti
+		}
+		.eqt {
+			types.bool_ti
+		}
+		.ne {
+			types.bool_ti
+		}
+		.sne {
+			types.bool_ti
+		}
+		.gt {
+			types.bool_ti
+		}
+		.lt {
+			types.bool_ti
+		}
+		.ge {
+			types.bool_ti
+		}
+		.le {
+			types.bool_ti
+		}
+		.and {
+			types.bool_ti
+		}
+		.logical_or {
+			types.bool_ti
+		}
+		.key_and {
+			types.bool_ti
+		}
+		.key_or {
+			types.bool_ti
 		}
 		else {
 			types.void_ti

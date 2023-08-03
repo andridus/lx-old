@@ -23,6 +23,7 @@ pub type Expr = AssignExpr
 	| KeywordList
 	| MatchExpr
 	| NilLiteral
+	| NotExpr
 	| PostfixExpr
 	| PrefixExpr
 	| StringConcatExpr
@@ -48,93 +49,114 @@ pub:
 	name        string
 	args        []Arg
 	is_top_stmt bool
+	is_used     bool
 }
 
 pub struct EnumDecl {
 pub:
-	name   string
-	values []string
-	starts int
-	is_pub bool
-	size   int
-	meta   Meta
-	ti     types.TypeIdent
+	name    string
+	values  []string
+	starts  int
+	is_pub  bool
+	size    int
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct ExprStmt {
 pub:
-	expr Expr = EmptyExpr{}
-	ti   types.TypeIdent
+	expr    Expr = EmptyExpr{}
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct EmptyExpr {
-	ti types.TypeIdent
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct Keyword {
-	idx   int
-	key   string
-	value string
-	typ   types.TypeIdent
-	ti    types.TypeIdent
-	atom  bool
-	meta  Meta
+	idx     int
+	key     string
+	value   string
+	typ     types.TypeIdent
+	ti      types.TypeIdent
+	atom    bool
+	meta    Meta
+	is_used bool
 }
 
 pub struct IntegerLiteral {
 pub:
-	val  int
-	meta Meta
-	ti   types.TypeIdent = types.integer_ti
+	val     int
+	meta    Meta
+	ti      types.TypeIdent = types.integer_ti
+	is_used bool
 }
 
 pub struct NilLiteral {
 pub:
-	val  int
-	meta Meta
-	ti   types.TypeIdent = types.nil_ti
+	val     int
+	meta    Meta
+	ti      types.TypeIdent = types.nil_ti
+	is_used bool
 }
 
 pub struct FloatLiteral {
 pub:
-	val  f32
-	meta Meta
-	ti   types.TypeIdent = types.float_ti
+	val     f32
+	meta    Meta
+	ti      types.TypeIdent = types.float_ti
+	is_used bool
+}
+
+pub struct NotExpr {
+pub:
+	expr    Expr
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct StringLiteral {
 pub:
-	val  string
-	meta Meta
-	ti   types.TypeIdent = types.string_ti
+	val     string
+	meta    Meta
+	ti      types.TypeIdent = types.string_ti
+	is_used bool
 }
 
 pub struct CharlistLiteral {
 pub:
-	val  []u8
-	meta Meta
-	ti   types.TypeIdent = types.charlist_ti
+	val     []u8
+	meta    Meta
+	ti      types.TypeIdent = types.charlist_ti
+	is_used bool
 }
 
 pub struct TupleLiteral {
 pub:
-	values []Expr
-	meta   Meta
-	ti     types.TypeIdent = types.tuple_ti
+	values  []Expr
+	meta    Meta
+	ti      types.TypeIdent = types.tuple_ti
+	is_used bool
 }
 
 pub struct BoolLiteral {
 pub:
-	val  bool
-	meta Meta
-	ti   types.TypeIdent = types.bool_ti
+	val     bool
+	meta    Meta
+	ti      types.TypeIdent = types.bool_ti
+	is_used bool
 }
 
 pub struct KeywordList {
 mut:
-	items []Keyword
-	meta  Meta
-	ti    types.TypeIdent
+	items   []Keyword
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct Module {
@@ -144,46 +166,52 @@ pub:
 	is_parent_module bool
 	meta             Meta
 	ti               types.TypeIdent
+	is_used          bool
 }
 
 pub struct Field {
 pub:
-	name string
-	ti   types.TypeIdent
-	meta Meta
+	name    string
+	ti      types.TypeIdent
+	meta    Meta
+	is_used bool
 }
 
 pub struct StructDecl {
 pub:
-	name   string
-	fields []Field
-	is_pub bool
-	size   int
-	meta   Meta
-	ti     types.TypeIdent
+	name    string
+	fields  []Field
+	is_pub  bool
+	size    int
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct StructInit {
 pub:
-	name   string
-	ti     types.TypeIdent
-	fields []string
-	exprs  []Expr
-	meta   Meta
+	name    string
+	ti      types.TypeIdent
+	fields  []string
+	exprs   []Expr
+	meta    Meta
+	is_used bool
 }
 
 pub struct Import {
 pub:
-	mods map[string]string
-	meta Meta
-	ti   types.TypeIdent
+	mods    map[string]string
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct Arg {
 pub:
-	ti   types.TypeIdent
-	name string
-	meta Meta
+	ti      types.TypeIdent
+	name    string
+	meta    Meta
+	is_used bool
 }
 
 pub struct FnDecl {
@@ -196,6 +224,7 @@ pub:
 	is_priv  bool
 	receiver Field
 	meta     Meta
+	is_used  bool
 }
 
 pub struct CallEnum {
@@ -208,6 +237,7 @@ pub:
 	module_name string
 	meta        Meta
 	ti          types.TypeIdent
+	is_used     bool
 }
 
 pub struct CallField {
@@ -217,6 +247,7 @@ pub:
 	value       string
 	meta        Meta
 	ti          types.TypeIdent
+	is_used     bool
 }
 
 pub struct CallExpr {
@@ -233,14 +264,16 @@ pub:
 	tok         token.Token
 	meta        Meta
 	ti          types.TypeIdent
+	is_used     bool
 }
 
 pub struct VarDecl {
 pub:
-	name string
-	expr Expr = EmptyExpr{}
-	ti   types.TypeIdent
-	meta Meta
+	name    string
+	expr    Expr = EmptyExpr{}
+	ti      types.TypeIdent
+	meta    Meta
+	is_used bool
 }
 
 pub struct MatchExpr {
@@ -250,6 +283,7 @@ pub:
 	meta     Meta
 	left_ti  types.TypeIdent
 	right_ti types.TypeIdent
+	is_used  bool
 }
 
 pub struct File {
@@ -259,6 +293,7 @@ pub:
 	file_name   string
 	stmts       []Stmt
 	ti          types.TypeIdent
+	is_used     bool
 }
 
 pub struct Ident {
@@ -268,6 +303,7 @@ pub:
 	value    string
 	meta     Meta
 	ti       types.TypeIdent
+	is_used  bool
 mut:
 	is_pointer bool
 }
@@ -279,14 +315,16 @@ pub:
 	value    string
 	meta     Meta
 	ti       types.TypeIdent = types.atom_ti
+	is_used  bool
 }
 
 pub struct StringConcatExpr {
 pub:
-	left  Expr
-	right Expr
-	meta  Meta
-	ti    types.TypeIdent = types.string_ti
+	left    Expr
+	right   Expr
+	meta    Meta
+	ti      types.TypeIdent = types.string_ti
+	is_used bool
 }
 
 pub struct BinaryExpr {
@@ -297,30 +335,34 @@ pub:
 	right         Expr
 	meta          Meta
 	ti            types.TypeIdent
+	is_used       bool
 }
 
 pub struct UnaryExpr {
 pub:
-	op   token.Kind
-	left Expr
-	meta Meta
-	ti   types.TypeIdent
+	op      token.Kind
+	left    Expr
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct PostfixExpr {
 pub:
-	op   token.Kind
-	expr Expr
-	meta Meta
-	ti   types.TypeIdent
+	op      token.Kind
+	expr    Expr
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct PrefixExpr {
 pub:
-	op    token.Kind
-	right Expr
-	meta  Meta
-	ti    types.TypeIdent
+	op      token.Kind
+	right   Expr
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct IfExpr {
@@ -332,23 +374,26 @@ pub:
 	ti         types.TypeIdent
 	left       Expr
 	meta       Meta
+	is_used    bool
 }
 
 pub struct ForStmt {
 pub:
-	cond  Expr
-	stmts []Stmt
-	meta  Meta
-	ti    types.TypeIdent
+	cond    Expr
+	stmts   []Stmt
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct AssignExpr {
 pub:
-	left Expr
-	val  Expr
-	op   token.Kind
-	meta Meta
-	ti   types.TypeIdent
+	left    Expr
+	val     Expr
+	op      token.Kind
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
 }
 
 pub struct Meta {

@@ -24,6 +24,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		AssignExpr { a.ti }
 		BinaryExpr { a.ti }
 		BoolLiteral { a.ti }
+		NotExpr { a.ti }
 		CallExpr { a.ti }
 		CallEnum { a.ti }
 		CallField { a.ti }
@@ -44,6 +45,35 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		StringConcatExpr { a.ti }
 		StructInit { a.ti }
 		UnaryExpr { a.ti }
+	}
+}
+
+pub fn get_is_used(a Expr) bool {
+	return match a {
+		AssignExpr { a.is_used }
+		BinaryExpr { a.is_used }
+		BoolLiteral { a.is_used }
+		NotExpr { a.is_used }
+		CallExpr { a.is_used }
+		CallEnum { a.is_used }
+		CallField { a.is_used }
+		CharlistLiteral { a.is_used }
+		TupleLiteral { a.is_used }
+		MatchExpr { a.is_used }
+		NilLiteral { a.is_used }
+		EmptyExpr { a.is_used }
+		FloatLiteral { a.is_used }
+		Ident { a.is_used }
+		Atom { a.is_used }
+		IfExpr { a.is_used }
+		IntegerLiteral { a.is_used }
+		KeywordList { a.is_used }
+		PostfixExpr { a.is_used }
+		PrefixExpr { a.is_used }
+		StringLiteral { a.is_used }
+		StringConcatExpr { a.is_used }
+		StructInit { a.is_used }
+		UnaryExpr { a.is_used }
 	}
 }
 
@@ -90,5 +120,25 @@ pub fn is_literal_from_stmt(stmt Stmt) bool {
 	return match stmt {
 		ExprStmt { is_literal_from_expr(stmt.expr) }
 		else { false }
+	}
+}
+
+pub fn maybe_promote_integer_to_float(expr_a Expr, expr_b Expr) Expr {
+	if expr_a is IntegerLiteral && expr_b is FloatLiteral {
+		c := expr_a as IntegerLiteral
+		return Expr(FloatLiteral{
+			val: c.val
+		})
+	} else {
+		return expr_a
+	}
+}
+
+pub fn is_need_to_promote(expr_a Expr, expr_b Expr) bool {
+	if (expr_a is IntegerLiteral && expr_b is FloatLiteral)
+		|| (expr_b is IntegerLiteral && expr_a is FloatLiteral) {
+		return true
+	} else {
+		return false
 	}
 }

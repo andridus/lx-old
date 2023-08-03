@@ -21,22 +21,19 @@ pub fn compile(args []string) {
 		parser.parse_files(prog)
 
 		mut generated := vlang.gen(prog)
-
 		builded_file := generated.save() or {
 			println(err.msg())
 			exit(0)
 		}
+		// println(prog)
+		result := os.execute_or_exit('v run ${builded_file}')
+		println(result.output)
 		elapsed := sw.elapsed().microseconds()
-		println(color.fg(color.dark_gray, 1, '....... development summary........'))
-		println(color.fg(color.dark_gray, 0, '. Table size: `${sizeof(generated)}b`'))
-		println(color.fg(color.dark_gray, 0, '. Compiled: `${path}` at ${sw.elapsed().microseconds() - elapsed}μs'))
-		println(color.fg(color.dark_gray, 0, '. Using: V 0.4.0'))
-		// println(color.fg(color.dark_gray, 0, '. Using: TCC (https://bellard.org/tcc) Compiler'))
-		println(color.fg(color.dark_gray, 1, '..................................\n'))
-		println(color.fg(color.dark_gray, 4, 'Program Execution:\n'))
-		os.execvp('v', ['run', builded_file]) or {
-			println(color.fg(color.red, 1, 'ERROR: ${err.msg()}'))
-		}
+		println(color.fg(color.dark_yellow, 1, '....... development summary........'))
+		println(color.fg(color.dark_yellow, 0, '. Table size: `${sizeof(generated)}b`'))
+		println(color.fg(color.dark_yellow, 0, '. Compiled: `${path}` at ${sw.elapsed().microseconds() - elapsed}μs'))
+		println(color.fg(color.dark_yellow, 0, '. Using: V 0.4.0'))
+		println(color.fg(color.dark_yellow, 1, '..................................\n'))
 	} else {
 		println('File is need to lexer')
 	}

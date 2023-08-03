@@ -9,7 +9,4 @@ defmodule Lx.IO do
   def puts(a :: string) do
    :_v_.println(a)
   end
-  def puts() do
-   :_v_.println(nil)
-  end
 end

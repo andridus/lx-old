@@ -6,6 +6,7 @@ import compiler_v.types
 import compiler_v.table
 
 fn (mut p Parser) var_decl() ast.VarDecl {
+	p.in_var_expr = true
 	name := p.tok.lit
 	mut ti := types.void_ti
 	mut expr := ast.Expr(ast.EmptyExpr{})
@@ -31,6 +32,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 	if _ := p.program.table.find_var(name) {
 		p.error('rebinding of `${name}`')
 	}
+
 	p.program.table.register_var(table.Var{
 		name: name
 		ti: ti
@@ -41,6 +43,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		}
 	})
 	p.compiler_options = []
+	p.in_var_expr = false
 	return ast.VarDecl{
 		name: name
 		expr: expr

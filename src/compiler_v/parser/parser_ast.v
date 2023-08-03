@@ -65,45 +65,51 @@ fn (mut p Parser) parse_ast_expr(left ast.Expr, op token.Kind, op_prec int, righ
 }
 
 fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, meta ast.Meta, op_prec int) ast.Expr {
-	ti := types.get_default_type(op)
-	// println('${op}: op')
-	// println('op:${ti}')
+	mut ti := types.get_default_type(op)
+	mut left0 := left
+	mut right0 := right
+	if ast.is_need_to_promote(left, right) {
+		left0 = ast.maybe_promote_integer_to_float(left, right)
+		right0 = ast.maybe_promote_integer_to_float(right, left)
+		ti = ast.get_ti(left0)
+	} else {
+		if ti.kind == .integer_ && ast.get_ti(left0).kind == .float_ {
+			ti = ast.get_ti(left0)
+		}
+	}
 	a := ast.Expr(ast.BinaryExpr{
 		op: op
 		op_precedence: op_prec
-		left: left
+		left: left0
 		meta: ast.Meta{
 			...meta
 			ti: ti
 		}
-		right: right
+		right: right0
 		ti: ti
+		is_used: p.in_var_expr
 	})
-	match left {
-		ast.Ident {
-			// try locate var
-			var := p.program.table.find_var(left.name) or {
-				println('not found var')
-				exit(1)
-			}
-			if var.ti.kind == .void_ {
-				p.program.table.update_var_ti(var, ti)
-			}
+	if left0 is ast.Ident {
+		c := left0 as ast.Ident
+		// try locate var
+		var := p.program.table.find_var(c.name) or {
+			println('not found var')
+			exit(1)
 		}
-		else {}
+		if var.ti.kind == .void_ {
+			p.program.table.update_var_ti(var, ti)
+		}
 	}
-	match right {
-		ast.Ident {
-			// try locate var
-			var := p.program.table.find_var(right.name) or {
-				println('not found var')
-				exit(1)
-			}
-			if var.ti.kind == .void_ {
-				p.program.table.update_var_ti(var, ti)
-			}
+	if right0 is ast.Ident {
+		c := left0 as ast.Ident
+		// try locate var
+		var := p.program.table.find_var(c.name) or {
+			println('not found var')
+			exit(1)
 		}
-		else {}
+		if var.ti.kind == .void_ {
+			p.program.table.update_var_ti(var, ti)
+		}
 	}
 	return a
 }

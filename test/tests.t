@@ -6,5 +6,8 @@
 6_struct
 7_enum
 8_type_inference
-10_pattern_matching
-11_macro
+9_pattern_matching
+11_strings
+12_bool
+13_int
+14_float

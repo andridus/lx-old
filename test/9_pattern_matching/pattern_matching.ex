@@ -1,4 +1,4 @@
-defmodule Operations do
+defmodule PatternMatching do
 
   def sum(a :: int, b ::int) :: int do
     a + b
@@ -32,5 +32,8 @@ defmodule Operations do
     1 = sub(2,1)
     6 = mul(3,2)
     4 = div(8,2)
+
+    "Hello World" = "Hello Home"
+    :ok
   end
 end

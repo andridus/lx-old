@@ -14,5 +14,6 @@ defmodule Animals do
     print(dog)
     print("olá mundo \n")
     print(rabbit)
+    :ok
   end
 end

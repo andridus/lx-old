@@ -23,6 +23,7 @@ mut:
 	in_ident_c           bool
 	is_last_statement    bool
 	last_argument        string
+	parent_deep          int
 	var_count            int
 	var_name             string
 	var_ti               types.TypeIdent
@@ -89,42 +90,83 @@ pub fn (mut g VGen) save() !string {
 		}
 	}
 	// own libs
-	bin << 'type AnyType = int | string | Atom | Nil\n'.bytes()
-	bin << 'fn (t AnyType) str() string {
+	bin << 'type AnyType = int | string | bool | f64 | Atom | Nil\n'.bytes()
+	bin << "fn (t AnyType) str() string {
 		return match t {
 			int {
 				r := t as int
-				\'\$r\'
+				'\$r'
+			}
+			f64 {
+				r := t as f64
+				'\$r'
+			}
+			bool {
+				r := t as bool
+				'\$r'
+			}
+			string {
+				r := t as string
+				'\$r'
 			}
 			else {
-				\'undefined\'
+				'undefined'
 			}
 		}
-	}\n'.bytes()
+	}\n".bytes()
 	bin << 'fn lx_to_int(value AnyType) int {
 		return match value {
 			int { value}
+			bool {
+				r := value as bool
+				if r { 1 } else { 0 }
+			}
 			else {
 				eprintln("to_int: invalid conversion")
 				exit(0)
 			}
 		}
 	}\n'.bytes()
-	bin << '
+	bin << 'fn lx_to_string(value AnyType) string {
+		return match value {
+			Atom { value.val }
+			string { value }
+			else {
+				eprintln("to_string: invalid conversion")
+				exit(0)
+			}
+		}
+	}\n'.bytes()
+	bin << 'fn lx_to_f64(value AnyType) int {
+		return match value {
+			int { value}
+			f64 { value}
+			bool {
+				r := value as bool
+				if r { 1 } else { 0 }
+			}
+			else {
+				eprintln("\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion")
+				exit(0)
+			}
+		}
+	}\n'.bytes()
+	bin << "
 	fn lx_match(left AnyType, right AnyType) AnyType {
 		if typeof(left).name == typeof(right).name {
 			if left == right {
 				return left
 			} else {
-				 panic(\' \$left = \$right don`t match  broken\')
+				 eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`\$left`\033[0m doesn`t match with right expression \033[97m`\$right`\033[0m !')
+				 exit(0)
 				 }
 		} else {
-			panic(\'broken\')
+			panic('broken')
 		}
-	}\n'.bytes()
+	}\n".bytes()
 	bin << 'struct Nil {}\n'.bytes()
 	bin << 'struct Atom {\n\tval string\n  ref int\n}\n'.bytes()
-	bin << 'fn (a Atom) str() string { return \':\${a.val}\' }\n'.bytes()
+	bin << "fn (a Atom) str() string { return ':\${a.val}' }\n".bytes()
 
 	order.reverse()
 	for modl in order {
@@ -189,6 +231,7 @@ fn (mut g VGen) get_args_concat(node ast.Expr) []string {
 }
 
 fn (mut g VGen) stmt(modl string, node ast.Stmt) {
+	g.parent_deep = 0
 	match node {
 		ast.Module {
 			module0 := g.program.modules[modl]
@@ -204,11 +247,11 @@ fn (mut g VGen) stmt(modl string, node ast.Stmt) {
 			}
 		}
 		ast.StructDecl {
-			g.writeln(modl, 'typedef struct  {')
+			g.writeln(modl, 'struct ${node.name.to_upper()} {')
 			for field in node.fields {
-				g.writeln(modl, '\t${parse_field(field)};')
+				g.writeln(modl, '\t${parse_field(field)}')
 			}
-			g.writeln(modl, '} ${node.name};')
+			g.writeln(modl, '}')
 		}
 		ast.EnumDecl {
 			g.writeln(modl, 'enum ${node.name.to_upper()} {')
@@ -240,6 +283,7 @@ fn (mut g VGen) stmt(modl string, node ast.Stmt) {
 }
 
 fn (mut g VGen) expr(modl string, node ast.Expr) {
+	g.parent_deep++
 	g.mount_var_decl(modl, node)
 	match node {
 		ast.IntegerLiteral {
@@ -264,6 +308,10 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 		ast.TupleLiteral {
 			g.write(modl, '"tuple"')
 		}
+		ast.NotExpr {
+			g.write(modl, '!')
+			g.expr(modl, node.expr)
+		}
 		ast.CharlistLiteral {
 			g.write(modl, '${node.val}')
 		}
@@ -278,80 +326,51 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 					g.write(modl, ',')
 				}
 			}
-			g.write(modl, '].join(\'\')')
+			g.write(modl, "].join('')")
 		}
 		ast.BinaryExpr {
 			g.in_binary_exp = true
-			g.write(modl, '(')
 			g.expr(modl, node.left)
-			g.write(modl, ')')
+			g.write(modl, ' ')
 			g.write(modl, node.op.str())
-			g.write(modl, '(')
+			g.write(modl, ' ')
 			g.expr(modl, node.right)
-			g.write(modl, ')')
 			g.in_binary_exp = false
 		}
 		ast.MatchExpr {
-			mut left_is_caller := false
-			mut left_var := ''
-			mut right_is_caller := false
-			mut right_var := ''
-
-			left_var = g.temp_var(modl, node.left_ti)
-			// if ast.is_literal_from_expr(node.left) {
-			// 	g.write(modl, '*')
-			// }
-			// g.write(modl, '${left_var} = ')
-			// g.expr(modl, node.left)
-			// left_is_caller = true
-			// right_var = g.temp_var(modl, node.right_ti)
-			// g.write(modl, '${right_var} = ')
-			// g.expr(modl, node.right)
-			// right_is_caller = true
-
+			mut tmp_ := '_'
 			type0 := parse_type(node.left_ti.kind)
-			tmp_ := g.temp_var(modl, node.left_ti)
-			g.write(modl, '${tmp_} := lx_to_${type0}(lx_match(')
-			if left_is_caller {
-				g.expr(modl, node.left)
-				// g.write(modl, '${left_var}')
-			} else {
-				g.expr(modl, node.left)
+			if node.is_used || g.is_last_statement {
+				tmp_ = g.temp_var(modl, node.left_ti)
+				g.write(modl, '${tmp_} := ')
 			}
-			// g.write(modl, ', ')
-			// g.write(modl, node.left_ti.str().to_upper())
+			g.write(modl, 'lx_to_${type0}(lx_match(')
+			g.expr(modl, node.left)
 			g.write(modl, ', ')
-			if right_is_caller {
-				 g.expr(modl, node.right)
-				// g.write(modl, '${right_var}')
-			} else {
-				g.expr(modl, node.right)
-			}
+			g.expr(modl, node.right)
 			g.writeln(modl, '))')
-			if g.is_last_statement {
+			if node.is_used || g.is_last_statement {
 				g.write(modl, 'return ${tmp_}')
 			}
 		}
 		ast.StructInit {
-			mut var := 'a'
 			if g.in_var_decl {
-				var = g.var_name
 				if node.ti != g.var_ti {
 					panic('error type ident wrong')
 				}
 			}
+			println(node)
+			g.writeln(modl, '${node.name.to_upper()}{')
 			for i, field in node.fields {
-				g.write(modl, '\t${var}.${field} = ')
+				g.write(modl, '\t${field}: ')
 				g.expr(modl, node.exprs[i])
-				g.writeln(modl, '; ')
+				g.writeln(modl, '')
 			}
-			if g.is_last_statement {
-				g.writeln(modl, '\treturn ${var}; ')
-			}
+			g.writeln(modl, '}')
 		}
 		ast.CallEnum {
 			if g.in_var_decl {
-				g.write(modl, '${g.var_ti} ${g.var_name} = ')
+				// g.write(modl, '${g.var_ti} ${g.var_name} = ')
 				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
 			} else {
 				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
@@ -363,17 +382,6 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			g.write(modl, '${path.join('.')}')
 		}
 		ast.CallExpr {
-			// g.in_expr_decl = true
-			// defer {
-			// 	g.var_count++
-			// 	typ := parse_type_ti(node.ti)
-			// 	g.in_expr_decl = false
-			// 	// if !node.is_c_module {
-			// 	// 	g.write(modl, '(${typ} *)')
-			// 	// }
-			// 	g.write(modl, '${g.out_expr}'.replace('\n', ''))
-			// }
-
 			module_name := node.module_name.replace('.', '_')
 			if node.is_external {
 				if !node.is_c_module {
@@ -382,11 +390,9 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			}
 			if node.is_c_module {
 				g.write(modl, '${node.name}('.to_lower())
-			}
-			else if node.is_v_module {
+			} else if node.is_v_module {
 				g.write(modl, '${node.name}('.to_lower())
-			}
-			else {
+			} else {
 				g.write(modl, '${node.name}_${node.arity}('.to_lower())
 			}
 
@@ -401,7 +407,6 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 		}
 		ast.Ident {
 			if v := g.local_vars_binding[node.name] {
-				// s := g.local_vars_binding_t[node.name]
 				g.write(modl, v)
 			} else {
 				g.write(modl, node.name)
@@ -409,9 +414,9 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 		}
 		ast.BoolLiteral {
 			if node.val == true {
-				g.write(modl, '1')
+				g.write(modl, 'true')
 			} else {
-				g.write(modl, '0')
+				g.write(modl, 'false')
 			}
 		}
 		ast.IfExpr {
@@ -434,6 +439,7 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 		ast.EmptyExpr {}
 		else {}
 	}
+	g.parent_deep--
 }
 
 fn (mut g VGen) mount_var_decl(modl string, node ast.Expr) {
@@ -449,6 +455,11 @@ fn (mut g VGen) mount_var_decl(modl string, node ast.Expr) {
 		g.var_name = ''
 		g.var_ti = types.void_ti
 		g.in_var_decl = false
+	} else {
+		if g.parent_deep == 1 && !g.is_last_statement && !ast.get_is_used(node)
+			&& ast.get_ti(node).kind != .void_ {
+			g.write(modl, '_ := ')
+		}
 	}
 }
 
@@ -551,7 +562,7 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 					// if stmt.ti.kind !in [.string_, .atom_] {
 					// 	g.write(modl, '*')
 					// }
-					g.write(modl, '$tmp_ := ')
+					g.write(modl, '${tmp_} := ')
 
 					g.stmt(modl, stmt)
 					g.writeln(modl, '\treturn ${tmp_}')
@@ -569,8 +580,7 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 									ast.MatchExpr {
 										dont_return = true
 									}
-									else {
-									}
+									else {}
 								}
 							}
 							else {}
@@ -606,7 +616,7 @@ fn (mut g VGen) mount_main() {
 	if g.fn_main.len > 0 {
 		g.out_main.writeln('fn main(){')
 		g.out_main.writeln('result := ${g.fn_main.to_lower()}_0()')
-		g.out_main.writeln('if typeof(result).name != \'Nil\' {')
+		g.out_main.writeln("if typeof(result).name != 'Nil' {")
 		g.out_main.writeln('println(result)')
 		g.out_main.writeln('}else{')
 		g.out_main.writeln('println("nil\\n")')
