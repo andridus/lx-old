@@ -23,7 +23,15 @@ pub fn preprocess(path string, prog &table.Program) {
 	} else {
 		parse_modules('${path}', prog)
 	}
-	prog0.compile_order = compile_order(prog)
+	mut order := []string{}
+	for c in compile_order(prog) {
+		if c.starts_with('@') {
+			order.insert(0, c)
+		} else {
+			order.insert(order.len, c)
+		}
+	}
+	prog0.compile_order = order
 }
 
 fn generate_core_modules(prog &table.Program) map[string]table.Module {
@@ -191,7 +199,6 @@ fn parse_modules(path string, prog &table.Program) {
 		i++
 	}
 	mut dependencies0 := []string{}
-	// println('aliases: $aliases')
 	for dep in dependencies {
 		mut inserted := false
 		for k, v in aliases {
@@ -210,15 +217,6 @@ fn parse_modules(path string, prog &table.Program) {
 				dependencies0 << dep
 			}
 		}
-		// if modl := aliases[dep] {
-		// 	println('name: $modl')
-		// 	dependencies0 << modl
-		// } else {
-		// 	println('one: $dep')
-		// 	if name != dep && dep !in ignore_modules {
-		// 		dependencies0 << dep
-		// 	}
-		// }
 	}
 	prog0.modules[name] = table.Module{
 		name: name
