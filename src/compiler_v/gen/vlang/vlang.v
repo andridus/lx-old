@@ -359,7 +359,6 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 					panic('error type ident wrong')
 				}
 			}
-			println(node)
 			g.writeln(modl, '${node.name.to_upper()}{')
 			for i, field in node.fields {
 				g.write(modl, '\t${field}: ')
@@ -380,6 +379,10 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			mut path := node.parent_path.clone()
 			path << node.name
 			g.write(modl, '${path.join('.')}')
+		}
+		ast.StructField {
+			vname := g.local_vars_binding[node.var_name]
+			g.write(modl, '${vname}.${node.name}')
 		}
 		ast.CallExpr {
 			module_name := node.module_name.replace('.', '_')

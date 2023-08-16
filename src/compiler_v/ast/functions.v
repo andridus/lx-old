@@ -44,6 +44,7 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		StringLiteral { a.ti }
 		StringConcatExpr { a.ti }
 		StructInit { a.ti }
+		StructField { a.ti }
 		UnaryExpr { a.ti }
 	}
 }
@@ -73,6 +74,7 @@ pub fn get_is_used(a Expr) bool {
 		StringLiteral { a.is_used }
 		StringConcatExpr { a.is_used }
 		StructInit { a.is_used }
+		StructField { a.is_used }
 		UnaryExpr { a.is_used }
 	}
 }

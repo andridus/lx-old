@@ -107,66 +107,38 @@ fn (a Atom) str() string {
 	return ':${a.val}'
 }
 
-// MODULE 'PatternMatching'.ex
+// MODULE 'C'.ex
 // -------- --------
-fn patternmatching_sum_2_integer_integer(a int, b int) int {
-	var_3 := a
-	var_4 := b
-	tmpvar_5 := var_3 + var_4
-	return tmpvar_5
+fn c_sum_0() int {
+	tmpvar_1 := 1
+	return tmpvar_1
 }
 
-fn patternmatching_sub_2_integer_integer(a int, b int) int {
-	var_8 := a
-	var_9 := b
-	tmpvar_10 := var_8 - var_9
-	return tmpvar_10
+// MODULE 'B'.ex
+// -------- --------
+fn b_one_0() f64 {
+	_ := c_sum_0()
+	tmpvar_2 := 2.0
+	return tmpvar_2
 }
 
-fn patternmatching_mul_2_integer_integer(a int, b int) int {
-	var_13 := a
-	var_14 := b
-	tmpvar_15 := var_13 * var_14
-	return tmpvar_15
-}
-
-fn patternmatching_div_2_integer_integer(a int, b int) int {
-	var_18 := a
-	var_19 := b
-	tmpvar_20 := var_18 / var_19
-	return tmpvar_20
-}
-
-fn patternmatching_main_0() Atom {
-	var_21 := patternmatching_sum_2_integer_integer(1, 2)
-	var_22 := patternmatching_sub_2_integer_integer(2, 1)
-	var_23 := patternmatching_mul_2_integer_integer(3, 2)
-	var_24 := patternmatching_div_2_integer_integer(2, 2)
-	println(var_21)
-	println(var_22)
-	println(var_23)
-	println(var_24)
-	println('#{a} #{b} #{c} #{d}')
-	println('\n')
-	println('*****************\n\n')
-	_ := lx_to_int(lx_match(3, patternmatching_sum_2_integer_integer(1, 2)))
-
-	_ := lx_to_int(lx_match(1, patternmatching_sub_2_integer_integer(2, 1)))
-
-	_ := lx_to_int(lx_match(6, patternmatching_mul_2_integer_integer(3, 2)))
-
-	_ := lx_to_int(lx_match(4, patternmatching_div_2_integer_integer(8, 2)))
-
-	_ := lx_to_string(lx_match('Hello World', 'Hello Home'))
-
-	tmpvar_25 := Atom{
+// MODULE 'A'.ex
+// -------- --------
+fn a_main_0() Atom {
+	_ := b_one_0()
+	tmpvar_3 := Atom{
 		val: 'ok'
 	}
-	return tmpvar_25
+	return tmpvar_3
+}
+
+fn a_other_0() int {
+	tmpvar_4 := c_sum_0()
+	return tmpvar_4
 }
 
 fn main() {
-	result := patternmatching_main_0()
+	result := a_main_0()
 	if typeof(result).name != 'Nil' {
 		println(result)
 	} else {

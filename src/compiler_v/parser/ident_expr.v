@@ -6,20 +6,18 @@ import compiler_v.table
 
 fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 	mut idents := [p.tok.lit]
-	mut node := ast.Expr(ast.EmptyExpr{})
-
-	p.error_pos_in = p.tok.lit.len
-
-	node = ast.Ident{
+	expr0 := ast.Ident{
 		name: p.tok.lit
 		tok_kind: p.tok.kind
 	}
+	mut node := ast.Expr(expr0)
+	p.error_pos_in = p.tok.lit.len
 	if p.peek_tok.kind == .lpar {
-		node0, ti0 := p.call_from_module(.ident) or {
+		node1, ti0 := p.call_from_module(.ident) or {
 			p.log('ERROR', err.msg(), p.tok.lit)
 			exit(0)
 		}
-		return node0, ti0
+		return node1, ti0
 	} else {
 		p.error_pos_out = p.tok.lit.len
 		var := p.program.table.find_var(p.tok.lit) or {
@@ -36,7 +34,7 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 
 				match expr {
 					ast.StructInit {
-						idx, _ := p.program.table.find_type_name(expr.ti)
+						idx, struct_name := p.program.table.find_type_name(expr.ti)
 						type_ := p.program.table.types[idx]
 						if type_ is types.Struct {
 							mut flds := []string{}
@@ -53,7 +51,13 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 									}
 								}
 								if idx0 >= 0 {
-									node = expr.exprs[idx0]
+									node = ast.StructField{
+										var_name: expr0.name
+										struct_name: struct_name
+										name: expr.fields[idx0]
+										expr: expr.exprs[idx0]
+										ti: ast.get_ti(expr.exprs[idx0])
+									}
 									ti = ast.get_ti(node)
 									p.next_token()
 								} else {

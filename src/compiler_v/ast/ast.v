@@ -28,6 +28,7 @@ pub type Expr = AssignExpr
 	| PrefixExpr
 	| StringConcatExpr
 	| StringLiteral
+	| StructField
 	| StructInit
 	| TupleLiteral
 	| UnaryExpr
@@ -196,6 +197,17 @@ pub:
 	exprs   []Expr
 	meta    Meta
 	is_used bool
+}
+
+pub struct StructField {
+pub:
+	struct_name string
+	var_name    string
+	name        string
+	ti          types.TypeIdent
+	expr        Expr
+	meta        Meta
+	is_used     bool
 }
 
 pub struct Import {
