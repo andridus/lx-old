@@ -107,38 +107,33 @@ fn (a Atom) str() string {
 	return ':${a.val}'
 }
 
-// MODULE 'C'.ex
+// MODULE 'CaseAndGuards'.ex
 // -------- --------
-fn c_sum_0() int {
-	tmpvar_1 := 1
-	return tmpvar_1
+fn caseandguards_is_number_1_integer(x int) Nil {
+	var_2 := x
+	_ := true
+	return Nil{}
 }
 
-// MODULE 'B'.ex
-// -------- --------
-fn b_one_0() f64 {
-	_ := c_sum_0()
-	tmpvar_2 := 2.0
-	return tmpvar_2
-}
-
-// MODULE 'A'.ex
-// -------- --------
-fn a_main_0() Atom {
-	_ := b_one_0()
-	tmpvar_3 := Atom{
+fn caseandguards_main_0() Atom {
+	var_3 := 1
+	var_4 := 1
+	var_5 := 1
+	var_6 := 1
+	var_7 := 1
+	var_8 := 1
+	var_9 := 1
+	var_10 := 1
+	var_11 := 1
+	var_12 := 1
+	tmpvar_13 := Atom{
 		val: 'ok'
 	}
-	return tmpvar_3
-}
-
-fn a_other_0() int {
-	tmpvar_4 := c_sum_0()
-	return tmpvar_4
+	return tmpvar_13
 }
 
 fn main() {
-	result := a_main_0()
+	result := caseandguards_main_0()
 	if typeof(result).name != 'Nil' {
 		println(result)
 	} else {

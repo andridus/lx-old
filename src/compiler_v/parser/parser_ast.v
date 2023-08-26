@@ -92,7 +92,7 @@ fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, met
 	if left0 is ast.Ident {
 		c := left0 as ast.Ident
 		// try locate var
-		var := p.program.table.find_var(c.name) or {
+		var := p.program.table.find_var(c.name, p.context) or {
 			println('not found var')
 			exit(1)
 		}
@@ -103,7 +103,7 @@ fn (mut p Parser) ast_bin_expr(left ast.Expr, op token.Kind, right ast.Expr, met
 	if right0 is ast.Ident {
 		c := left0 as ast.Ident
 		// try locate var
-		var := p.program.table.find_var(c.name) or {
+		var := p.program.table.find_var(c.name, p.context) or {
 			println('not found var')
 			exit(1)
 		}

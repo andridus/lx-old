@@ -29,7 +29,7 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		p.read_first_token()
 		expr, ti = p.expr(token.lowest_prec)
 	}
-	if _ := p.program.table.find_var(name) {
+	if _ := p.program.table.find_var(name, p.context) {
 		p.error('rebinding of `${name}`')
 	}
 

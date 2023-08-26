@@ -11,7 +11,7 @@ pub struct Table {
 pub mut:
 	types          []types.Type
 	type_idxs      map[string]int
-	local_vars     map[string]Var
+	local_vars     map[string]map[string]Var
 	global_aliases map[string]string
 	atoms          []Atom
 	fns            map[string]Fn
@@ -27,12 +27,13 @@ pub:
 
 pub struct Var {
 pub:
-	name   string
-	ti     types.TypeIdent
-	is_mut bool
-	is_arg bool
-	type_  types.Type
-	expr   ast.ExprStmt
+	name    string
+	ti      types.TypeIdent
+	is_mut  bool
+	is_arg  bool
+	type_   types.Type
+	context []string = ['root']
+	expr    ast.ExprStmt
 }
 
 pub struct Alias {

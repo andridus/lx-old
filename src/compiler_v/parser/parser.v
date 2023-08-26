@@ -14,28 +14,45 @@ struct Parser {
 	file_name  string
 	build_path string
 mut:
-	module_name      string
-	module_path      string
-	requirements     []string
-	tok              token.Token
-	lexer            &lexer.Lexer
-	program          &table.Program
-	peek_tok         token.Token
-	return_ti        types.TypeIdent
-	current_module   string
-	in_var_expr      bool
-	error_pos_inline int
-	error_pos_in     int
-	error_pos_out    int
-	inside_parens    int
-	inside_ifcase    int
-	compiler_options []CompilerOptions = [.empty]
+	module_name        string
+	module_path        string
+	requirements       []string
+	tok                token.Token
+	lexer              &lexer.Lexer
+	program            &table.Program
+	peek_tok           token.Token
+	return_ti          types.TypeIdent
+	current_module     string
+	in_var_expr        bool
+	error_pos_inline   int
+	error_pos_in       int
+	error_pos_out      int
+	inside_clause_eval ast.Expr
+	inside_clause      bool
+	context            []string = ['root']
+	context_num        int
+	inside_parens      int
+	inside_ifcase      int
+	compiler_options   []CompilerOptions = [.empty]
 }
 
 enum CompilerOptions {
 	empty
 	disable_type_match
 	ensure_left_type // ensure the left type over right type
+}
+
+pub fn (mut p Parser) add_context(str string) string {
+	p.context_num++
+	name := '${str}_${p.context_num}'
+	p.context.prepend(name)
+	return name
+}
+
+pub fn (mut p Parser) drop_context() {
+	if p.context != ['root'] {
+		p.context.delete(0)
+	}
 }
 
 pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
@@ -169,6 +186,9 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 		.key_def, .key_defp {
 			return p.def_decl()
 		}
+		.key_case {
+			return p.case_decl()
+		}
 		.lsbr {
 			p.next_token()
 			p.check(.ident)
@@ -199,6 +219,9 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 				p.next_token()
 				node, ti = p.expr(0)
 			}
+		}
+		.underscore {
+			node, ti = p.underscore_expr()
 		}
 		.atom {
 			node, ti = p.atom_expr()

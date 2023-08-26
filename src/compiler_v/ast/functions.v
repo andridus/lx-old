@@ -25,6 +25,9 @@ pub fn get_ti(a Expr) types.TypeIdent {
 		BinaryExpr { a.ti }
 		BoolLiteral { a.ti }
 		NotExpr { a.ti }
+		UnderscoreExpr { a.ti }
+		CaseClauseExpr { a.ti }
+		MatchVar { a.ti }
 		CallExpr { a.ti }
 		CallEnum { a.ti }
 		CallField { a.ti }
@@ -55,6 +58,9 @@ pub fn get_is_used(a Expr) bool {
 		BinaryExpr { a.is_used }
 		BoolLiteral { a.is_used }
 		NotExpr { a.is_used }
+		UnderscoreExpr { a.is_used }
+		CaseClauseExpr { a.is_used }
+		MatchVar { a.is_used }
 		CallExpr { a.is_used }
 		CallEnum { a.is_used }
 		CallField { a.is_used }

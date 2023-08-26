@@ -18,12 +18,36 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 			exit(0)
 		}
 		return node1, ti0
+	} else if p.inside_clause {
+		p.error_pos_out = p.tok.lit.len
+		mut ti := types.void_ti
+		if p.inside_clause_eval is ast.Ident {
+			l := p.inside_clause_eval as ast.Ident
+			var := p.program.table.find_var(l.name, p.context) or {
+				p.log_d('ERROR', 'undefined variable `${l.name}`', '', '', p.tok.lit)
+				table.Var{}
+			}
+			ti = var.ti
+			p.program.table.register_var(table.Var{
+				...var
+				name: p.tok.lit
+				context: p.context
+			})
+		}
+		a := expr0 as ast.Ident
+		node = ast.Expr(ast.Ident{
+			...a
+			ti: ti
+		})
+		p.next_token()
+		return node, a.ti
 	} else {
 		p.error_pos_out = p.tok.lit.len
-		var := p.program.table.find_var(p.tok.lit) or {
+		var := p.program.table.find_var(p.tok.lit, p.context) or {
 			p.log_d('ERROR', 'undefined variable `${p.tok.lit}`', '', '', p.tok.lit)
 			table.Var{}
 		}
+
 		mut ti := var.ti
 		p.next_token()
 		if p.tok.kind == .dot {
@@ -124,6 +148,13 @@ fn (mut p Parser) ident_expr() (ast.Expr, types.TypeIdent) {
 				p.log_d('ERROR', 'token `${p.tok.lit}` unacceptable after struct ', '',
 					'', p.tok.lit)
 			}
+		} else {
+			// if is only ident
+			a := expr0 as ast.Ident
+			node = ast.Expr(ast.Ident{
+				...a
+				ti: ti
+			})
 		}
 
 		return node, ti

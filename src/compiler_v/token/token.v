@@ -86,6 +86,7 @@ pub enum Kind {
 	doc // starts by @doc
 	moduledoc // starts by moduledoc
 	multistring // starts by """
+	underscore // _
 	dot // .
 	range // ..
 	ellipsis // ...
@@ -125,6 +126,7 @@ pub enum Kind {
 	key_if
 	key_else
 	key_any
+	key_case
 	keyword_endg
 }
 
@@ -143,7 +145,7 @@ fn build_keywords() map[string]int {
 }
 
 fn build_token_str() []string {
-	mut s := []string{len: 101, init: ''}
+	mut s := []string{len: 103, init: ''}
 	s[Kind.ignore] = 'IGNORE'
 	s[Kind.eof] = 'EOF'
 	s[Kind.newline] = 'NEWLINE'
@@ -208,6 +210,7 @@ fn build_token_str() []string {
 	s[Kind.doc] = 'doc'
 	s[Kind.moduledoc] = 'moduledoc'
 	s[Kind.multistring] = 'multistring'
+	s[Kind.underscore] = '_'
 	s[Kind.dot] = '.'
 	s[Kind.range] = '..'
 	s[Kind.ellipsis] = '...'
@@ -245,6 +248,7 @@ fn build_token_str() []string {
 	s[Kind.key_require] = 'require'
 	s[Kind.key_if] = 'if'
 	s[Kind.key_else] = 'else'
+	s[Kind.key_case] = 'case'
 	s[Kind.keyword_endg] = ''
 	return s
 }

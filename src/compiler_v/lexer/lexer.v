@@ -24,6 +24,9 @@ fn (mut l Lexer) parse_token() token.Token {
 		10 {
 			l.new_token_new_line()
 		}
+		`_` {
+			l.new_token('_', .underscore, 1)
+		}
 		`#` {
 			if l.match_next_char(`{`) {
 				l.match_else()

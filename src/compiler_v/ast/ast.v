@@ -14,6 +14,7 @@ pub type Expr = AssignExpr
 	| CallEnum
 	| CallExpr
 	| CallField
+	| CaseClauseExpr
 	| CharlistLiteral
 	| EmptyExpr
 	| FloatLiteral
@@ -22,6 +23,7 @@ pub type Expr = AssignExpr
 	| IntegerLiteral
 	| KeywordList
 	| MatchExpr
+	| MatchVar
 	| NilLiteral
 	| NotExpr
 	| PostfixExpr
@@ -32,8 +34,10 @@ pub type Expr = AssignExpr
 	| StructInit
 	| TupleLiteral
 	| UnaryExpr
+	| UnderscoreExpr
 
 pub type Stmt = Block
+	| CaseDecl
 	| EnumDecl
 	| ExprStmt
 	| FnDecl
@@ -115,6 +119,14 @@ pub:
 pub struct NotExpr {
 pub:
 	expr    Expr
+	meta    Meta
+	ti      types.TypeIdent
+	is_used bool
+}
+
+pub struct UnderscoreExpr {
+pub:
+	name    string
 	meta    Meta
 	ti      types.TypeIdent
 	is_used bool
@@ -285,6 +297,38 @@ pub:
 	expr    Expr = EmptyExpr{}
 	ti      types.TypeIdent
 	meta    Meta
+	is_used bool
+}
+
+pub struct MatchVar {
+pub:
+	name    string
+	expr    Expr = EmptyExpr{}
+	ti      types.TypeIdent
+	meta    Meta
+	is_used bool
+}
+
+pub struct CaseDecl {
+pub:
+	name    string
+	ref     string
+	eval    Expr = EmptyExpr{}
+	clauses []CaseClauseExpr
+	exprs   []Expr
+
+	ti      types.TypeIdent
+	meta    Meta
+	is_used bool
+}
+
+pub struct CaseClauseExpr {
+pub:
+	expr    Expr
+	or_expr []Expr
+	guard   Expr
+	meta    Meta
+	ti      types.TypeIdent
 	is_used bool
 }
 
