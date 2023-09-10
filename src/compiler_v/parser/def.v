@@ -260,6 +260,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	mut pos_out := p.tok.pos
 	is_priv := p.tok.kind == .key_defp
 	mut rec_name := ''
+	mut sum_kind := []types.Kind{}
 	// mut is_method := false
 	mut rec_ti := types.void_ti
 
@@ -332,6 +333,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 			ti = stmts[stmts.len - 1].ti
 		}
 	}
+	sum_kind << ti.kind
 	mut final_args := []table.Var{}
 	mut args_overfn := '${args.len}'
 	for a in args {
@@ -360,7 +362,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	return ast.FnDecl{
 		name: name
 		stmts: stmts
-		ti: ti
+		ti: types.new_sum_ti(sum_kind)
 		arity: args_overfn
 		args: ast_args
 		is_priv: is_priv

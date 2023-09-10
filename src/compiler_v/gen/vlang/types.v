@@ -67,11 +67,12 @@ fn parse_type(kind types.Kind) string {
 		.float_ { 'f64' }
 		.string_ { 'string' }
 		.char_ { 'rune' }
-		.bool_ { 'int' }
+		.bool_ { 'bool' }
 		.list_ { 'list' }
 		.list_fixed_ { 'list' }
 		.tuple_ { 'tuple' }
 		.map_ { 'map' }
+		.sum_ { 'sum' }
 	}
 }
 

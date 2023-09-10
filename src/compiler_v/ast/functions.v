@@ -7,6 +7,13 @@ fn (expr Expr) msg() string {
 	return 'OK'
 }
 
+pub fn (c CaseClauseExpr) is_underscore() bool {
+	return match c.expr {
+		UnderscoreExpr { true }
+		else { false }
+	}
+}
+
 pub fn (i Ident) is_pointer() bool {
 	return i.is_pointer == true
 }

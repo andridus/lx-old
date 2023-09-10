@@ -23,6 +23,7 @@ pub enum Kind {
 	enum_
 	result_
 	struct_
+	sum_
 }
 
 pub type Type = Atom
@@ -42,10 +43,11 @@ pub type Type = Atom
 
 pub struct TypeIdent {
 pub:
-	name    string
-	idx     int
-	is_list bool
-	kind    Kind
+	name     string
+	idx      int
+	is_list  bool
+	kind     Kind
+	sum_kind []Kind
 }
 
 pub struct Nil {}

@@ -18,6 +18,7 @@ mut:
 	out_expr_type        map[string][]string
 	in_var_decl          bool
 	in_function_decl     bool
+	in_function_args     bool
 	in_binary_exp        bool
 	in_expr_decl         bool
 	in_ident_c           bool
@@ -63,116 +64,20 @@ pub fn (mut g VGen) main_function() string {
 }
 
 pub fn (mut g VGen) save() !string {
+	// read native functions
+	native := os.read_file('src/compiler_v/gen/vlang/native.v.source') or {
+		eprintln("the file 'native.v.source' not found in dir 'src/compiler_v/gen/vlang' ")
+		exit(0)
+	}
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()
-	/// include std functions
-	bin << '// Include standard functions\n'.bytes()
-	mut deps := g.program.c_dependencies.clone()
-	// deps << 'tcclib'
-	// deps << 'stdlib'
-	// deps << 'stdio'
-	// deps << 'stdarg'
-
-	// // deps << "stdarg"
-	// deps << 'string'
-	mut deps_inserted := []string{}
-	for dep in deps {
-		if deps_inserted.contains(dep) {
-			continue
-		}
-		deps_inserted << dep
-		dep0 := stdlib(dep) or {
-			println(err.msg())
-			exit(0)
-		}
-		if dep0 != '' {
-			bin << '#include ${dep0}\n'.bytes()
-		}
-	}
-	// own libs
-	bin << 'type AnyType = int | string | bool | f64 | Atom | Nil\n'.bytes()
-	bin << "fn (t AnyType) str() string {
-		return match t {
-			int {
-				r := t as int
-				'\$r'
-			}
-			f64 {
-				r := t as f64
-				'\$r'
-			}
-			bool {
-				r := t as bool
-				'\$r'
-			}
-			string {
-				r := t as string
-				'\$r'
-			}
-			else {
-				'undefined'
-			}
-		}
-	}\n".bytes()
-	bin << 'fn lx_to_int(value AnyType) int {
-		return match value {
-			int { value}
-			bool {
-				r := value as bool
-				if r { 1 } else { 0 }
-			}
-			else {
-				eprintln("to_int: invalid conversion")
-				exit(0)
-			}
-		}
-	}\n'.bytes()
-	bin << 'fn lx_to_string(value AnyType) string {
-		return match value {
-			Atom { value.val }
-			string { value }
-			else {
-				eprintln("to_string: invalid conversion")
-				exit(0)
-			}
-		}
-	}\n'.bytes()
-	bin << 'fn lx_to_f64(value AnyType) int {
-		return match value {
-			int { value}
-			f64 { value}
-			bool {
-				r := value as bool
-				if r { 1 } else { 0 }
-			}
-			else {
-				eprintln("\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion")
-				exit(0)
-			}
-		}
-	}\n'.bytes()
-	bin << "
-	fn lx_match(left AnyType, right AnyType) AnyType {
-		if typeof(left).name == typeof(right).name {
-			if left == right {
-				return left
-			} else {
-				 eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`\$left`\033[0m doesn`t match with right expression \033[97m`\$right`\033[0m !')
-				 exit(0)
-				 }
-		} else {
-			panic('broken')
-		}
-	}\n".bytes()
-	bin << 'struct Nil {}\n'.bytes()
-	bin << 'struct Atom {\n\tval string\n  ref int\n}\n'.bytes()
-	bin << "fn (a Atom) str() string { return ':\${a.val}' }\n".bytes()
-
 	order.reverse()
+	bin << native.bytes()
 	for modl in order {
 		bin << g.out_modules[modl]
 	}
 	bin << g.out_main
+
 	filepath := '${g.program.build_folder}/main.v'
 	os.write_file(filepath, bin.bytestr())!
 	return filepath
@@ -276,8 +181,31 @@ fn (mut g VGen) stmt(modl string, node ast.Stmt) {
 			g.expr(modl, node.expr)
 			g.endln(modl)
 		}
+		ast.CaseDecl {
+			mut i := 0
+			for i = 0; i < node.clauses.len; i++ {
+				g.in_function_args = true
+				if node.clauses[i].is_underscore() {
+					g.write(modl, 'else {')
+					g.expr(modl, node.exprs[i])
+					g.writeln(modl, '}')
+				} else {
+					if i > 0 {
+						g.write(modl, 'else ')
+					}
+					g.write(modl, 'if is_match(')
+					g.expr(modl, node.eval)
+					g.write(modl, ',')
+					g.expr(modl, node.clauses[i])
+					g.write(modl, ') {')
+					g.expr(modl, node.exprs[i])
+					g.writeln(modl, '}')
+				}
+				g.in_function_args = false
+			}
+		}
 		else {
-			println(node)
+			// println(node)
 		}
 	}
 }
@@ -352,6 +280,12 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			if node.is_used || g.is_last_statement {
 				g.write(modl, 'return ${tmp_}')
 			}
+		}
+		ast.CaseClauseExpr {
+			g.expr(modl, node.expr)
+		}
+		ast.UnderscoreExpr {
+			g.writeln(modl, 'Underscore{}')
 		}
 		ast.StructInit {
 			if g.in_var_decl {
@@ -440,7 +374,9 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			}
 		}
 		ast.EmptyExpr {}
-		else {}
+		else {
+			println(node)
+		}
 	}
 	g.parent_deep--
 }
@@ -458,6 +394,8 @@ fn (mut g VGen) mount_var_decl(modl string, node ast.Expr) {
 		g.var_name = ''
 		g.var_ti = types.void_ti
 		g.in_var_decl = false
+	}
+	if g.in_function_args {
 	} else {
 		if g.parent_deep == 1 && !g.is_last_statement && !ast.get_is_used(node)
 			&& ast.get_ti(node).kind != .void_ {
@@ -536,7 +474,9 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 			}
 			i0++
 		}
-		return_ti := parse_type_ti(node.ti)
+		arity_ti := node.ti.sum_kind[arity_idx - 1]
+		println(arity_ti)
+		return_ti := parse_type(arity_ti)
 		g.writeln(modl, ') ${return_ti} {')
 	} else {
 		g.writeln(modl, 'void *${module_name}_${node.name}_0(){')

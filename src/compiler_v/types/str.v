@@ -58,6 +58,9 @@ pub fn (k Kind) str() string {
 		.map_ {
 			'map'
 		}
+		.sum_ {
+			'sum'
+		}
 	}
 	return k_str
 }

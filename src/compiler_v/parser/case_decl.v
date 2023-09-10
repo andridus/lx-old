@@ -59,7 +59,7 @@ fn (mut p Parser) case_decl() ast.CaseDecl {
 
 	p.context.delete(0)
 	p.drop_context()
-	a := ast.CaseDecl{
+	return ast.CaseDecl{
 		name: name
 		ref: ref
 		eval: eval
@@ -67,10 +67,6 @@ fn (mut p Parser) case_decl() ast.CaseDecl {
 		exprs: exprs
 		ti: expr_ti
 	}
-	println('----------')
-	println(a)
-	println('----------')
-	return a
 }
 
 pub fn (mut p Parser) case_clause(ti0 types.TypeIdent, accept_or bool) (ast.CaseClauseExpr, types.TypeIdent) {

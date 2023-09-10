@@ -1,7 +1,15 @@
-// Include standard functions
-type AnyType = Atom | Nil | bool | f64 | int | string
+pub struct Underscore {}
 
-fn (t AnyType) str() string {
+pub struct Nil {}
+
+pub struct Atom {
+	val string
+	ref int
+}
+
+pub type AnyType = Atom | Nil | Underscore | bool | f64 | int | string
+
+pub fn (t AnyType) str() string {
 	return match t {
 		int {
 			r := t as int
@@ -25,27 +33,33 @@ fn (t AnyType) str() string {
 	}
 }
 
-fn lx_to_int(value AnyType) int {
-	return match value {
-		int {
-			value
-		}
-		bool {
-			r := value as bool
-			if r {
-				1
-			} else {
-				0
-			}
-		}
-		else {
-			eprintln('to_int: invalid conversion')
+pub fn (a Atom) str() string {
+	return ':${a.val}'
+}
+
+pub fn do_match(left AnyType, right AnyType) AnyType {
+	if typeof(left).name == typeof(right).name {
+		if left == right {
+			return left
+		} else {
+			eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`\$left`\033[0m doesn`t match with right expression \033[97m`\$right`\033[0m !')
 			exit(0)
 		}
+	} else {
+		panic('broken')
 	}
 }
 
-fn lx_to_string(value AnyType) string {
+pub fn is_match(left AnyType, right AnyType) bool {
+	if typeof(left).name == typeof(right).name {
+		if left == right {
+			return true
+		}
+	}
+	return false
+}
+
+pub fn any_to_string(value AnyType) string {
 	return match value {
 		Atom {
 			value.val
@@ -60,7 +74,7 @@ fn lx_to_string(value AnyType) string {
 	}
 }
 
-fn lx_to_f64(value AnyType) int {
+pub fn any_to_int(value AnyType) int {
 	return match value {
 		int {
 			value
@@ -77,59 +91,43 @@ fn lx_to_f64(value AnyType) int {
 			}
 		}
 		else {
-			eprintln('[31m**(RuntimeError::InvalidConversion)[0m to_f64 conversion')
+			eprintln('\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion')
 			exit(0)
 		}
 	}
-}
-
-fn lx_match(left AnyType, right AnyType) AnyType {
-	if typeof(left).name == typeof(right).name {
-		if left == right {
-			return left
-		} else {
-			eprintln('[31m**(RuntimeError::MatchError)[0m The left expression [97m`${left}`[0m doesn`t match with right expression [97m`${right}`[0m !')
-			exit(0)
-		}
-	} else {
-		panic('broken')
-	}
-}
-
-struct Nil {}
-
-struct Atom {
-	val string
-	ref int
-}
-
-fn (a Atom) str() string {
-	return ':${a.val}'
 }
 
 // MODULE 'CaseAndGuards'.ex
 // -------- --------
-fn caseandguards_is_number_1_integer(x int) Nil {
+fn caseandguards_is_number_1_integer(x int) bool {
 	var_2 := x
-	_ := true
-	return Nil{}
+	tmpvar_3 := true
+	return tmpvar_3
 }
 
 fn caseandguards_main_0() Atom {
-	var_3 := 1
 	var_4 := 1
+	if is_match(var_4, 1) {
+		true
+	} else if is_match(var_4, 2) {
+		false
+	}
 	var_5 := 1
+	if is_match(var_5, 1) {
+		true
+	} else {
+		false
+	}
 	var_6 := 1
-	var_7 := 1
-	var_8 := 1
-	var_9 := 1
-	var_10 := 1
-	var_11 := 1
-	var_12 := 1
-	tmpvar_13 := Atom{
+	if is_match(var_6, 2) {
+		true
+	} else {
+		false
+	}
+	tmpvar_7 := Atom{
 		val: 'ok'
 	}
-	return tmpvar_13
+	return tmpvar_7
 }
 
 fn main() {

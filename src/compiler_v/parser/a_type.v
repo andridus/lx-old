@@ -87,37 +87,37 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 			defer {
 				p.next_token()
 			}
-			match p.tok.lit {
+			return match p.tok.lit {
 				// map
 				'map' {
-					return p.parse_map_ti()
+					p.parse_map_ti()
 				}
 				'nil' {
-					return types.new_builtin_ti(.nil_, false)
+					types.new_builtin_ti(.nil_, false)
 				}
 				'atom' {
-					return types.new_builtin_ti(.atom_, false)
+					types.new_builtin_ti(.atom_, false)
 				}
 				'any' {
-					return types.new_builtin_ti(.any_, false)
+					types.new_builtin_ti(.any_, false)
 				}
 				'pointer' {
-					return types.new_builtin_ti(.pointer_, false)
+					types.new_builtin_ti(.pointer_, false)
 				}
 				'int', 'integer' {
-					return types.new_builtin_ti(.integer_, false)
+					types.new_builtin_ti(.integer_, false)
 				}
 				'float' {
-					return types.new_builtin_ti(.float_, false)
+					types.new_builtin_ti(.float_, false)
 				}
 				'string' {
-					return types.new_builtin_ti(.string_, false)
+					types.new_builtin_ti(.string_, false)
 				}
 				'char' {
-					return types.new_builtin_ti(.char_, false)
+					types.new_builtin_ti(.char_, false)
 				}
-				'bool' {
-					return types.new_builtin_ti(.bool_, false)
+				'bool', 'boolean' {
+					types.new_builtin_ti(.bool_, false)
 				}
 				else {
 					mut is_result := false

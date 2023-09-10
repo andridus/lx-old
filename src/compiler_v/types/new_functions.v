@@ -28,3 +28,17 @@ pub fn new_builtin_ti(kind Kind, is_list bool) TypeIdent {
 		kind: kind
 	}
 }
+
+pub fn new_sum_ti(sum_kind []Kind) TypeIdent {
+	mut name := ['SUM']
+	for k in sum_kind {
+		name << k.str()
+	}
+
+	return TypeIdent{
+		name: name.join('::')
+		idx: 100
+		kind: .sum_
+		sum_kind: sum_kind
+	}
+}
