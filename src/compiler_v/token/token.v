@@ -316,9 +316,9 @@ pub fn (t Kind) str() string {
 	}
 }
 
-pub fn (t Token) str() string {
-	return '[${t.kind.str()}] "${t.lit}"'
-}
+// pub fn (t Token) str() string {
+// 	return '[${t.kind.str()}] "${t.lit}"'
+// }
 
 pub const (
 	lowest_prec  = 0

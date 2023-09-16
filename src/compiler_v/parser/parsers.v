@@ -146,7 +146,7 @@ fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
 	} else {
 		node = ast.Atom{
 			name: p.tok.lit
-			value: p.tok.lit
+			val: p.tok.lit
 			tok_kind: p.tok.kind
 			is_used: p.in_var_expr
 		}

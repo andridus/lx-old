@@ -1,31 +1,28 @@
 pub struct Underscore {}
-
 pub struct Nil {}
-
 pub struct Atom {
-	val string
-	ref int
-}
-
-pub type AnyType = Atom | Nil | Underscore | bool | f64 | int | string
+			val string
+			ref int
+		}
+pub type AnyType = int | string | bool | f64 | Atom | Nil | Underscore
 
 pub fn (t AnyType) str() string {
 	return match t {
 		int {
 			r := t as int
-			'${r}'
+			'$r'
 		}
 		f64 {
 			r := t as f64
-			'${r}'
+			'$r'
 		}
 		bool {
 			r := t as bool
-			'${r}'
+			'$r'
 		}
 		string {
 			r := t as string
-			'${r}'
+			'$r'
 		}
 		else {
 			'undefined'
@@ -33,18 +30,16 @@ pub fn (t AnyType) str() string {
 	}
 }
 
-pub fn (a Atom) str() string {
-	return ':${a.val}'
-}
+pub fn (a Atom) str() string { return ':${a.val}' }
 
 pub fn do_match(left AnyType, right AnyType) AnyType {
 	if typeof(left).name == typeof(right).name {
 		if left == right {
 			return left
 		} else {
-			eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`\$left`\033[0m doesn`t match with right expression \033[97m`\$right`\033[0m !')
-			exit(0)
-		}
+				eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`\$left`\033[0m doesn`t match with right expression \033[97m`\$right`\033[0m !')
+				exit(0)
+				}
 	} else {
 		panic('broken')
 	}
@@ -61,14 +56,10 @@ pub fn is_match(left AnyType, right AnyType) bool {
 
 pub fn any_to_string(value AnyType) string {
 	return match value {
-		Atom {
-			value.val
-		}
-		string {
-			value
-		}
+		Atom { value.val }
+		string { value }
 		else {
-			eprintln('to_string: invalid conversion')
+			eprintln("to_string: invalid conversion")
 			exit(0)
 		}
 	}
@@ -76,65 +67,30 @@ pub fn any_to_string(value AnyType) string {
 
 pub fn any_to_int(value AnyType) int {
 	return match value {
-		int {
-			value
-		}
-		f64 {
-			value
-		}
+		int { value}
+		f64 { value}
 		bool {
 			r := value as bool
-			if r {
-				1
-			} else {
-				0
-			}
+			if r { 1 } else { 0 }
 		}
 		else {
-			eprintln('\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion')
+			eprintln("\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion")
 			exit(0)
 		}
 	}
 }
-
-// MODULE 'CaseAndGuards'.ex
+// MODULE 'HelloWorld'.ex
 // -------- --------
-fn caseandguards_is_number_1_integer(x int) bool {
-	var_2 := x
-	tmpvar_3 := true
-	return tmpvar_3
-}
+fn helloworld_main_0() string {
+tmpvar_1 := "Hello World"
+	return tmpvar_1
 
-fn caseandguards_main_0() Atom {
-	var_4 := 1
-	if is_match(var_4, 1) {
-		true
-	} else if is_match(var_4, 2) {
-		false
-	}
-	var_5 := 1
-	if is_match(var_5, 1) {
-		true
-	} else {
-		false
-	}
-	var_6 := 1
-	if is_match(var_6, 2) {
-		true
-	} else {
-		false
-	}
-	tmpvar_7 := Atom{
-		val: 'ok'
-	}
-	return tmpvar_7
 }
-
-fn main() {
-	result := caseandguards_main_0()
-	if typeof(result).name != 'Nil' {
-		println(result)
-	} else {
-		println('nil\n')
-	}
+fn main(){
+result := helloworld_main_0()
+if typeof(result).name != 'Nil' {
+print(result)
+}else{
+print("nil\n")
+}
 }

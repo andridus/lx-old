@@ -55,8 +55,8 @@ fn (mut p Parser) defstruct_init() (ast.StructInit, types.TypeIdent) {
 fn (mut p Parser) defstruct_decl() ast.StructDecl {
 	// pos_in := p.tok.pos
 	// mut pos_out := p.tok.pos
-	is_priv := p.tok.kind == .key_defstructp
-	if is_priv {
+	is_private := p.tok.kind == .key_defstructp
+	if is_private {
 		p.check(.key_defstructp)
 	} else {
 		p.check(.key_defstruct)
@@ -101,6 +101,6 @@ fn (mut p Parser) defstruct_decl() ast.StructDecl {
 		fields: fields
 		ti: ti
 		// size:
-		is_pub: !is_priv
+		is_pub: !is_private
 	}
 }

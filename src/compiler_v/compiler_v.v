@@ -8,7 +8,30 @@ import compiler_v.table
 import compiler_v.gen.vlang
 import compiler_v.color
 
+pub fn execute(mut gen vlang.VGen) string {
+	builded_file := gen.save() or {
+			println(err.msg())
+			exit(0)
+		}
+	root := os.abs_path("")
+	result := os.execute_or_exit('v run ${builded_file}')
+	os.rm('$root/$builded_file') or { println("can't remove temp file")}
+
+	return result.output
+}
+pub fn generate(path string) vlang.VGen {
+	prog := &table.Program{
+		table: &table.Table{}
+		build_folder: '_build'
+		core_modules_path: ['src/libs']
+	}
+	parser.preprocess(path, prog)
+	parser.parse_files(prog)
+
+	return vlang.gen(prog)
+}
 pub fn compile(args []string) {
+	println(args)
 	if args.len == 3 {
 		mut sw := time.new_stopwatch()
 		path := os.args[2]

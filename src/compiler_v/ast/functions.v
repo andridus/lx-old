@@ -104,7 +104,7 @@ pub fn (mut kw KeywordList) put(ident string, value string, typ types.TypeIdent,
 	kw.items << Keyword{
 		idx: kw.items.len + 1
 		key: ident
-		value: value
+		val: value
 		typ: typ
 		atom: atom
 	}

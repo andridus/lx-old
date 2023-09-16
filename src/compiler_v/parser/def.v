@@ -258,14 +258,14 @@ pub fn (mut p Parser) call_args() []ast.Expr {
 fn (mut p Parser) def_decl() ast.FnDecl {
 	pos_in := p.tok.pos
 	mut pos_out := p.tok.pos
-	is_priv := p.tok.kind == .key_defp
+	is_private := p.tok.kind == .key_defp
 	mut rec_name := ''
 	mut sum_kind := []types.Kind{}
 	// mut is_method := false
 	mut rec_ti := types.void_ti
 
 	p.program.table.clear_vars()
-	if is_priv {
+	if is_private {
 		p.check(.key_defp)
 	} else {
 		p.check(.key_def)
@@ -357,15 +357,13 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		def_pos_in: pos_in
 		def_pos_out: pos_out
 	})
-	// println(p.program.table)
-
 	return ast.FnDecl{
 		name: name
 		stmts: stmts
 		ti: types.new_sum_ti(sum_kind)
 		arity: args_overfn
 		args: ast_args
-		is_priv: is_priv
+		is_private: is_private
 		receiver: ast.Field{
 			name: rec_name
 			ti: rec_ti
@@ -380,7 +378,5 @@ pub fn (p &Parser) check_fn_calls() {
 			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
 			return
 		}
-		// println(f.return_ti.name)
-		// println('IN AST typ=' + call.typ.name)
 	}
 }

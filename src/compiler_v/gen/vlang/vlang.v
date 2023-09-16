@@ -5,8 +5,10 @@ import compiler_v.ast
 import compiler_v.table
 import compiler_v.types
 import os
+import time
 
-struct VGen {
+pub struct VGen {
+pub:
 	program &table.Program
 mut:
 	definitions          strings.Builder
@@ -77,8 +79,8 @@ pub fn (mut g VGen) save() !string {
 		bin << g.out_modules[modl]
 	}
 	bin << g.out_main
-
-	filepath := '${g.program.build_folder}/main.v'
+	filename := time.now().unix_time_nano()
+	filepath := '${g.program.build_folder}/${filename}.v'
 	os.write_file(filepath, bin.bytestr())!
 	return filepath
 }
@@ -228,7 +230,7 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			g.write(modl, ' ${node.op} ')
 		}
 		ast.Atom {
-			g.write(modl, "Atom{val: \"${node.value}\"}")
+			g.write(modl, "Atom{val: \"${node.val}\"}")
 		}
 		ast.StringLiteral {
 			g.write(modl, "\"${node.val}\"")
@@ -304,9 +306,9 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 		ast.CallEnum {
 			if g.in_var_decl {
 				// g.write(modl, '${g.var_ti} ${g.var_name} = ')
-				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
+				g.writeln(modl, '${node.name.to_upper()}.__${node.val.to_lower()}__')
 			} else {
-				g.writeln(modl, '${node.name.to_upper()}.__${node.value.to_lower()}__')
+				g.writeln(modl, '${node.name.to_upper()}.__${node.val.to_lower()}__')
 			}
 		}
 		ast.CallField {
@@ -560,9 +562,9 @@ fn (mut g VGen) mount_main() {
 		g.out_main.writeln('fn main(){')
 		g.out_main.writeln('result := ${g.fn_main.to_lower()}_0()')
 		g.out_main.writeln("if typeof(result).name != 'Nil' {")
-		g.out_main.writeln('println(result)')
+		g.out_main.writeln('print(result)')
 		g.out_main.writeln('}else{')
-		g.out_main.writeln('println("nil\\n")')
+		g.out_main.writeln('print("nil\\n")')
 		g.out_main.writeln('}')
 		g.out_main.writeln('}')
 	}

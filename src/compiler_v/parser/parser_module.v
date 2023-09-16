@@ -203,7 +203,6 @@ fn parse_modules(path string, prog &table.Program) {
 		mut inserted := false
 		for k, v in aliases {
 			if dep.starts_with(k) {
-				// println('dep: $dep, k: $k, value; $v, !in $ignore_modules')
 				if dep == k && k !in ignore_modules {
 					dependencies0 << v
 				} else {

@@ -22,7 +22,7 @@ fn (mut p Parser) call_enum() !(ast.CallEnum, types.TypeIdent) {
 		if value in t.values {
 			return ast.CallEnum{
 				name: name0
-				value: value
+				val: value
 				ti: ti
 			}, ti
 		} else {
@@ -41,8 +41,8 @@ fn (mut p Parser) call_enum() !(ast.CallEnum, types.TypeIdent) {
 fn (mut p Parser) defenum_decl() ast.EnumDecl {
 	// pos_in := p.tok.pos
 	// mut pos_out := p.tok.pos
-	is_priv := p.tok.kind == .key_defenump
-	if is_priv {
+	is_private := p.tok.kind == .key_defenump
+	if is_private {
 		p.check(.key_defenump)
 	} else {
 		p.check(.key_defenum)
@@ -70,6 +70,6 @@ fn (mut p Parser) defenum_decl() ast.EnumDecl {
 		values: values
 		ti: ti
 		// size:
-		is_pub: !is_priv
+		is_pub: !is_private
 	}
 }

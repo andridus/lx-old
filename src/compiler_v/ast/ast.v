@@ -84,7 +84,7 @@ pub struct EmptyExpr {
 pub struct Keyword {
 	idx     int
 	key     string
-	value   string
+	val   string
 	typ     types.TypeIdent
 	ti      types.TypeIdent
 	atom    bool
@@ -185,7 +185,7 @@ pub:
 pub struct Field {
 pub:
 	name    string
-	ti      types.TypeIdent
+	ti      types.TypeIdent = types.void_ti
 	meta    Meta
 	is_used bool
 }
@@ -245,7 +245,7 @@ pub:
 	stmts    []Stmt
 	ti       types.TypeIdent
 	args     []Arg
-	is_priv  bool
+	is_private  bool
 	receiver Field
 	meta     Meta
 	is_used  bool
@@ -254,7 +254,7 @@ pub:
 pub struct CallEnum {
 pub:
 	name        string
-	value       string
+	val       string
 	is_unknown  bool
 	is_external bool
 	module_path string
@@ -268,7 +268,7 @@ pub struct CallField {
 pub:
 	name        string
 	parent_path []string
-	value       string
+	val       string
 	meta        Meta
 	ti          types.TypeIdent
 	is_used     bool
@@ -356,7 +356,7 @@ pub struct Ident {
 pub:
 	name     string
 	tok_kind token.Kind
-	value    string
+	val    string
 	meta     Meta
 	ti       types.TypeIdent
 	is_used  bool
@@ -368,7 +368,7 @@ pub struct Atom {
 pub:
 	name     string
 	tok_kind token.Kind
-	value    string
+	val    string
 	meta     Meta
 	ti       types.TypeIdent = types.atom_ti
 	is_used  bool
