@@ -97,7 +97,14 @@ pub fn (e BinaryExpr) is_inside_parens() bool {
 }
 
 fn (m Meta) str() string {
-	return '[line: ${m.line}, type: ${m.ti} ]'
+	mut mets := ['line: ${m.line}']
+	if m.inside_parens > 0 {
+		mets << 'inside_parens: true'
+	}
+	if m.ti.kind != .void_ {
+		mets << 'type: ${m.ti}'
+	}
+	return '[${mets.join(',')}]'
 }
 
 pub fn (mut kw KeywordList) put(ident string, value string, typ types.TypeIdent, atom bool) {

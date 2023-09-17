@@ -5,22 +5,19 @@ import compiler_v.token
 import compiler_v.types
 import compiler_v.table
 
-fn (mut p Parser) expr_stmt() ast.ExprStmt {
-	exp, ti := p.expr(0)
-	return ast.ExprStmt{
-		expr: exp
-		ti: ti
-		is_used: p.in_var_expr
-	}
-}
+// fn (mut p Parser) expr_stmt() ast.Node {
+// 	node := p.expr(0)
+// 	return node
+// }
 
-pub fn (mut p Parser) parse_block() []ast.Stmt {
+pub fn (mut p Parser) parse_block() ast.Node {
+	meta := p.meta()
 	if p.inside_ifcase > 0 && p.tok.kind != .key_do {
 	} else {
 		p.check(.key_do)
 	}
 
-	mut stmts := []ast.Stmt{}
+	mut stmts := []ast.Node{}
 
 	if p.tok.kind != .key_end {
 		for {
@@ -39,8 +36,13 @@ pub fn (mut p Parser) parse_block() []ast.Stmt {
 	if p.tok.kind == .key_end {
 		p.check(.key_end)
 	}
-	// println('nr exprs in block = $exprs.len')
-	return stmts
+	println(stmts)
+	if stmts.len == 1 {
+		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts[0]])])
+	} else {
+		// println('nr exprs in block = $exprs.len')
+		return p.node(meta, 'do', stmts)
+	}
 }
 
 fn (mut p Parser) parse_nil_literal() (ast.Expr, types.TypeIdent) {
@@ -130,49 +132,44 @@ fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
 	return node, ti
 }
 
-fn (mut p Parser) atom_expr() (ast.Expr, types.TypeIdent) {
-	mut node := ast.Expr(ast.EmptyExpr{})
-	node = ast.Ident{
-		name: p.tok.lit
-		tok_kind: p.tok.kind
-		is_used: p.in_var_expr
-	}
-	if p.peek_tok.kind == .dot {
-		a, b := p.call_from_module(.atom) or {
-			println(err.msg())
-			exit(0)
-		}
-		return a, b
-	} else {
-		node = ast.Atom{
-			name: p.tok.lit
-			val: p.tok.lit
-			tok_kind: p.tok.kind
-			is_used: p.in_var_expr
-		}
-		p.program.table.find_or_new_atom(p.tok.lit)
-		p.check(.atom)
-	}
+fn (mut p Parser) atom_expr() ast.Node {
+	mut meta := p.meta()
+	mut node := p.node_atom(mut meta, p.tok.lit)
+	// if p.peek_tok.kind == .dot {
+	// 	a, b := p.call_from_module(.atom) or {
+	// 		println(err.msg())
+	// 		exit(0)
+	// 	}
+	// 	return a, b
+	// } else {
+	// node = ast.Atom{
+	// 	name: p.tok.lit
+	// 	val: p.tok.lit
+	// 	tok_kind: p.tok.kind
+	// 	is_used: p.in_var_expr
+	// }
+	p.program.table.find_or_new_atom(p.tok.lit)
+	p.check(.atom)
+	// }
 
-	return node, types.atom_ti
+	return node
 }
 
 fn (mut p Parser) if_expr() (ast.Expr, types.TypeIdent) {
-	mut else_stmts := []ast.Stmt{}
+	mut else_stmts := ast.Node{}
 	p.check(.key_if)
 	p.inside_ifcase++
 	cond, ti := p.expr(0)
-	stmts := p.parse_block()
+	// stmts := p.parse_block()
 	if p.tok.kind == .key_else {
 		p.check(.key_else)
 		else_stmts = p.parse_block()
 	}
 	p.inside_ifcase--
-
 	node := ast.IfExpr{
 		cond: cond
-		stmts: stmts
-		else_stmts: else_stmts
+		// stmts: stmts
+		// else_stmts: else_stmts
 		ti: ti
 		is_used: p.in_var_expr
 	}
@@ -293,9 +290,10 @@ fn (mut p Parser) keyword_list_expr() (ast.Expr, types.TypeIdent) {
 	return node, types.void_ti
 }
 
-fn (mut p Parser) block_expr(is_top_stmt bool) ast.Block {
+fn (mut p Parser) block_expr(is_top_stmt bool) ast.Node {
 	p.check(.key_do)
-	mut stmts := []ast.Stmt{}
+	meta := p.meta()
+	mut stmts := []ast.Node{}
 	for p.peek_tok.kind != .eof {
 		if p.tok.kind == .key_end {
 			break
@@ -303,15 +301,44 @@ fn (mut p Parser) block_expr(is_top_stmt bool) ast.Block {
 		stmts << p.stmt()
 	}
 	p.check(.key_end)
-	return ast.Block{
-		name: filename_without_extension(p.file_name)
-		stmts: stmts
-		is_top_stmt: is_top_stmt
-		is_used: p.in_var_expr
+	// return ast.Block{
+	// 	name: filename_without_extension(p.file_name)
+	// 	stmts: stmts
+	// 	is_top_stmt: is_top_stmt
+	// 	is_used: p.in_var_expr
+	// }
+	if stmts.len == 0 {
+		return p.node_list(meta, []ast.Node{})
+	} else if stmts.len == 1 {
+		return p.node_list(meta, [
+			p.node_tuple(meta, [
+				p.node_atomic('do'),
+				stmts[0],
+			]),
+		])
+	} else {
+		return p.node_list(p.meta(), [
+			p.node_tuple(meta, [
+				p.node_atomic('do'),
+				p.node(meta, '__block__', stmts),
+			]),
+		])
 	}
+
+	// return p.node("defmodule", [
+	// 	p.node("__aliases__", [
+	// 		p.node_atomic(p.module_name)
+	// 	])
+	// 	p.node_tuple([
+	// 		p.node("do", []),
+	// 		block
+	// 	])
+	// ])
 }
 
-fn (mut p Parser) module_decl() ast.Module {
+fn (mut p Parser) module_decl() ast.Node {
+	meta := p.meta()
+	p.tok_inline = p.tok.line_nr
 	p.check(.key_defmodule)
 	mut module_path_name := [p.tok.lit]
 	p.check(.modl)
@@ -323,10 +350,11 @@ fn (mut p Parser) module_decl() ast.Module {
 	}
 	p.module_name = module_path_name.join('.')
 
-	stmt := p.block_expr(false)
-
-	return ast.Module{
-		name: p.module_name
-		stmt: stmt
-	}
+	block := p.block_expr(false)
+	return p.node(meta, 'defmodule', [
+		p.node(meta, '__aliases__', [
+			p.node_atomic(p.module_name),
+		]),
+		block,
+	])
 }

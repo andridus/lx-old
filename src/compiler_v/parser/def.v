@@ -255,14 +255,15 @@ pub fn (mut p Parser) call_args() []ast.Expr {
 	return args // ,types.void_ti
 }
 
-fn (mut p Parser) def_decl() ast.FnDecl {
+fn (mut p Parser) def_decl() ast.Node {
+	mut meta := p.meta()
 	pos_in := p.tok.pos
 	mut pos_out := p.tok.pos
 	is_private := p.tok.kind == .key_defp
-	mut rec_name := ''
+	// mut rec_name := ''
 	mut sum_kind := []types.Kind{}
 	// mut is_method := false
-	mut rec_ti := types.void_ti
+	// mut rec_ti := types.void_ti
 
 	p.program.table.clear_vars()
 	if is_private {
@@ -275,7 +276,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 
 	// GET Args
 	mut args := []table.Var{}
-	mut ast_args := []ast.Arg{}
+	mut ast_args := []types.Arg{}
 
 	for p.tok.kind != .rpar {
 		mut is_nil := false
@@ -326,11 +327,21 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		p.return_ti = ti
 		from_type = true
 	}
-	stmts := p.parse_block()
+	node_block := p.parse_block()
 	// Try get type from body inference
 	if from_type == false {
-		if stmts.len > 0 {
-			ti = stmts[stmts.len - 1].ti
+		if node_block.kind is types.List {
+			n0 := node_block.nodes[0]
+			if n0.kind is types.Tuple {
+				if n0.nodes[0].atom == 'do' {
+					if n0.nodes[1].nodes.len > 0 {
+						ti = n0.nodes[1].nodes[n0.nodes[1].nodes.len - 1].meta.ti
+					} else {
+						println('HERE ${n0.nodes[1].meta.ti}')
+						ti = n0.nodes[1].meta.ti
+					}
+				}
+			}
 		}
 	}
 	sum_kind << ti.kind
@@ -338,7 +349,7 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 	mut args_overfn := '${args.len}'
 	for a in args {
 		// var := p.program.table.find_var(a.name) or { a }
-		var := ast.Arg{
+		var := types.Arg{
 			ti: a.ti
 			name: a.name
 		}
@@ -357,18 +368,28 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		def_pos_in: pos_in
 		def_pos_out: pos_out
 	})
-	return ast.FnDecl{
-		name: name
-		stmts: stmts
-		ti: types.new_sum_ti(sum_kind)
+	meta.put_ti(types.new_sum_ti(sum_kind))
+	return p.node_function(meta, 'def', [
+		p.node(meta, name, []),
+		node_block,
+	], types.Function{
 		arity: args_overfn
 		args: ast_args
+		is_main: name == 'main'
+		return_ti: meta.ti
 		is_private: is_private
-		receiver: ast.Field{
-			name: rec_name
-			ti: rec_ti
-		}
-	}
+	})
+
+	// stmts: stmts
+	// ti: types.new_sum_ti(sum_kind)
+	// arity: args_overfn
+	// args: ast_args
+	// is_private: is_private
+	// receiver: ast.Field{
+	// 	name: rec_name
+	// 	ti: rec_ti
+	// }
+	// }
 }
 
 pub fn (p &Parser) check_fn_calls() {

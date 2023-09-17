@@ -10,15 +10,16 @@ import compiler_v.color
 
 pub fn execute(mut gen vlang.VGen) string {
 	builded_file := gen.save() or {
-			println(err.msg())
-			exit(0)
-		}
-	root := os.abs_path("")
+		println(err.msg())
+		exit(0)
+	}
+	root := os.abs_path('')
 	result := os.execute_or_exit('v run ${builded_file}')
-	os.rm('$root/$builded_file') or { println("can't remove temp file")}
+	os.rm('${root}/${builded_file}') or { println("can't remove temp file") }
 
 	return result.output
 }
+
 pub fn generate(path string) vlang.VGen {
 	prog := &table.Program{
 		table: &table.Table{}
@@ -30,6 +31,7 @@ pub fn generate(path string) vlang.VGen {
 
 	return vlang.gen(prog)
 }
+
 pub fn compile(args []string) {
 	println(args)
 	if args.len == 3 {

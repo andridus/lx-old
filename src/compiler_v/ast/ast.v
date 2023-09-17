@@ -1,11 +1,78 @@
 // Copyright (c) 2023 Helder de Sousa. All rights reserved/
 // Use of this source code is governed by a MIT license
 // that can be found in the LICENSE file
-
 module ast
 
 import compiler_v.types
 import compiler_v.token
+import strings
+
+pub struct Node {
+pub:
+	atom  string
+	meta  Meta
+	kind  types.NodeKind
+	nodes []Node
+}
+
+[unsafe]
+pub fn (n Node) str() string {
+	mut static ident_deep := 0
+	tab := '${strings.repeat_string(' ', ident_deep)}'
+	match n.kind {
+		types.Tuple {
+			mut str := []string{}
+			for n0 in n.nodes {
+				unsafe { str << n0.str() }
+			}
+			return '{' + str.join(', ') + '}'
+		}
+		types.Atomic, types.Atom {
+			return ':${n.atom}'
+		}
+		types.List {
+			mut s := ''
+			if n.nodes.len > 1 {
+				ident_deep += 2
+				mut str := []string{}
+				for n0 in n.nodes {
+					unsafe { str << n0.str() }
+				}
+				s = '[\n${tab}${tab}' + str.join(',') + ']'
+				ident_deep -= 2
+			} else {
+				mut str := []string{}
+				for n0 in n.nodes {
+					unsafe { str << n0.str() }
+				}
+				s = '[' + str.join(',') + ']'
+			}
+			return '${tab}${s}'
+		}
+		else {
+			mut s := ''
+			mut nw := ''
+			if n.nodes.len > 1 {
+				ident_deep += 2
+				mut str := []string{}
+				for n0 in n.nodes {
+					unsafe { str << n0.str() }
+				}
+				s = '[\n${tab}${tab}' + str.join(',\n') + '\n${tab}${tab}]'
+				ident_deep -= 2
+				nw = '\n${tab}'
+			} else {
+				mut str := []string{}
+				for n0 in n.nodes {
+					unsafe { str << n0.str() }
+				}
+				s = '[' + str.join(',') + ']'
+			}
+			// ident_deep++
+			return '{:${n.atom}, ${n.meta}, ${s}}${nw}'
+		}
+	}
+}
 
 pub type Expr = AssignExpr
 	| Atom
@@ -84,7 +151,7 @@ pub struct EmptyExpr {
 pub struct Keyword {
 	idx     int
 	key     string
-	val   string
+	val     string
 	typ     types.TypeIdent
 	ti      types.TypeIdent
 	atom    bool
@@ -240,21 +307,21 @@ pub:
 
 pub struct FnDecl {
 pub:
-	name     string
-	arity    string
-	stmts    []Stmt
-	ti       types.TypeIdent
-	args     []Arg
-	is_private  bool
-	receiver Field
-	meta     Meta
-	is_used  bool
+	name       string
+	arity      string
+	stmts      []Stmt
+	ti         types.TypeIdent
+	args       []Arg
+	is_private bool
+	receiver   Field
+	meta       Meta
+	is_used    bool
 }
 
 pub struct CallEnum {
 pub:
 	name        string
-	val       string
+	val         string
 	is_unknown  bool
 	is_external bool
 	module_path string
@@ -268,7 +335,7 @@ pub struct CallField {
 pub:
 	name        string
 	parent_path []string
-	val       string
+	val         string
 	meta        Meta
 	ti          types.TypeIdent
 	is_used     bool
@@ -356,7 +423,7 @@ pub struct Ident {
 pub:
 	name     string
 	tok_kind token.Kind
-	val    string
+	val      string
 	meta     Meta
 	ti       types.TypeIdent
 	is_used  bool
@@ -368,7 +435,7 @@ pub struct Atom {
 pub:
 	name     string
 	tok_kind token.Kind
-	val    string
+	val      string
 	meta     Meta
 	ti       types.TypeIdent = types.atom_ti
 	is_used  bool
@@ -453,8 +520,12 @@ pub:
 }
 
 pub struct Meta {
-pub:
+pub mut:
 	ti            types.TypeIdent
 	line          int
 	inside_parens int
+}
+
+pub fn (mut m Meta) put_ti(ti types.TypeIdent) {
+	m.ti = ti
 }
