@@ -13,6 +13,7 @@ pub type NodeKind = Alias
 	| Enum
 	| Float
 	| Function
+	| FunctionCaller
 	| Integer
 	| List
 	| ListFixed
@@ -83,6 +84,15 @@ pub:
 	return_ti  TypeIdent
 	is_private bool
 	is_main    bool
+}
+
+pub struct FunctionCaller {
+pub:
+	arity     []string
+	args      []Arg
+	return_ti TypeIdent
+	infix     bool
+	postfix   bool
 }
 
 pub struct Alias {}

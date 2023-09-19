@@ -337,7 +337,6 @@ fn (mut p Parser) def_decl() ast.Node {
 					if n0.nodes[1].nodes.len > 0 {
 						ti = n0.nodes[1].nodes[n0.nodes[1].nodes.len - 1].meta.ti
 					} else {
-						println('HERE ${n0.nodes[1].meta.ti}')
 						ti = n0.nodes[1].meta.ti
 					}
 				}

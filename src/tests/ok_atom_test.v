@@ -9,15 +9,16 @@ pub fn test_ok_atom_ex_file() {
 	mut bin := compiler_v.generate(path)
 
 	// Generate HelloWorld Module
-	assert 'HelloWorld' == bin.program.modules['HelloWorld'].name
+	assert 'OkAtom' == bin.program.modules['OkAtom'].name
 	assert '{{:defmodule, [line: 1], [
-{:__aliases__, [line: 1], [:HelloWorld]},
+{:__aliases__, [line: 1], [:OkAtom]},
   [{:do, {:def, [line: 2,type: SUM::atom_], [
     {:main, [line: 2,type: SUM::atom_], []},
     [{:do, :ok}]
     ]}
   }]
 ]}
-}' == bin.program.modules['HelloWorld'].str()
+}' == bin.program.modules['OkAtom'].str()
 	assert ':ok' == compiler_v.execute(mut bin)
+	// assert 1 == 2
 }

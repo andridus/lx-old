@@ -236,7 +236,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token(',', .comma, 1)
 		}
 		`/` {
-			l.new_token(',', .div, 1)
+			l.new_token('/', .div, 1)
 		}
 		`(` {
 			l.new_token('(', .lpar, 1)

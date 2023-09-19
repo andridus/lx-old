@@ -27,11 +27,47 @@ pub fn (p Parser) node_function(meta ast.Meta, atom string, nodes []ast.Node, ty
 	}
 }
 
+pub fn (p Parser) node_function_caller(meta ast.Meta, atom string, nodes []ast.Node, ty types.FunctionCaller) ast.Node {
+	return ast.Node{
+		atom: atom
+		kind: types.NodeKind(ty)
+		meta: meta
+		nodes: nodes
+	}
+}
+
 pub fn (p Parser) node_atom(mut meta ast.Meta, atom string) ast.Node {
 	meta.put_ti(types.atom_ti)
 	return ast.Node{
 		atom: atom
 		kind: types.NodeKind(types.Atom{})
+		meta: meta
+	}
+}
+
+pub fn (p Parser) node_string(mut meta ast.Meta, str string) ast.Node {
+	meta.put_ti(types.string_ti)
+	return ast.Node{
+		atom: str
+		kind: types.NodeKind(types.String{})
+		meta: meta
+	}
+}
+
+pub fn (p Parser) node_integer(mut meta ast.Meta, val int) ast.Node {
+	meta.put_ti(types.integer_ti)
+	return ast.Node{
+		atom: val.str()
+		kind: types.NodeKind(types.Integer{})
+		meta: meta
+	}
+}
+
+pub fn (p Parser) node_float(mut meta ast.Meta, val f64) ast.Node {
+	meta.put_ti(types.float_ti)
+	return ast.Node{
+		atom: val.str()
+		kind: types.NodeKind(types.Float{})
 		meta: meta
 	}
 }
@@ -60,8 +96,17 @@ pub fn (p Parser) node_atomic(atom string) ast.Node {
 	}
 }
 
+pub fn (p Parser) node_default() ast.Node {
+	return ast.Node{
+		atom: 'default_term'
+		kind: types.NodeKind(types.Atomic{})
+		nodes: []
+	}
+}
+
 pub fn (p Parser) meta() ast.Meta {
 	return ast.Meta{
 		line: p.tok.line_nr
+		inside_parens: p.inside_parens
 	}
 }

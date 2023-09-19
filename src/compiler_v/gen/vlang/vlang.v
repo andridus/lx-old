@@ -58,7 +58,6 @@ pub fn gen(prog table.Program) VGen {
 
 	for modl in prog.compile_order {
 		for node in prog.modules[modl].asts {
-			println(node)
 			g.parse_node(modl, node)
 		}
 	}
@@ -81,12 +80,11 @@ pub fn (mut g VGen) save() !string {
 	bin << native.bytes()
 	for modl in order {
 		bin << g.out_modules[modl]
-		println(g.out_modules[modl].bytestr())
+		// println(g.out_modules[modl].bytestr())
 	}
 	bin << g.out_main
 	filename := time.now().unix_time_nano()
 	filepath := '${g.program.build_folder}/${filename}.v'
-
 	os.write_file(filepath, bin.bytestr())!
 	return filepath
 }
@@ -246,6 +244,15 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 			// g.writeln(modl, '\'${node.atom}\'')
 			g.write(modl, "Atom{val: \"${node.atom}\"}")
 		}
+		types.String {
+			g.write(modl, "\"${node.atom}\"")
+		}
+		types.Integer {
+			g.write(modl, '${node.atom}')
+		}
+		types.Float {
+			g.write(modl, '${node.atom}')
+		}
 		types.Function {
 			// g.parent_node = node
 			// atom node
@@ -256,10 +263,25 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 			// node1 := node.nodes[1]
 			// g.parse_node(modl,node1)
 		}
+		types.FunctionCaller {
+			println(node)
+			ty := node.kind as types.FunctionCaller
+			if ty.infix {
+				if node.nodes.len == 2 {
+					if node.is_inside_parens() {
+						g.write(modl, '(')
+					}
+					g.parse_node(modl, node.nodes[0])
+					g.write(modl, '${node.atom}')
+					g.parse_node(modl, node.nodes[1])
+					if node.is_inside_parens() {
+						g.write(modl, ')')
+					}
+				}
+			}
+		}
 		types.Tuple {
 			if node.nodes[0].atom == 'do' {
-				println('------  ${g.parent_node.atom} ${g.parent_node.kind is types.Module} -----------')
-				println(node.nodes[1])
 				match g.parent_node.kind {
 					types.Module {
 						g.parse_node(modl, node.nodes[1])
@@ -273,7 +295,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.parse_node(modl, node.nodes[1])
 					}
 				}
-				println('-----------------')
 			}
 			// if node.nodes.len == 2 && node.nodes[0].atom == "do" && g.parent_node.kind is types.Module {
 			// 	println("tuple directly inside module ")
@@ -367,7 +388,7 @@ fn (mut g VGen) expr(modl string, node ast.Expr) {
 			g.expr(modl, node.right)
 			g.writeln(modl, '))')
 			if node.is_used || g.is_last_statement {
-				g.write(modl, 'return ${tmp_}')
+				g.writeln(modl, 'dreturn ${tmp_}')
 			}
 		}
 		ast.CaseClauseExpr {
@@ -528,7 +549,6 @@ fn (mut g VGen) write_fns_node(modl string, nodes []ast.Node) {
 		}
 		for n in nodes {
 			fdata := n.kind as types.Function
-			println(fdata)
 			arity_idx := fns0.idx_arity_by_args[fdata.arity]
 			arity := fns0.arities[arity_idx]
 			// println(arity)
@@ -573,7 +593,6 @@ fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata t
 			}
 			i0++
 		}
-		println(fdata.return_ti)
 		arity_ti := fdata.return_ti.sum_kind[arity_idx - 1]
 		return_ti := parse_type(arity_ti)
 		g.writeln(modl, ') ${return_ti} {')
@@ -607,7 +626,7 @@ fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata t
 					g.write(modl, '${tmp_} := ')
 
 					g.parse_node(modl, n)
-					g.writeln(modl, '\treturn ${tmp_}')
+					g.writeln(modl, '\nreturn ${tmp_}')
 				} else {
 					if n.meta.ti.kind == .void_ {
 						g.parse_node(modl, n)
@@ -710,7 +729,6 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 			i0++
 		}
 		arity_ti := node.ti.sum_kind[arity_idx - 1]
-		println(arity_ti)
 		return_ti := parse_type(arity_ti)
 		g.writeln(modl, ') ${return_ti} {')
 	} else {
@@ -768,7 +786,7 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 						} else {
 							g.write(modl, '${tmp_} := ')
 							g.stmt(modl, stmt)
-							g.writeln(modl, '\treturn ${tmp_}')
+							g.writeln(modl, '\tcreturn ${tmp_}')
 						}
 					}
 				}

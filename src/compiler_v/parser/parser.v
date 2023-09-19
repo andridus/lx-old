@@ -280,40 +280,40 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 		// .multistring {
 		// 	node, ti = p.string_expr()
 		// }
-		// .str {
-		// 	if p.peek_tok.kind == .string_concat {
-		// 		node, ti = p.string_concat_expr()
-		// 	} else if p.peek_tok.kind == .colon_space {
-		// 		node, ti = p.keyword_list_expr()
-		// 	} else {
-		// 		node, ti = p.string_expr()
-		// 	}
-		// }
+		.str {
+			// if p.peek_tok.kind == .string_concat {
+			// 	node, ti = p.string_concat_expr()
+			// } else if p.peek_tok.kind == .colon_space {
+			// 	node, ti = p.keyword_list_expr()
+			// } else {
+			node = p.string_expr()
+			// }
+		}
 		// .key_true, .key_false {
 		// 	node, ti = p.parse_boolean()
 		// }
 		// .bang {
 		// 	node, ti = p.not_expr()
 		// }
-		// .integer {
-		// 	node, ti = p.parse_number_literal()
-		// }
-		// .float {
-		// 	node, ti = p.parse_number_literal()
-		// }
+		.integer {
+			node = p.parse_number_literal()
+		}
+		.float {
+			node = p.parse_number_literal()
+		}
 		// .charlist {
 		// 	node, ti = p.charlist_expr()
 		// }
 		// .lcbr {
 		// 	node, ti = p.tuple_expr()
 		// }
-		// .lpar {
-		// 	p.check(.lpar)
-		// 	p.inside_parens++
-		// 	node, ti = p.expr(0)
-		// 	p.check(.rpar)
-		// 	p.inside_parens--
-		// }
+		.lpar {
+			p.check(.lpar)
+			p.inside_parens++
+			node = p.expr_node(0)
+			p.check(.rpar)
+			p.inside_parens--
+		}
 		// .modl {
 		// 	mut num := 1
 		// 	mut nt := p.peek_next_token(num)
@@ -355,24 +355,24 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 		}
 	}
 
-	// // Infix
-	// for precedence < p.tok.precedence() {
-	// 	if p.tok.kind.is_infix() {
-	// 		node, ti = p.infix_expr(node)
-	// 		return node, ti
-	// 	}
-	// 	// Postfix
-	// 	else if p.tok.kind in [.inc, .dec] {
-	// 		node = ast.PostfixExpr{
-	// 			op: p.tok.kind
-	// 			expr: node
-	// 		}
-	// 		p.next_token()
-	// 		return node, ti
-	// 	} else {
-	// 		return node, ti
-	// 	}
-	// }
+	// Infix
+	for precedence < p.tok.precedence() {
+		if p.tok.kind.is_infix() {
+			node = p.infix_expr(node)
+			return node
+		}
+		// Postfix
+		// else if p.tok.kind in [.inc, .dec] {
+		// 	node = ast.PostfixExpr{
+		// 		op: p.tok.kind
+		// 		expr: node
+		// 	}
+		// 	p.next_token()
+		// 	return node, ti
+		// } else {
+		// 	return node, ti
+		// }
+	}
 	return node
 }
 
@@ -413,30 +413,30 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		.key_if {
 			node, ti = p.if_expr()
 		}
-		.multistring {
-			node, ti = p.string_expr()
-		}
-		.str {
-			if p.peek_tok.kind == .string_concat {
-				node, ti = p.string_concat_expr()
-			} else if p.peek_tok.kind == .colon_space {
-				node, ti = p.keyword_list_expr()
-			} else {
-				node, ti = p.string_expr()
-			}
-		}
+		// .multistring {
+		// 	node, ti = p.string_expr()
+		// }
+		// .str {
+		// 	if p.peek_tok.kind == .string_concat {
+		// 		node, ti = p.string_concat_expr()
+		// 	} else if p.peek_tok.kind == .colon_space {
+		// 		node, ti = p.keyword_list_expr()
+		// 	} else {
+		// 		node, ti = p.string_expr()
+		// 	}
+		// }
 		.key_true, .key_false {
 			node, ti = p.parse_boolean()
 		}
 		.bang {
 			node, ti = p.not_expr()
 		}
-		.integer {
-			node, ti = p.parse_number_literal()
-		}
-		.float {
-			node, ti = p.parse_number_literal()
-		}
+		// .integer {
+		// 	node, ti = p.parse_number_literal()
+		// }
+		// .float {
+		// 	node, ti = p.parse_number_literal()
+		// }
 		.charlist {
 			node, ti = p.charlist_expr()
 		}
@@ -492,23 +492,23 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 		}
 	}
 
-	// Infix
-	for precedence < p.tok.precedence() {
-		if p.tok.kind.is_infix() {
-			node, ti = p.infix_expr(node)
-			return node, ti
-		}
-		// Postfix
-		else if p.tok.kind in [.inc, .dec] {
-			node = ast.PostfixExpr{
-				op: p.tok.kind
-				expr: node
-			}
-			p.next_token()
-			return node, ti
-		} else {
-			return node, ti
-		}
-	}
+	// // Infix
+	// for precedence < p.tok.precedence() {
+	// 	if p.tok.kind.is_infix() {
+	// 		node = p.infix_expr(node)
+	// 		return node
+	// 	}
+	// 	// Postfix
+	// 	else if p.tok.kind in [.inc, .dec] {
+	// 		node = ast.PostfixExpr{
+	// 			op: p.tok.kind
+	// 			expr: node
+	// 		}
+	// 		p.next_token()
+	// 		return node, ti
+	// 	} else {
+	// 		return node, ti
+	// 	}
+	// }
 	return node, ti
 }

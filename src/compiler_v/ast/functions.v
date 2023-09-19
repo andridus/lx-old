@@ -145,20 +145,21 @@ pub fn is_literal_from_stmt(stmt Stmt) bool {
 	}
 }
 
-pub fn maybe_promote_integer_to_float(expr_a Expr, expr_b Expr) Expr {
-	if expr_a is IntegerLiteral && expr_b is FloatLiteral {
-		c := expr_a as IntegerLiteral
-		return Expr(FloatLiteral{
-			val: c.val
-		})
+pub fn maybe_promote_integer_to_float(expr_a Node, expr_b Node) Node {
+	if expr_a.kind is types.Integer && expr_b.kind is types.Float {
+		return Node{
+			atom: expr_a.atom + '.0'
+			meta: expr_a.meta
+			kind: types.NodeKind(types.Float{})
+		}
 	} else {
 		return expr_a
 	}
 }
 
-pub fn is_need_to_promote(expr_a Expr, expr_b Expr) bool {
-	if (expr_a is IntegerLiteral && expr_b is FloatLiteral)
-		|| (expr_b is IntegerLiteral && expr_a is FloatLiteral) {
+pub fn is_need_to_promote(expr_a Node, expr_b Node) bool {
+	if (expr_a.kind is types.Integer && expr_b.kind is types.Float)
+		|| (expr_b.kind is types.Integer && expr_a.kind is types.Float) {
 		return true
 	} else {
 		return false

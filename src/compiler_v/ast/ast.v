@@ -15,11 +15,42 @@ pub:
 	nodes []Node
 }
 
+pub fn (n Node) get_ti() types.TypeIdent {
+	return n.meta.ti
+}
+
+pub fn (n Node) is_inside_parens() bool {
+	return n.meta.inside_parens > 0
+}
+
+pub fn precedence(term string) int {
+	return match term {
+		'[' { 9 }
+		'.' { 8 }
+		'++', '--' { 7 }
+		'*', '/', '%', '<<', '>>', '&' { 6 }
+		'+', '-', '|', '^' { 5 }
+		'==', '!=', '<', '<=', '>', '>=' { 4 }
+		'&&', 'and' { 3 }
+		'||', '=' { 2 }
+		else { 0 }
+	}
+}
+
+pub fn (n Node) precedence() int {
+	return precedence(n.atom)
+}
+
 [unsafe]
 pub fn (n Node) str() string {
 	mut static ident_deep := 0
+	mut static split := false
 	tab := '${strings.repeat_string(' ', ident_deep)}'
+
 	match n.kind {
+		types.String {
+			return "\"${n.atom}\""
+		}
 		types.Tuple {
 			mut str := []string{}
 			for n0 in n.nodes {
@@ -29,6 +60,9 @@ pub fn (n Node) str() string {
 		}
 		types.Atomic, types.Atom {
 			return ':${n.atom}'
+		}
+		types.Integer, types.Float {
+			return '${n.atom}'
 		}
 		types.List {
 			mut s := ''
@@ -53,14 +87,26 @@ pub fn (n Node) str() string {
 			mut s := ''
 			mut nw := ''
 			if n.nodes.len > 1 {
+				if split == true {
+					split = false
+				}
 				ident_deep += 2
 				mut str := []string{}
+
 				for n0 in n.nodes {
-					unsafe { str << n0.str() }
+					s0 := unsafe { n0.str() }
+					str << s0
+					if s0.len > 40 {
+						split = true
+					}
 				}
-				s = '[\n${tab}${tab}' + str.join(',\n') + '\n${tab}${tab}]'
+				if split {
+					s = '[\n${tab}${tab}' + str.join(',\n${tab}${tab}') + ']'
+					nw = ''
+				} else {
+					s = '[' + str.join(',') + ']'
+				}
 				ident_deep -= 2
-				nw = '\n${tab}'
 			} else {
 				mut str := []string{}
 				for n0 in n.nodes {

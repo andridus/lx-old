@@ -36,7 +36,6 @@ pub fn (mut p Parser) parse_block() ast.Node {
 	if p.tok.kind == .key_end {
 		p.check(.key_end)
 	}
-	println(stmts)
 	if stmts.len == 1 {
 		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts[0]])])
 	} else {
@@ -53,36 +52,30 @@ fn (mut p Parser) parse_nil_literal() (ast.Expr, types.TypeIdent) {
 	return node, types.nil_ti
 }
 
-fn (mut p Parser) parse_number_literal() (ast.Expr, types.TypeIdent) {
-	mut node := ast.Expr(ast.EmptyExpr{})
-	mut ti := types.integer_ti
+fn (mut p Parser) parse_number_literal() ast.Node {
+	mut meta := p.meta()
+	mut node := p.node_default()
 	if p.tok.kind == .float {
-		node = ast.Expr(ast.FloatLiteral{
-			val: unsafe { p.tok.value.fval }
-			is_used: p.in_var_expr
-		})
-		ti = types.float_ti
+		node = unsafe { p.node_float(mut meta, p.tok.value.fval)}
 	} else {
-		node = ast.Expr(ast.IntegerLiteral{
-			val: unsafe { p.tok.value.ival }
-			is_used: p.in_var_expr
-		})
+		node = unsafe { p.node_integer(mut meta, p.tok.value.ival)}
 	}
 	p.next_token()
-	return node, ti
+	return node
 }
 
-fn (mut p Parser) infix_expr(left ast.Expr) (ast.Expr, types.TypeIdent) {
-	op := p.tok.kind
-	op_precedence := p.tok.precedence()
+fn (mut p Parser) infix_expr(left ast.Node) ast.Node {
+	mut meta := p.meta()
+	op := p.tok.lit
+	op_precedence := ast.precedence(op)
 	p.next_token()
-	next_precedence := p.tok.precedence()
-	right, mut ti := p.expr(next_precedence)
-	if op.is_relational() {
-		ti = types.bool_ti
-	}
-	expr := p.parse_ast_expr(left, op, op_precedence, right, p.inside_parens > 0)
-	return expr, ti
+	next_precedence := ast.precedence(p.tok.lit)
+	right := p.expr_node(next_precedence)
+	// if op.is_relational() {
+	// 	ti = types.bool_ti
+	// }
+	node := p.parse_operations(mut meta, left, op, op_precedence, right, p.inside_parens > 0)
+	return node
 }
 
 fn (mut p Parser) not_expr() (ast.Expr, types.TypeIdent) {
@@ -176,14 +169,14 @@ fn (mut p Parser) if_expr() (ast.Expr, types.TypeIdent) {
 	return node, node.ti
 }
 
-fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
-	mut node := ast.StringLiteral{
-		val: p.tok.lit
-	}
+fn (mut p Parser) string_expr() ast.Node {
+	mut meta := p.meta()
+
+	mut node := p.node_string(mut meta, p.tok.lit)
 	if p.peek_tok.kind != .hash {
 		// TODO: interpolate string
 		p.next_token()
-		return node, types.string_ti
+		return node
 	}
 	for p.tok.kind == .str {
 		p.next_token()
@@ -193,17 +186,17 @@ fn (mut p Parser) string_expr() (ast.Expr, types.TypeIdent) {
 		p.check(.hash)
 		p.expr(0)
 	}
-	return node, types.string_ti
+	return node
 }
 
 fn (mut p Parser) string_concat_expr() (ast.Expr, types.TypeIdent) {
 	mut left := ast.Expr(ast.EmptyExpr{})
 	mut left_ti := types.void_ti
-	if p.tok.kind == .str {
-		left, left_ti = p.string_expr()
-	} else if p.tok.kind == .ident {
-		left, left_ti = p.ident_expr()
-	}
+	// if p.tok.kind == .str {
+	// 	left, left_ti = p.string_expr()
+	// } else if p.tok.kind == .ident {
+	// 	left, left_ti = p.ident_expr()
+	// }
 	if left_ti.kind != .string_ {
 		println('${left} is not a string type')
 		exit(0)

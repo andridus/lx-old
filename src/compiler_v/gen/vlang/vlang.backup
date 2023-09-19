@@ -477,7 +477,6 @@ fn (mut g VGen) write_fn(modl string, node ast.FnDecl, arity_idx int, arity tabl
 			i0++
 		}
 		arity_ti := node.ti.sum_kind[arity_idx - 1]
-		println(arity_ti)
 		return_ti := parse_type(arity_ti)
 		g.writeln(modl, ') ${return_ti} {')
 	} else {
