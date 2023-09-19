@@ -49,7 +49,7 @@ fn (mut p Parser) parse_operations(mut meta ast.Meta, left ast.Node, op string, 
 }
 
 fn (mut p Parser) node_infix(mut meta ast.Meta, left ast.Node, op string, right ast.Node) ast.Node {
-	mut ti := left.meta.ti
+	mut ti := left.get_ti()
 	mut left0 := left
 	mut right0 := right
 	if ast.is_need_to_promote(left, right) {

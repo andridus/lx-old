@@ -149,7 +149,11 @@ pub fn maybe_promote_integer_to_float(expr_a Node, expr_b Node) Node {
 	if expr_a.kind is types.Integer && expr_b.kind is types.Float {
 		return Node{
 			atom: expr_a.atom + '.0'
-			meta: expr_a.meta
+			meta: Meta{
+				ti: types.float_ti
+				line: expr_a.meta.line
+				inside_parens: expr_a.meta.inside_parens
+			}
 			kind: types.NodeKind(types.Float{})
 		}
 	} else {
