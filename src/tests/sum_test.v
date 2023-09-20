@@ -10,14 +10,6 @@ pub fn test_ok_atom_ex_file() {
 
 	// Generate HelloWorld Module
 	assert 'SumTest' == bin.program.modules['SumTest'].name
-	assert '{{:defmodule, [line: 1], [
-{:__aliases__, [line: 1], [:SumTest]},
-  [{:do, {:def, [line: 2,type: SUM::integer_], [
-    {:main, [line: 2,type: SUM::integer_], []},
-    [{:do, {:+, [line: 3], [1,2]}}]
-    ]}
-  }]
-]}
-}' == bin.program.modules['SumTest'].str()
+	assert '{{:defmodule, [line: 1], [{:__aliases__, [line: 1], [:SumTest]},[{:do,{:def, [line: 2,type: SUM::integer_], [{:main, [line: 2,type: SUM::integer_], []},[{:do,{:+, [line: 3,type: integer_], [1,2]}}]]}}]]}}' == bin.program.modules['SumTest'].str()
 	assert '3' == compiler_v.execute(mut bin)
 }

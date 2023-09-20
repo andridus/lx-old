@@ -36,18 +36,19 @@ pub fn (p &Parser) error_d(s string, desc string, url string) {
 	if url.len > 0 {
 		description += '\nView more: ${url}\n'
 	}
-	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]:\n${s}'))
-	print(color.fg(color.dark_gray, 3, description))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
+	eprintln(color.fg(color.red, 0, 'ERROR1: ${p.file_name}[${p.tok.line_nr},${p.error_pos_in}]:\n${s}'))
+	eprint(color.fg(color.dark_gray, 3, description))
+	eprintln(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.error_pos_in,
 		p.error_pos_out, 1, p.tok.line_nr))
-	exit(0)
+	exit(1)
 }
 
 pub fn (p &Parser) error_at_line(s string, line_nr int) {
 	num := p.tok.lit.len + 2
-	println(color.fg(color.red, 0, 'ERROR: ${p.file_name}:${line_nr}: ${s}'))
-	println(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.tok.pos_inline - num,
+	eprintln(color.fg(color.red, 0, 'ERROR: ${p.file_name}:${line_nr}: ${s}'))
+	eprintln(p.lexer.get_code_between_line_breaks(color.red, p.tok.pos, p.tok.pos_inline - num,
 		p.tok.pos_inline, 1, p.tok.line_nr))
+	exit(1)
 }
 
 pub fn (p &Parser) warn(s string) {

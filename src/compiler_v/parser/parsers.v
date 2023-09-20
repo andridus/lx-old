@@ -56,9 +56,9 @@ fn (mut p Parser) parse_number_literal() ast.Node {
 	mut meta := p.meta()
 	mut node := p.node_default()
 	if p.tok.kind == .float {
-		node = unsafe { p.node_float(mut meta, p.tok.value.fval)}
+		node = unsafe { p.node_float(mut meta, p.tok.value.fval) }
 	} else {
-		node = unsafe { p.node_integer(mut meta, p.tok.value.ival)}
+		node = unsafe { p.node_integer(mut meta, p.tok.value.ival) }
 	}
 	p.next_token()
 	return node

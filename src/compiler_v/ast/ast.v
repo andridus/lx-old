@@ -5,7 +5,6 @@ module ast
 
 import compiler_v.types
 import compiler_v.token
-import strings
 
 pub struct Node {
 pub:
@@ -41,85 +40,18 @@ pub fn (n Node) precedence() int {
 	return precedence(n.atom)
 }
 
-[unsafe]
-pub fn (n Node) str() string {
-	mut static ident_deep := 0
-	mut static split := false
-	tab := '${strings.repeat_string(' ', ident_deep)}'
-
-	match n.kind {
-		types.String {
-			return "\"${n.atom}\""
-		}
-		types.Tuple {
-			mut str := []string{}
-			for n0 in n.nodes {
-				unsafe { str << n0.str() }
-			}
-			return '{' + str.join(', ') + '}'
-		}
-		types.Atomic, types.Atom {
-			return ':${n.atom}'
-		}
-		types.Integer, types.Float {
-			return '${n.atom}'
-		}
-		types.List {
-			mut s := ''
-			if n.nodes.len > 1 {
-				ident_deep += 2
-				mut str := []string{}
-				for n0 in n.nodes {
-					unsafe { str << n0.str() }
-				}
-				s = '[\n${tab}${tab}' + str.join(',') + ']'
-				ident_deep -= 2
-			} else {
-				mut str := []string{}
-				for n0 in n.nodes {
-					unsafe { str << n0.str() }
-				}
-				s = '[' + str.join(',') + ']'
-			}
-			return '${tab}${s}'
-		}
-		else {
-			mut s := ''
-			mut nw := ''
-			if n.nodes.len > 1 {
-				if split == true {
-					split = false
-				}
-				ident_deep += 2
-				mut str := []string{}
-
-				for n0 in n.nodes {
-					s0 := unsafe { n0.str() }
-					str << s0
-					if s0.len > 40 {
-						split = true
-					}
-				}
-				if split {
-					s = '[\n${tab}${tab}' + str.join(',\n${tab}${tab}') + ']'
-					nw = ''
-				} else {
-					s = '[' + str.join(',') + ']'
-				}
-				ident_deep -= 2
-			} else {
-				mut str := []string{}
-				for n0 in n.nodes {
-					unsafe { str << n0.str() }
-				}
-				s = '[' + str.join(',') + ']'
-			}
-			// ident_deep++
-			return '{:${n.atom}, ${n.meta}, ${s}}${nw}'
-		}
-	}
+pub struct Meta {
+pub mut:
+	ti            types.TypeIdent
+	line          int
+	inside_parens int
 }
 
+pub fn (mut m Meta) put_ti(ti types.TypeIdent) {
+	m.ti = ti
+}
+
+/// ---------------------------------
 pub type Expr = AssignExpr
 	| Atom
 	| BinaryExpr
@@ -563,15 +495,4 @@ pub:
 	meta    Meta
 	ti      types.TypeIdent
 	is_used bool
-}
-
-pub struct Meta {
-pub mut:
-	ti            types.TypeIdent
-	line          int
-	inside_parens int
-}
-
-pub fn (mut m Meta) put_ti(ti types.TypeIdent) {
-	m.ti = ti
 }
