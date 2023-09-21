@@ -10,22 +10,22 @@ fn (mut p Parser) parse_operations_deep(mut meta ast.Meta, left ast.Node, op str
 			if right.is_inside_parens() {
 				return p.node_infix(mut meta, left, op, right)
 			}
-			if op_prec < ast.precedence(right.atom) {
+			if op_prec < ast.precedence(right.left.atomic_str()) {
 				return p.node_infix(mut meta, left, op, right)
 			} else {
 				left0 := p.parse_operations_deep(mut meta, left, op, op_prec, right.nodes[0])
-				return p.node_infix(mut meta, left0, right.atom, right.nodes[1])
+				return p.node_infix(mut meta, left0, right.left.atomic_str(), right.nodes[1])
 			}
 		} else {
 			if right.is_inside_parens() {
 				return p.node_infix(mut meta, left, op, right)
 			}
-			if op_prec < ast.precedence(right.atom) {
+			if op_prec < ast.precedence(right.left.atomic_str()) {
 				return p.node_infix(mut meta, left, op, right)
 			} else {
 				left0 := p.parse_operations(mut meta, left, op, ast.precedence(op), right.nodes[0],
 					false)
-				return p.node_infix(mut meta, left0, right.atom, right.nodes[1])
+				return p.node_infix(mut meta, left0, right.left.atomic_str(), right.nodes[1])
 			}
 		}
 	} else {
@@ -37,11 +37,11 @@ fn (mut p Parser) parse_operations(mut meta ast.Meta, left ast.Node, op string, 
 	return if right.kind is types.FunctionCaller {
 		if right.is_inside_parens() {
 			p.node_infix(mut meta, left, op, right)
-		} else if op_prec < ast.precedence(right.atom) {
+		} else if op_prec < ast.precedence(right.left.atomic_str()) {
 			p.node_infix(mut meta, left, op, right)
 		} else {
 			left0 := p.parse_operations_deep(mut meta, left, op, op_prec, right.nodes[0])
-			p.node_infix(mut meta, left0, right.atom, right.nodes[1])
+			p.node_infix(mut meta, left0, right.left.atomic_str(), right.nodes[1])
 		}
 	} else {
 		p.node_infix(mut meta, left, op, right)

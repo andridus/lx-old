@@ -11,6 +11,6 @@ pub fn test_lexer_ex_file() {
 	mut bin := compiler_v.generate(path)
 
 	assert 'A' == bin.program.modules['A'].name
-	assert 'as' == bin.program.modules['A'].str()
-	assert '2.01' == compiler_v.execute(mut bin)
+	assert '{{:defmodule, [line: 1], [{:__aliases__, [line: 1], [:B]},[{:do,{:def, [line: 2,type: SUM::float_], [{:one, [line: 2,type: SUM::float_], []},[{:do,2.0}]]}}]]},{:defmodule, [line: 1], [{:__aliases__, [line: 1], [:A]},[{:do,{:def, [line: 2,type: SUM::float_], [{:main, [line: 2,type: SUM::float_], []},[{:do,{:{:., [line: 3,type: float_], [{:__aliases__, [line: 3,type: float_], [:B]},:one]}, [line: 3,type: float_], []}}]]}}]]}}' == bin.program.modules['A'].str()
+	assert '2.0' == compiler_v.execute(mut bin)
 }

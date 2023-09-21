@@ -242,29 +242,28 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 		}
 		types.Atom, types.Atomic {
 			// g.writeln(modl, '\'${node.atom}\'')
-			g.write(modl, "Atom{val: \"${node.atom}\"}")
+			g.write(modl, "Atom{val: \"${node.left}\"}")
 		}
 		types.String {
-			g.write(modl, "\"${node.atom}\"")
+			g.write(modl, "\"${node.left}\"")
 		}
 		types.Integer {
-			g.write(modl, '${node.atom}')
+			g.write(modl, '${node.left}')
 		}
 		types.Float {
-			g.write(modl, '${node.atom}')
+			g.write(modl, '${node.left}')
 		}
 		types.Function {
 			// g.parent_node = node
 			// atom node
 			node0 := node.nodes[0]
-			g.fn_agg_node[node0.atom] << node
+			g.fn_agg_node[node0.left.str()] << node
 			// g.writeln(modl, 'fn ${node0.atom}()')
 			// block node
 			// node1 := node.nodes[1]
 			// g.parse_node(modl,node1)
 		}
 		types.FunctionCaller {
-			println(node)
 			ty := node.kind as types.FunctionCaller
 			if ty.infix {
 				if node.nodes.len == 2 {
@@ -272,16 +271,27 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.write(modl, '(')
 					}
 					g.parse_node(modl, node.nodes[0])
-					g.write(modl, '${node.atom}')
+					g.write(modl, '${node.left.str()}')
 					g.parse_node(modl, node.nodes[1])
 					if node.is_inside_parens() {
 						g.write(modl, ')')
 					}
 				}
+			} else {
+				fn_name := ty.module_name + '_' + ty.name + '_' + '0'
+				g.write(modl, fn_name.to_lower())
+				g.write(modl, '(')
+				for i := 0; i < node.nodes.len; i++ {
+					g.parse_node(modl, node.nodes[i])
+					if i < (node.nodes.len - 1) {
+						g.write(modl, ',')
+					}
+				}
+				g.write(modl, ')')
 			}
 		}
 		types.Tuple {
-			if node.nodes[0].atom == 'do' {
+			if node.nodes[0].left.str() == 'do' {
 				match g.parent_node.kind {
 					types.Module {
 						g.parse_node(modl, node.nodes[1])
@@ -542,7 +552,7 @@ fn (mut g VGen) write_fns_node(modl string, nodes []ast.Node) {
 	if nodes.len > 0 {
 		node := nodes[0]
 		node0 := node.nodes[0]
-		name_fun_raw := '${module_name.replace('_', '.')}.${node0.atom}'
+		name_fun_raw := '${module_name.replace('_', '.')}.${node0.left}'
 		fns0 := g.program.table.fns[name_fun_raw]
 		if !fns0.is_valid {
 			return
@@ -560,7 +570,7 @@ fn (mut g VGen) write_fns_node(modl string, nodes []ast.Node) {
 fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata types.Function, arity table.FnArity, total_arities int) {
 	node0 := node.nodes[0]
 	node1 := node.nodes[1]
-	fun_name := node0.atom
+	fun_name := node0.left.str()
 	module0 := g.program.modules[modl]
 	module_name := module0.name.replace('.', '_')
 

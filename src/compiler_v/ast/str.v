@@ -2,10 +2,17 @@ module ast
 
 import compiler_v.types
 
+pub fn (n NodeLeft) str() string {
+	return match n {
+		string { n }
+		Node { n.str() }
+	}
+}
+
 pub fn (n Node) str() string {
 	match n.kind {
 		types.String {
-			return "\"${n.atom}\""
+			return "\"${n.left.str()}\""
 		}
 		types.Tuple {
 			mut str := []string{}
@@ -14,11 +21,15 @@ pub fn (n Node) str() string {
 			}
 			return '{' + str.join(',') + '}'
 		}
-		types.Atomic, types.Atom {
-			return ':${n.atom}'
+		types.Atomic {
+			value := n.left as string
+			return ':${value}'
+		}
+		types.Atom {
+			return ':${n.left.str()}'
 		}
 		types.Integer, types.Float {
-			return '${n.atom}'
+			return '${n.left.str()}'
 		}
 		types.List {
 			mut str := []string{}
@@ -33,7 +44,7 @@ pub fn (n Node) str() string {
 				str << n0.str()
 			}
 			list := '[' + str.join(',') + ']'
-			return '{:${n.atom}, ${n.meta}, ${list}}'
+			return '{:${n.left.str()}, ${n.meta}, ${list}}'
 		}
 	}
 }

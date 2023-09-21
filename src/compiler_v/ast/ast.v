@@ -6,9 +6,11 @@ module ast
 import compiler_v.types
 import compiler_v.token
 
+pub type NodeLeft = Node | string
+
 pub struct Node {
 pub:
-	atom  string
+	left  NodeLeft
 	meta  Meta
 	kind  types.NodeKind
 	nodes []Node
@@ -37,7 +39,14 @@ pub fn precedence(term string) int {
 }
 
 pub fn (n Node) precedence() int {
-	return precedence(n.atom)
+	return precedence(n.left.atomic_str())
+}
+
+pub fn (n NodeLeft) atomic_str() string {
+	return match n {
+		string { n }
+		Node { '' }
+	}
 }
 
 pub struct Meta {

@@ -6,6 +6,7 @@ module types
 import compiler_v.token
 
 pub type NodeKind = Alias
+	| Ast
 	| Atom
 	| Atomic
 	| Bool
@@ -88,11 +89,13 @@ pub:
 
 pub struct FunctionCaller {
 pub:
-	arity     []string
-	args      []Arg
-	return_ti TypeIdent
-	infix     bool
-	postfix   bool
+	name        string
+	module_name string
+	arity       []string
+	args        []Arg
+	return_ti   TypeIdent
+	infix       bool
+	postfix     bool
 }
 
 pub struct Alias {}
@@ -108,6 +111,11 @@ pub struct Nil {}
 pub struct Void {}
 
 pub struct Atomic {}
+
+pub struct Ast {
+pub:
+	lit string
+}
 
 pub struct Atom {
 pub:

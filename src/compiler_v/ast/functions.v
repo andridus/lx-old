@@ -147,8 +147,9 @@ pub fn is_literal_from_stmt(stmt Stmt) bool {
 
 pub fn maybe_promote_integer_to_float(expr_a Node, expr_b Node) Node {
 	if expr_a.kind is types.Integer && expr_b.kind is types.Float {
+		value := expr_a.left as string
 		return Node{
-			atom: expr_a.atom + '.0'
+			left: value + '.0'
 			meta: Meta{
 				ti: types.float_ti
 				line: expr_a.meta.line

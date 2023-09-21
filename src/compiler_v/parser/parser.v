@@ -314,39 +314,37 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			p.check(.rpar)
 			p.inside_parens--
 		}
-		// .modl {
-		// 	mut num := 1
-		// 	mut nt := p.peek_next_token(num)
-		// 	if p.tok.kind == .modl {
-		// 		for nt.kind == .dot {
-		// 			num++
-		// 			nt = p.peek_next_token(num)
-		// 			if nt.kind == .modl {
-		// 				num++
-		// 				nt = p.peek_next_token(num)
-		// 			} else {
-		// 				break
-		// 			}
-		// 		}
-		// 		num++
-		// 	}
-		// 	nt = p.peek_next_token(num)
-		// 	if nt.kind == .arrob {
-		// 		node1, ti1 := p.call_enum() or {
-		// 			p.warn('Error')
-		// 			exit(0)
-		// 		}
-		// 		node = ast.Expr(node1)
-		// 		ti = ti1
-		// 	} else {
-		// 		node1, ti1 := p.call_from_module(.modl) or {
-		// 			p.warn('Error')
-		// 			exit(0)
-		// 		}
-		// 		ti = ti1
-		// 		node = ast.Expr(node1)
-		// 	}
-		// }
+		.modl {
+			mut num := 1
+			mut nt := p.peek_next_token(num)
+			if p.tok.kind == .modl {
+				for nt.kind == .dot {
+					num++
+					nt = p.peek_next_token(num)
+					if nt.kind == .modl {
+						num++
+						nt = p.peek_next_token(num)
+					} else {
+						break
+					}
+				}
+				num++
+			}
+			nt = p.peek_next_token(num)
+			// if nt.kind == .arrob {
+			// 	node1, ti1 := p.call_enum() or {
+			// 		p.warn('Error')
+			// 		exit(0)
+			// 	}
+			// 	node = ast.Expr(node1)
+			// 	ti = ti1
+			// } else {
+			node = p.call_from_module_node(.modl) or {
+				p.warn('Error')
+				exit(0)
+			}
+			// }
+		}
 		else {
 			p.error_pos_in = p.tok.lit.len
 			p.error_pos_out = p.lexer.pos_inline
@@ -401,7 +399,7 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 			if p.peek_tok.kind == .string_concat {
 				node, ti = p.string_concat_expr()
 			} else {
-				node, ti = p.ident_expr()
+				// node, ti = p.ident_expr()
 			}
 		}
 		.key_nil {
@@ -476,12 +474,12 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 				node = ast.Expr(node1)
 				ti = ti1
 			} else {
-				node1, ti1 := p.call_from_module(.modl) or {
-					p.warn('Error')
-					exit(0)
-				}
-				ti = ti1
-				node = ast.Expr(node1)
+				// node1, ti1 := p.call_from_module(.modl) or {
+				// 	p.warn('Error')
+				// 	exit(0)
+				// }
+				// ti = ti1
+				// node = ast.Expr(node1)
 			}
 		}
 		else {
