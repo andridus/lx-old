@@ -15,13 +15,30 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 	kind := match left {
 		string {
 			match left {
-				'defmodule' { types.NodeKind(types.Module{}) }
-				'def' { types.NodeKind(types.Function{}) }
-				'__aliases__' { types.NodeKind(types.Alias{}) }
-				'.' { types.NodeKind(types.Ast{
+				'defmodule' {
+					ast.NodeKind(ast.Module{})
+				}
+				'def' {
+					ast.NodeKind(ast.Ast{
+						lit: 'def'
+					})
+				}
+				'__aliases__' {
+					ast.NodeKind(ast.Alias{})
+				}
+				'.' {
+					ast.NodeKind(ast.Ast{
 						lit: '.'
-					}) }
-				else { types.NodeKind(types.Nil{}) }
+					})
+				}
+				'__block__' {
+					ast.NodeKind(ast.Ast{
+						lit: 'block'
+					})
+				}
+				else {
+					ast.NodeKind(ast.Nil{})
+				}
 			}
 		}
 		ast.Node {
@@ -36,21 +53,43 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 	}
 }
 
-pub fn (p Parser) node_function(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty types.Function) ast.Node {
+pub fn (p Parser) node_function(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty ast.Function) ast.Node {
 	return ast.Node{
 		left: left
-		kind: types.NodeKind(ty)
+		kind: ast.NodeKind(ty)
 		meta: meta
 		nodes: nodes
 	}
 }
 
-pub fn (p Parser) node_function_caller(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty types.FunctionCaller) ast.Node {
+pub fn (p Parser) node_function_caller(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty ast.FunctionCaller) ast.Node {
 	return ast.Node{
 		left: left
-		kind: types.NodeKind(ty)
+		kind: ast.NodeKind(ty)
 		meta: meta
 		nodes: nodes
+	}
+}
+
+pub fn (p Parser) node_var(meta ast.Meta, left string, nodes []ast.Node) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(left)
+		kind: ast.NodeKind(ast.Ast{
+			lit: 'var'
+		})
+		meta: meta
+		nodes: nodes
+	}
+}
+
+pub fn (p Parser) node_assign(meta ast.Meta, ident string, node ast.Node) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft('=')
+		kind: ast.NodeKind(ast.Ast{
+			lit: 'assign'
+		})
+		meta: meta
+		nodes: [p.node_var(meta, ident, []), node]
 	}
 }
 
@@ -58,7 +97,7 @@ pub fn (p Parser) node_atom(mut meta ast.Meta, atom string) ast.Node {
 	meta.put_ti(types.atom_ti)
 	return ast.Node{
 		left: ast.NodeLeft(atom)
-		kind: types.NodeKind(types.Atom{})
+		kind: ast.NodeKind(ast.Atom{})
 		meta: meta
 	}
 }
@@ -67,7 +106,7 @@ pub fn (p Parser) node_string(mut meta ast.Meta, str string) ast.Node {
 	meta.put_ti(types.string_ti)
 	return ast.Node{
 		left: ast.NodeLeft(str)
-		kind: types.NodeKind(types.String{})
+		kind: ast.NodeKind(ast.String{})
 		meta: meta
 	}
 }
@@ -76,7 +115,7 @@ pub fn (p Parser) node_integer(mut meta ast.Meta, val int) ast.Node {
 	meta.put_ti(types.integer_ti)
 	return ast.Node{
 		left: ast.NodeLeft(val.str())
-		kind: types.NodeKind(types.Integer{})
+		kind: ast.NodeKind(ast.Integer{})
 		meta: meta
 	}
 }
@@ -85,14 +124,14 @@ pub fn (p Parser) node_float(mut meta ast.Meta, val f64) ast.Node {
 	meta.put_ti(types.float_ti)
 	return ast.Node{
 		left: ast.NodeLeft(val.str())
-		kind: types.NodeKind(types.Float{})
+		kind: ast.NodeKind(ast.Float{})
 		meta: meta
 	}
 }
 
 pub fn (p Parser) node_tuple(meta ast.Meta, nodes []ast.Node) ast.Node {
 	return ast.Node{
-		kind: types.NodeKind(types.Tuple{})
+		kind: ast.NodeKind(ast.Tuple{})
 		meta: meta
 		nodes: nodes
 	}
@@ -100,7 +139,7 @@ pub fn (p Parser) node_tuple(meta ast.Meta, nodes []ast.Node) ast.Node {
 
 pub fn (p Parser) node_list(meta ast.Meta, nodes []ast.Node) ast.Node {
 	return ast.Node{
-		kind: types.NodeKind(types.List{})
+		kind: ast.NodeKind(ast.List{})
 		meta: meta
 		nodes: nodes
 	}
@@ -109,7 +148,7 @@ pub fn (p Parser) node_list(meta ast.Meta, nodes []ast.Node) ast.Node {
 pub fn (p Parser) node_atomic(atom string) ast.Node {
 	return ast.Node{
 		left: ast.NodeLeft(atom)
-		kind: types.NodeKind(types.Atomic{})
+		kind: ast.NodeKind(ast.Atomic{})
 		nodes: []
 	}
 }
@@ -117,7 +156,7 @@ pub fn (p Parser) node_atomic(atom string) ast.Node {
 pub fn (p Parser) node_default() ast.Node {
 	return ast.Node{
 		left: ast.NodeLeft('default')
-		kind: types.NodeKind(types.Atomic{})
+		kind: ast.NodeKind(ast.Atomic{})
 		nodes: []
 	}
 }

@@ -5,65 +5,65 @@ pub fn (ti &TypeIdent) str() string {
 	return '${ti.name}${list}'
 }
 
-// pub fn (k Kind) str() string {
-// 	k_str := match k {
-// 		.void_ {
-// 			'void'
-// 		}
-// 		.any_ {
-// 			'any'
-// 		}
-// 		.atom_ {
-// 			'atom'
-// 		}
-// 		.nil_ {
-// 			'nil'
-// 		}
-// 		.pointer_ {
-// 			'pointer'
-// 		}
-// 		.enum_ {
-// 			'enum'
-// 		}
-// 		.result_ {
-// 			'result'
-// 		}
-// 		.struct_ {
-// 			'struct'
-// 		}
-// 		.integer_ {
-// 			'integer'
-// 		}
-// 		.float_ {
-// 			'float'
-// 		}
-// 		.string_ {
-// 			'string'
-// 		}
-// 		.char_ {
-// 			'char'
-// 		}
-// 		.bool_ {
-// 			'bool'
-// 		}
-// 		.list_ {
-// 			'list'
-// 		}
-// 		.list_fixed_ {
-// 			'list_fixed'
-// 		}
-// 		.tuple_ {
-// 			'tuple'
-// 		}
-// 		.map_ {
-// 			'map'
-// 		}
-// 		.sum_ {
-// 			'sum'
-// 		}
-// 	}
-// 	return k_str
-// }
+pub fn (k Kind) str() string {
+	k_str := match k {
+		.void_ {
+			'void'
+		}
+		.any_ {
+			'any'
+		}
+		.atom_ {
+			'atom'
+		}
+		.nil_ {
+			'nil'
+		}
+		.pointer_ {
+			'pointer'
+		}
+		.enum_ {
+			'enum'
+		}
+		.result_ {
+			'result'
+		}
+		.struct_ {
+			'struct'
+		}
+		.integer_ {
+			'integer'
+		}
+		.float_ {
+			'float'
+		}
+		.string_ {
+			'string'
+		}
+		.char_ {
+			'char'
+		}
+		.bool_ {
+			'bool'
+		}
+		.list_ {
+			'list'
+		}
+		.list_fixed_ {
+			'list_fixed'
+		}
+		.tuple_ {
+			'tuple'
+		}
+		.map_ {
+			'map'
+		}
+		.sum_ {
+			'sum'
+		}
+	}
+	return k_str
+}
 
 // pub fn (kinds []Kind) str() string {
 // 	mut kinds_str := ''

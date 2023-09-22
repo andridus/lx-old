@@ -10,6 +10,6 @@ pub fn test_hello_world_ex_file() {
 
 	// Generate HelloWorld Module
 	assert 'HelloWorld' == bin.program.modules['HelloWorld'].name
-	assert '{{:defmodule, [line: 1], [{:__aliases__, [line: 1], [:HelloWorld]},[{:do,{:def, [line: 2,type: SUM::string_], [{:main, [line: 2,type: SUM::string_], []},[{:do,"Hello World"}]]}}]]}}' == bin.program.modules['HelloWorld'].str()
+	assert '{{:defmodule, [line: 1], [{:__aliases__, [line: 1], [:HelloWorld]},[{:do,{:def, [line: 2,type: SUM::string], [{:main, [line: 2,type: SUM::string], []},[{:do,":Hello World"}]]}}]]}}' == bin.program.modules['HelloWorld'].str()
 	assert 'Hello World' == compiler_v.execute(mut bin)
 }

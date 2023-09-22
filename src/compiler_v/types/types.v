@@ -5,28 +5,6 @@ module types
 
 import compiler_v.token
 
-pub type NodeKind = Alias
-	| Ast
-	| Atom
-	| Atomic
-	| Bool
-	| Char
-	| Enum
-	| Float
-	| Function
-	| FunctionCaller
-	| Integer
-	| List
-	| ListFixed
-	| Map
-	| Module
-	| Nil
-	| Port
-	| Record
-	| String
-	| Struct
-	| Tuple
-
 pub enum Kind {
 	void_
 	any_
@@ -78,44 +56,9 @@ pub:
 	sum_kind []Kind
 }
 
-pub struct Function {
-pub:
-	arity      string
-	args       []Arg
-	return_ti  TypeIdent
-	is_private bool
-	is_main    bool
-}
-
-pub struct FunctionCaller {
-pub:
-	name        string
-	module_name string
-	arity       []string
-	args        []Arg
-	return_ti   TypeIdent
-	infix       bool
-	postfix     bool
-}
-
-pub struct Alias {}
-
-pub struct Module {}
-
-pub struct Record {}
-
-pub struct Port {}
-
 pub struct Nil {}
 
 pub struct Void {}
-
-pub struct Atomic {}
-
-pub struct Ast {
-pub:
-	lit string
-}
 
 pub struct Atom {
 pub:
@@ -229,13 +172,6 @@ pub const (
 	bool_ti     = new_builtin_ti(.bool_, false)
 	atom_ti     = new_builtin_ti(.atom_, false)
 )
-
-pub fn is_literal(kind NodeKind) bool {
-	return match kind {
-		Bool, Char, Enum, Float, Integer, Nil, String, Struct, Tuple { true }
-		else { false }
-	}
-}
 
 pub fn get_default_type(kind token.Kind) TypeIdent {
 	return match kind {

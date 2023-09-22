@@ -1,5 +1,5 @@
-defmodule HelloWorld do
-  def sum(a :: int, b :: int) :: int do
+defmodule Functions do
+  def sum(a :: integer, b :: integer) :: integer do
     a + b
   end
   def main() do

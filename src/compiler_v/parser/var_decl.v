@@ -5,19 +5,19 @@ import compiler_v.token
 import compiler_v.types
 import compiler_v.table
 
-fn (mut p Parser) var_decl() ast.VarDecl {
+fn (mut p Parser) var_decl() ast.Node {
+	mut meta := p.meta()
 	p.in_var_expr = true
 	name := p.tok.lit
 	mut ti := types.void_ti
-	mut expr := ast.Expr(ast.EmptyExpr{})
-
+	mut node := p.node_default()
 	if p.peek_tok.kind == .typedef {
 		mut ti1 := types.void_ti
 		p.next_token()
 		p.next_token()
 		ti1 = p.parse_ti()
 		p.next_token()
-		expr, ti = p.expr(token.lowest_prec)
+		node = p.expr_node(token.lowest_prec)
 		if CompilerOptions.ensure_left_type in p.compiler_options {
 			ti = ti1
 		}
@@ -27,26 +27,28 @@ fn (mut p Parser) var_decl() ast.VarDecl {
 		}
 	} else {
 		p.read_first_token()
-		expr, ti = p.expr(token.lowest_prec)
+		node = p.expr_node(token.lowest_prec)
+		ti = node.meta.ti
 	}
 	if _ := p.program.table.find_var(name, p.context) {
 		p.error('rebinding of `${name}`')
 	}
-
 	p.program.table.register_var(table.Var{
 		name: name
 		ti: ti
 		is_mut: false
-		expr: ast.ExprStmt{
-			expr: expr
-			ti: ti
-		}
+		// expr: ast.ExprStmt{
+		// 	expr: expr
+		// 	ti: ti
+		// }
 	})
 	p.compiler_options = []
 	p.in_var_expr = false
-	return ast.VarDecl{
-		name: name
-		expr: expr
-		ti: ti
-	}
+	meta.put_ti(ti)
+	return p.node_assign(meta, name, node)
+	// {
+	// 	name: name
+	// 	expr: expr
+	// 	ti: ti
+	// }
 }

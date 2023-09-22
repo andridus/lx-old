@@ -15,7 +15,7 @@ pub mut:
 	global_aliases map[string]string
 	atoms          []Atom
 	fns            map[string]Fn
-	unknown_calls  []ast.CallExpr
+	unknown_calls  []ast.Node
 	tmp_cnt        int
 }
 
@@ -33,7 +33,7 @@ pub:
 	is_arg  bool
 	type_   types.Type
 	context []string = ['root']
-	expr    ast.ExprStmt
+	expr    ast.Node
 }
 
 pub struct Alias {
@@ -77,4 +77,9 @@ pub fn new_table() &Table {
 	t.types << types.Void{}
 	t.type_idxs['dummy_type_at_idx'] = 0
 	return t
+}
+
+pub fn (v Var) str() string {
+	println(v.expr.left.atomic_str())
+	return v.expr.str()
 }

@@ -57,7 +57,6 @@ pub mut:
 	is_compiled  bool
 	compiled_at  int
 	is_main      bool
-	stmts        []ast.Stmt
 	asts         []ast.Node
 }
 
@@ -74,9 +73,9 @@ pub fn (m Module) str() string {
 	return '{${s.join(',')}}'
 }
 
-pub fn (mut m Module) put_stmts(stmts []ast.Stmt) {
-	m.stmts = stmts
-}
+// pub fn (mut m Module) put_stmts(stmts []ast.Stmt) {
+// 	m.stmts = stmts
+// }
 
 pub fn (mut m Module) put_ast(nodes []ast.Node) {
 	m.asts = nodes

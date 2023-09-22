@@ -64,7 +64,6 @@ pub fn (mut t Table) register_or_update_fn(arity string, args []Var, ti types.Ty
 		return_ti: ti
 		is_valid: true
 	}
-
 	if fn0.name == new_fn.name {
 		mut tis := []types.TypeIdent{}
 		l := fn0.arities.len
@@ -73,6 +72,7 @@ pub fn (mut t Table) register_or_update_fn(arity string, args []Var, ti types.Ty
 		for a in fn0.arities {
 			tis << a.return_ti
 		}
+
 		fn0.return_tis = tis
 		t.fns[idx_name] = fn0
 	} else {

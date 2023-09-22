@@ -1,12 +1,11 @@
 module parser
 
 import compiler_v.ast
-import compiler_v.types
 // import compiler_v.table
 
 fn (mut p Parser) parse_operations_deep(mut meta ast.Meta, left ast.Node, op string, op_prec int, right ast.Node) ast.Node {
-	if right.kind is types.FunctionCaller {
-		if right.nodes[0].kind is types.FunctionCaller {
+	if right.kind is ast.FunctionCaller {
+		if right.nodes[0].kind is ast.FunctionCaller {
 			if right.is_inside_parens() {
 				return p.node_infix(mut meta, left, op, right)
 			}
@@ -34,7 +33,7 @@ fn (mut p Parser) parse_operations_deep(mut meta ast.Meta, left ast.Node, op str
 }
 
 fn (mut p Parser) parse_operations(mut meta ast.Meta, left ast.Node, op string, op_prec int, right ast.Node, inside_parens bool) ast.Node {
-	return if right.kind is types.FunctionCaller {
+	return if right.kind is ast.FunctionCaller {
 		if right.is_inside_parens() {
 			p.node_infix(mut meta, left, op, right)
 		} else if op_prec < ast.precedence(right.left.atomic_str()) {
@@ -64,7 +63,7 @@ fn (mut p Parser) node_infix(mut meta ast.Meta, left ast.Node, op string, right 
 	}
 	// println()
 	meta.put_ti(ti)
-	a := p.node_function_caller(meta, op, [left0, right0], types.FunctionCaller{
+	a := p.node_function_caller(meta, op, [left0, right0], ast.FunctionCaller{
 		infix: true
 		arity: [left.get_ti().kind.str(), left.get_ti().kind.str()]
 	})

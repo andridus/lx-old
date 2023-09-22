@@ -1,37 +1,47 @@
 module ast
 
-import compiler_v.types
-
 pub fn (n NodeLeft) str() string {
 	return match n {
-		string { n }
-		Node { n.str() }
+		string {
+			':' + n
+		}
+		Node {
+			res := n.str()
+			res
+		}
 	}
 }
 
 pub fn (n Node) str() string {
 	match n.kind {
-		types.String {
+		String {
 			return "\"${n.left.str()}\""
 		}
-		types.Tuple {
+		Function {
+			mut str := []string{}
+			for n0 in n.nodes {
+				str << n0.str()
+			}
+			list := '[' + str.join(',') + ']'
+			return '{${n.left.str()}, ${n.meta}, ${list}}'
+		}
+		Tuple {
 			mut str := []string{}
 			for n0 in n.nodes {
 				str << n0.str()
 			}
 			return '{' + str.join(',') + '}'
 		}
-		types.Atomic {
-			value := n.left as string
-			return ':${value}'
-		}
-		types.Atom {
-			return ':${n.left.str()}'
-		}
-		types.Integer, types.Float {
+		Atomic {
 			return '${n.left.str()}'
 		}
-		types.List {
+		Atom {
+			return '${n.left.str()}'
+		}
+		Integer, Float {
+			return '${n.left.str()}'
+		}
+		List {
 			mut str := []string{}
 			for n0 in n.nodes {
 				str << n0.str()
@@ -44,7 +54,7 @@ pub fn (n Node) str() string {
 				str << n0.str()
 			}
 			list := '[' + str.join(',') + ']'
-			return '{:${n.left.str()}, ${n.meta}, ${list}}'
+			return '{${n.left.str()}, ${n.meta}, ${list}}'
 		}
 	}
 }
@@ -80,6 +90,17 @@ fn replace_all_split(str string, pairs [][]string, splt string) []string {
 		s0 = s0.replace(p[0], p[1])
 	}
 	return s0.split(splt)
+}
+
+fn (m Meta) str() string {
+	mut mets := ['line: ${m.line}']
+	if m.inside_parens > 0 {
+		mets << 'inside_parens: true'
+	}
+	if m.ti.kind != .void_ {
+		mets << 'type: ${m.ti}'
+	}
+	return '[${mets.join(',')}]'
 }
 
 // """
