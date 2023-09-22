@@ -352,9 +352,6 @@ fn (mut p Parser) def_decl() ast.Node {
 		def_pos_in: pos_in
 		def_pos_out: pos_out
 	})
-	if name == 'main' {
-		println(ti)
-	}
 	meta.put_ti(types.new_sum_ti([ti.kind]))
 	o := p.node_function(meta, 'def', [
 		p.node(meta, name, ast_args),

@@ -80,6 +80,5 @@ pub fn new_table() &Table {
 }
 
 pub fn (v Var) str() string {
-	println(v.expr.left.atomic_str())
 	return v.expr.str()
 }

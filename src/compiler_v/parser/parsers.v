@@ -2,7 +2,7 @@ module parser
 
 import compiler_v.ast
 import compiler_v.table
-
+import compiler_v.types
 // fn (mut p Parser) expr_stmt() ast.Node {
 // 	node := p.expr(0)
 // 	return node
@@ -119,23 +119,18 @@ fn (mut p Parser) infix_expr(left ast.Node) ast.Node {
 // 	return node, ti
 // }
 
-// fn (mut p Parser) parse_boolean() (ast.Expr, types.TypeIdent) {
-// 	mut node := ast.Expr(ast.EmptyExpr{})
-// 	ti := types.bool_ti
-// 	if p.tok.kind == .key_true {
-// 		node = ast.Expr(ast.BoolLiteral{
-// 			val: true
-// 			is_used: p.in_var_expr
-// 		})
-// 	} else if p.tok.kind == .key_false {
-// 		node = ast.Expr(ast.BoolLiteral{
-// 			val: false
-// 			is_used: p.in_var_expr
-// 		})
-// 	}
-// 	p.next_token()
-// 	return node, ti
-// }
+fn (mut p Parser) parse_boolean() ast.Node {
+	mut meta := p.meta()
+	meta.put_ti(types.bool_ti)
+	mut node := p.node_default()
+	if p.tok.kind == .key_true {
+		node = p.node_boolean(meta, 'true')
+	} else if p.tok.kind == .key_false {
+		node = p.node_boolean(meta, 'false')
+	}
+	p.next_token()
+	return node
+}
 
 fn (mut p Parser) atom_expr() ast.Node {
 	mut meta := p.meta()

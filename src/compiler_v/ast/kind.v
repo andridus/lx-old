@@ -9,7 +9,7 @@ pub type NodeKind = Alias
 	| Ast
 	| Atom
 	| Atomic
-	| Bool
+	| Boolean
 	| Char
 	| Enum
 	| Float
@@ -112,7 +112,7 @@ pub struct String {}
 
 pub struct Char {}
 
-pub struct Bool {}
+pub struct Boolean {}
 
 pub struct List {
 pub:
@@ -158,7 +158,7 @@ pub:
 
 pub fn (kind NodeKind) is_literal() bool {
 	return match kind {
-		Bool, Char, Enum, Float, Integer, Nil, String, Struct, Tuple { true }
+		Boolean, Char, Enum, Float, Integer, Nil, String, Struct, Tuple { true }
 		else { false }
 	}
 }

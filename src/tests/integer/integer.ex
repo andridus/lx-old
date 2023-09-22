@@ -1,4 +1,4 @@
-defmodule Int do
+defmodule IntegerTest do
 
   def main() do
     2 = 1 + 1

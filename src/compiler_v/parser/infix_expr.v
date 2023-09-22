@@ -1,6 +1,7 @@
 module parser
 
 import compiler_v.ast
+import compiler_v.types
 // import compiler_v.table
 
 fn (mut p Parser) parse_operations_deep(mut meta ast.Meta, left ast.Node, op string, op_prec int, right ast.Node) ast.Node {
@@ -48,7 +49,7 @@ fn (mut p Parser) parse_operations(mut meta ast.Meta, left ast.Node, op string, 
 }
 
 fn (mut p Parser) node_infix(mut meta ast.Meta, left ast.Node, op string, right ast.Node) ast.Node {
-	mut ti := left.get_ti()
+	mut ti := types.get_default_type(op, left.meta.ti)
 	mut left0 := left
 	mut right0 := right
 	if ast.is_need_to_promote(left, right) {

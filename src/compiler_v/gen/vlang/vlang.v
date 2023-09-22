@@ -11,13 +11,16 @@ pub struct VGen {
 pub:
 	program &table.Program
 mut:
-	definitions          strings.Builder
-	out_main             strings.Builder
-	out_modules          map[string]strings.Builder
-	out_function         strings.Builder
-	out_expr             strings.Builder
-	out_exprs            map[string]string
-	out_expr_type        map[string][]string
+	definitions   strings.Builder
+	out_main      strings.Builder
+	out_modules   map[string]strings.Builder
+	out_function  strings.Builder
+	out_expr      strings.Builder
+	out_exprs     map[string]string
+	out_expr_type map[string][]string
+
+	defer_return bool
+
 	in_var_decl          bool
 	in_function_decl     bool
 	in_function_args     bool
@@ -226,8 +229,22 @@ fn parse_function_name(str string) string {
 	return str.replace(':', '')
 }
 
+fn defer_return(node ast.Node) bool {
+	return match node.kind {
+		ast.Ast {
+			match node.kind.lit {
+				'match' { true }
+				else { false }
+			}
+		}
+		else {
+			false
+		}
+	}
+}
+
 fn (mut g VGen) parse_node(modl string, node ast.Node) {
-	if node.meta.is_last_stmt {
+	if node.meta.is_last_stmt && !defer_return(node) {
 		g.write(modl, 'return ')
 	}
 	match node.kind {
@@ -262,6 +279,27 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.parse_node(modl, node.nodes[1])
 					}
 				}
+				'match' {
+					mut tmp_ := '_'
+					g.defer_return = true
+					left := node.nodes[0]
+					right := node.nodes[1]
+					type0 := parse_type(left.meta.ti.kind)
+					if node.meta.is_last_stmt {
+						tmp_ = g.temp_var(modl, left.meta.ti)
+						g.write(modl, '${tmp_} := ')
+					}
+					g.write(modl, 'any_to_${type0}(do_match(')
+					g.parse_node(modl, left)
+					g.write(modl, ', ')
+					g.parse_node(modl, right)
+					g.writeln(modl, '))')
+
+					if node.meta.is_last_stmt {
+						g.writeln(modl, 'return ${tmp_}')
+					}
+					g.defer_return = false
+				}
 				else {}
 			}
 		}
@@ -274,6 +312,9 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 		}
 		ast.String {
 			g.write(modl, "\"${node.left.atomic_str()}\"")
+		}
+		ast.Boolean {
+			g.write(modl, '${node.left.atomic_str()}')
 		}
 		ast.Integer {
 			g.write(modl, '${node.left.atomic_str()}')

@@ -93,6 +93,17 @@ pub fn (p Parser) node_assign(meta ast.Meta, ident string, node ast.Node) ast.No
 	}
 }
 
+pub fn (p Parser) node_match(meta ast.Meta, left ast.Node, right ast.Node) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft('=')
+		kind: ast.NodeKind(ast.Ast{
+			lit: 'match'
+		})
+		meta: meta
+		nodes: [left, right]
+	}
+}
+
 pub fn (p Parser) node_atom(mut meta ast.Meta, atom string) ast.Node {
 	meta.put_ti(types.atom_ti)
 	return ast.Node{
@@ -149,6 +160,15 @@ pub fn (p Parser) node_atomic(atom string) ast.Node {
 	return ast.Node{
 		left: ast.NodeLeft(atom)
 		kind: ast.NodeKind(ast.Atomic{})
+		nodes: []
+	}
+}
+
+pub fn (p Parser) node_boolean(meta ast.Meta, atom string) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(atom)
+		kind: ast.NodeKind(ast.Boolean{})
+		meta: meta
 		nodes: []
 	}
 }

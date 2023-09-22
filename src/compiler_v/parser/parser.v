@@ -289,9 +289,9 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			node = p.string_expr()
 			// }
 		}
-		// .key_true, .key_false {
-		// 	node, ti = p.parse_boolean()
-		// }
+		.key_true, .key_false {
+			node = p.parse_boolean()
+		}
 		// .bang {
 		// 	node, ti = p.not_expr()
 		// }
@@ -352,24 +352,14 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			exit(0)
 		}
 	}
-
 	// Infix
 	for precedence < p.tok.precedence() {
 		if p.tok.kind.is_infix() {
 			node = p.infix_expr(node)
 			return node
+		} else {
+			return node
 		}
-		// Postfix
-		// else if p.tok.kind in [.inc, .dec] {
-		// 	node = ast.PostfixExpr{
-		// 		op: p.tok.kind
-		// 		expr: node
-		// 	}
-		// 	p.next_token()
-		// 	return node, ti
-		// } else {
-		// 	return node, ti
-		// }
 	}
 	return node
 }

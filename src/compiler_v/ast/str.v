@@ -32,6 +32,9 @@ pub fn (n Node) str() string {
 			}
 			return '{' + str.join(',') + '}'
 		}
+		Boolean {
+			return '${n.left.str()}'
+		}
 		Atomic {
 			return '${n.left.str()}'
 		}
