@@ -1,4 +1,4 @@
-defmodule Bool do
+defmodule BoolTest do
 
   def main() do
     false = false && false

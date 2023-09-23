@@ -69,7 +69,7 @@ pub fn (mut g VGen) save() !string {
 	// read native functions
 	native := os.read_file('src/compiler_v/gen/vlang/native.v.source') or {
 		eprintln("the file 'native.v.source' not found in dir 'src/compiler_v/gen/vlang' ")
-		exit(0)
+		exit(1)
 	}
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()

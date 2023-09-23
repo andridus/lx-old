@@ -9,7 +9,7 @@ import compiler_v.types
 // }
 
 pub fn (mut p Parser) parse_block() ast.Node {
-	meta := p.meta()
+	mut meta := p.meta()
 
 	if p.inside_ifcase > 0 && p.tok.kind != .key_do {
 	} else {
@@ -40,12 +40,14 @@ pub fn (mut p Parser) parse_block() ast.Node {
 		/// set last return
 		mut stmts0 := stmts[0]
 		stmts0.put_last_stmt()
+		meta.put_ti(stmts0.meta.ti)
 		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts0])])
 	} else {
 		/// set last return
 		mut stmts0 := stmts.pop()
 		stmts0.put_last_stmt()
 		stmts << stmts0
+		meta.put_ti(stmts0.meta.ti)
 		return p.node_list(p.meta(), [
 			p.node_tuple(p.meta(), [
 				p.node_atomic('do'),
@@ -90,17 +92,13 @@ fn (mut p Parser) infix_expr(left ast.Node) ast.Node {
 	return node
 }
 
-// fn (mut p Parser) not_expr() (ast.Expr, types.TypeIdent) {
-// 	p.check(.bang)
-// 	expr, ti := p.expr(0)
-// 	node := ast.Expr(ast.NotExpr{
-// 		expr: expr
-// 		ti: ti
-// 		is_used: p.in_var_expr
-// 	})
-
-// 	return node, ti
-// }
+fn (mut p Parser) not_expr() ast.Node {
+	mut meta := p.meta()
+	p.check(.bang)
+	node := p.expr_node(0)
+	meta.put_ti(types.bool_ti)
+	return p.node_bang(meta, node)
+}
 
 // fn (mut p Parser) underscore_expr() (ast.Expr, types.TypeIdent) {
 // 	p.check(.underscore)
@@ -137,7 +135,7 @@ fn (mut p Parser) atom_expr() ast.Node {
 	if p.peek_tok.kind == .dot {
 		node0 := p.call_from_module_node(.atom) or {
 			println(err.msg())
-			exit(0)
+			exit(1)
 		}
 		return node0
 	} else {
@@ -189,31 +187,34 @@ fn (mut p Parser) string_expr() ast.Node {
 	return node
 }
 
-// fn (mut p Parser) string_concat_expr() (ast.Expr, types.TypeIdent) {
-// 	mut left := ast.Expr(ast.EmptyExpr{})
-// 	mut left_ti := types.void_ti
-// 	// if p.tok.kind == .str {
-// 	// 	left, left_ti = p.string_expr()
-// 	// } else if p.tok.kind == .ident {
-// 	// 	left, left_ti = p.ident_expr()
-// 	// }
-// 	if left_ti.kind != .string_ {
-// 		println('${left} is not a string type')
-// 		exit(0)
-// 	}
-// 	// left, left_ti := p.expr(0)
-// 	p.check(.string_concat)
-// 	right, right_ti := p.expr(0)
-// 	if right_ti.kind != .string_ {
-// 		println('${right} is not a string type')
-// 		exit(0)
-// 	}
-// 	return ast.Expr(ast.StringConcatExpr{
-// 		left: left
-// 		right: right
-// 		is_used: p.in_var_expr
-// 	}), types.string_ti
-// }
+fn (mut p Parser) string_concat_expr() ast.Node {
+	mut meta := p.meta()
+	mut left := p.node_default()
+	mut right := p.node_default()
+	if p.tok.kind == .str {
+		left = p.string_expr()
+	} else if p.tok.kind == .ident {
+		left = p.ident_expr()
+	}
+	if left.meta.ti.kind != .string_ {
+		println('${left} is not a string type')
+		exit(1)
+	}
+	p.check(.string_concat)
+
+	if p.peek_tok.kind == .string_concat {
+		right = p.string_concat_expr()
+	} else {
+		right = p.expr_node(0)
+		if right.meta.ti.kind != .string_ {
+			println('${right} is not a string type')
+			exit(1)
+		}
+	}
+
+	meta.put_ti(left.meta.ti)
+	return p.node_string_concat(mut meta, left, right)
+}
 
 // fn (mut p Parser) charlist_expr() (ast.Expr, types.TypeIdent) {
 // 	mut node := ast.CharlistLiteral{
@@ -267,7 +268,7 @@ fn (mut p Parser) string_expr() ast.Node {
 // 			p.next_token()
 // 		} else {
 // 			println('${p.tok.kind} not a keyword')
-// 			exit(0)
+// 			exit(1)
 // 		}
 // 		value := p.tok.lit
 // 		typ := types.ti_from_token(p.tok)

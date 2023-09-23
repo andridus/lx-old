@@ -71,7 +71,7 @@ fn generate_module_core_metadata(path string, prog &table.Program) table.Module 
 	// mut prog0 := unsafe { prog }
 	text := os.read_file(path) or {
 		println(err)
-		exit(0)
+		exit(1)
 	}
 	mut l := lexer.new(text)
 	l.generate_tokens()

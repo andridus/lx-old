@@ -18,7 +18,7 @@ module parser
 // 		} else {
 // 			p.error_pos_inline = p.lexer.pos_inline
 // 			p.error('The token `${p.tok.str()}` is not a Module. \n Module starts with a capital letter.')
-// 			exit(0)
+// 			exit(1)
 // 		}
 // 		p.next_token()
 // 	}

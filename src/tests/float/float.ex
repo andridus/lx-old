@@ -1,4 +1,4 @@
-defmodule Float do
+defmodule FloatTest do
 
   def main() do
     2.0 = 1.0 + 1.0

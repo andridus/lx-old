@@ -1,4 +1,4 @@
-defmodule Strings do
+defmodule StringsTest do
 
   def main() do
 

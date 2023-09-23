@@ -81,7 +81,7 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 				}
 			}
 			p.error('Module is not a type ident')
-			exit(0)
+			exit(1)
 		}
 		else {
 			defer {
@@ -131,7 +131,7 @@ pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 							p.check(.rcbr)
 						} else {
 							println('Tuple not implemented yet')
-							exit(0)
+							exit(1)
 						}
 					}
 

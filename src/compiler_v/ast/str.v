@@ -1,9 +1,28 @@
 module ast
 
+pub fn (n NodeLeft) atomic_str() string {
+	return match n {
+		Atom { n.name }
+		int { n.str() }
+		f64 { n.str() }
+		string { n }
+		Node { '' }
+	}
+}
+
 pub fn (n NodeLeft) str() string {
 	return match n {
+		Atom {
+			':' + n.name
+		}
+		int {
+			n.str()
+		}
+		f64 {
+			n.str()
+		}
 		string {
-			':' + n
+			n
 		}
 		Node {
 			res := n.str()
@@ -105,73 +124,3 @@ fn (m Meta) str() string {
 	}
 	return '[${mets.join(',')}]'
 }
-
-// """
-// {
-// 	{:defmodule, [line: 1], [
-// 		{:__aliases__, [line: 1], [:PrecedenceTest]}, [
-// 			{:do, {:def, [line: 2,type: SUM::float_], [
-// 				{:main, [line: 2,type: SUM::float_], []}, [
-// 					{:do, {:+, [line: 3,type: float_],[1.0,2.0999999046325684]}}
-// 					]]}}
-// 				]]}}
-// """"
-// pub fn (x Expr) str() string {
-// 	match x {
-// 		BinaryExpr {
-// 			return '{:${x.op.str()}, ${x.meta}, [${x.left.str()}, ${x.right.str()}]}'
-// 		}
-// 		UnaryExpr {
-// 			return x.left.str() + x.op.str()
-// 		}
-// 		IntegerLiteral {
-// 			return x.val.str()
-// 		}
-// 		StringLiteral {
-// 			return "\"${x.val.str()}\""
-// 		}
-// 		CharlistLiteral {
-// 			return '\'${x.val.bytestr()}\''
-// 		}
-// 		StructInit {
-// 			return x.name
-// 		}
-// 		Ident {
-// 			return x.name
-// 		}
-// 		KeywordList {
-// 			mut st := []string{}
-// 			for i in x.items {
-// 				if !i.atom && i.key.contains_u8(32) {
-// 					st << '"${i.key}": ${i.value}'
-// 				} else {
-// 					st << '${i.key}:  ${i.value}'
-// 				}
-// 			}
-// 			return '[' + st.join(', ') + ']'
-// 		}
-// 		else {
-// 			return '-'
-// 		}
-// 	}
-// }
-
-// pub fn (node Stmt) str() string {
-// 	match node {
-// 		VarDecl {
-// 			return node.name + ' = ' + node.expr.str()
-// 		}
-// 		ExprStmt {
-// 			return node.expr.str()
-// 		}
-// 		FnDecl {
-// 			return 'fn ${node.name}() { ${node.stmts.len} stmts }'
-// 		}
-// 		Block {
-// 			return node.str()
-// 		}
-// 		else {
-// 			return '[unhandled stmt str]'
-// 		}
-// 	}
-// }

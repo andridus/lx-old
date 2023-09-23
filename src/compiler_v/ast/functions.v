@@ -135,9 +135,9 @@ import compiler_v.types
 
 pub fn maybe_promote_integer_to_float(expr_a Node, expr_b Node) Node {
 	if expr_a.kind is Integer && expr_b.kind is Float {
-		value := expr_a.left as string
+		value := expr_a.left as int
 		return Node{
-			left: value + '.0'
+			left: f64(value)
 			meta: Meta{
 				ti: types.float_ti
 				line: expr_a.meta.line

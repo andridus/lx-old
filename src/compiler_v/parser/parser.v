@@ -277,24 +277,24 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 		// .key_if {
 		// 	node, ti = p.if_expr()
 		// }
-		// .multistring {
-		// 	node, ti = p.string_expr()
-		// }
-		.str {
-			// if p.peek_tok.kind == .string_concat {
-			// 	node, ti = p.string_concat_expr()
-			// } else if p.peek_tok.kind == .colon_space {
-			// 	node, ti = p.keyword_list_expr()
-			// } else {
+		.multistring {
 			node = p.string_expr()
-			// }
+		}
+		.str {
+			if p.peek_tok.kind == .string_concat {
+				node = p.string_concat_expr()
+				// } else if p.peek_tok.kind == .colon_space {
+				// 	node, ti = p.keyword_list_expr()
+			} else {
+				node = p.string_expr()
+			}
 		}
 		.key_true, .key_false {
 			node = p.parse_boolean()
 		}
-		// .bang {
-		// 	node, ti = p.not_expr()
-		// }
+		.bang {
+			node = p.not_expr()
+		}
 		.integer {
 			node = p.parse_number_literal()
 		}
@@ -334,14 +334,14 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			// if nt.kind == .arrob {
 			// 	node1, ti1 := p.call_enum() or {
 			// 		p.warn('Error')
-			// 		exit(0)
+			// 		exit(1)
 			// 	}
 			// 	node = ast.Expr(node1)
 			// 	ti = ti1
 			// } else {
 			node = p.call_from_module_node(.modl) or {
 				p.warn('Error')
-				exit(0)
+				exit(1)
 			}
 			// }
 		}
@@ -349,7 +349,7 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			p.error_pos_in = p.tok.lit.len
 			p.error_pos_out = p.lexer.pos_inline
 			p.log_d('ERROR', 'Bad token `${p.tok.str()}`', '', '', p.tok.lit)
-			exit(0)
+			exit(1)
 		}
 	}
 	// Infix
@@ -459,14 +459,14 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 // 			if nt.kind == .arrob {
 // 				node1, ti1 := p.call_enum() or {
 // 					p.warn('Error')
-// 					exit(0)
+// 					exit(1)
 // 				}
 // 				node = ast.Expr(node1)
 // 				ti = ti1
 // 			} else {
 // 				// node1, ti1 := p.call_from_module(.modl) or {
 // 				// 	p.warn('Error')
-// 				// 	exit(0)
+// 				// 	exit(1)
 // 				// }
 // 				// ti = ti1
 // 				// node = ast.Expr(node1)
@@ -476,7 +476,7 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 // 			p.error_pos_in = p.tok.lit.len
 // 			p.error_pos_out = p.lexer.pos_inline
 // 			p.log_d('ERROR', 'Bad token `${p.tok.str()}`', '', '', p.tok.lit)
-// 			exit(0)
+// 			exit(1)
 // 		}
 // 	}
 

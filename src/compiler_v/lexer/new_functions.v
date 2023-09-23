@@ -44,7 +44,7 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 		}
 	} else if kind == .float {
 		value = token.LiteralValue{
-			fval: lit.f32()
+			fval: lit.f64()
 		}
 	} else if kind in [.float, .atom] {
 		value = token.LiteralValue{

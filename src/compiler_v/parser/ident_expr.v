@@ -11,7 +11,7 @@ fn (mut p Parser) ident_expr() ast.Node {
 	if p.peek_tok.kind == .lpar {
 		node1 := p.call_from_module_node(.ident) or {
 			p.log('ERROR', err.msg(), p.tok.lit)
-			exit(0)
+			exit(1)
 		}
 		return node1
 		// } else if p.inside_clause {
@@ -81,7 +81,7 @@ fn (mut p Parser) ident_expr() ast.Node {
 		// 							p.next_token()
 		// 						} else {
 		// 							println('Error on find field')
-		// 							exit(0)
+		// 							exit(1)
 		// 						}
 		// 					} else {
 		// 						p.error_pos_out = p.tok.lit.len
@@ -127,7 +127,7 @@ fn (mut p Parser) ident_expr() ast.Node {
 		// 						// 	p.next_token()
 		// 						// } else {
 		// 						// 	println('Error on find field')
-		// 						// 	exit(0)
+		// 						// 	exit(1)
 		// 						// }
 		// 					}
 		// 					else {

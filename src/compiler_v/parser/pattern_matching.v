@@ -19,7 +19,7 @@ fn (mut p Parser) pattern_matching() ast.Node {
 			if left_ti != right_ti {
 				p.log_d('ERROR', 'The `${left_ti.str()}` type in the expression on the left does not match the `${right_ti.str()}` on the right.',
 					'', '', '')
-				exit(0)
+				exit(1)
 			}
 			meta.put_ti(left_ti)
 			return p.node_match(meta, left, right)

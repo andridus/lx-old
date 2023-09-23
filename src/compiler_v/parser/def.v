@@ -40,7 +40,7 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 			// should be a var, check
 			p.error_pos_out = p.tok.pos
 			p.log_d('ERROR', '`${p.tok.lit}` is not a var', '', '', p.tok.lit)
-			exit(0)
+			exit(1)
 		} else {
 			fun_name = p.tok
 			is_local = true
@@ -63,7 +63,7 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 		} else {
 			p.error_pos_inline = p.lexer.pos_inline
 			p.error('The token `${p.tok.str()}` is not a Module. \n Module starts with a capital letter.')
-			exit(0)
+			exit(1)
 		}
 		p.next_token()
 	}
@@ -317,15 +317,9 @@ fn (mut p Parser) def_decl() ast.Node {
 		if node_block.kind is ast.List {
 			n0 := node_block.nodes[0]
 			if n0.kind is ast.Tuple {
-				if n0.nodes[0].left is string {
-					value := n0.nodes[0].left as string
-					if value == 'do' {
-						if n0.nodes[1].nodes.len > 0 {
-							ti = n0.nodes[1].nodes[n0.nodes[1].nodes.len - 1].meta.ti
-						} else {
-							ti = n0.nodes[1].meta.ti
-						}
-					}
+				value := n0.nodes[0].left.str()
+				if value == ':do' {
+					ti = n0.nodes[1].meta.ti
 				}
 			}
 		}
@@ -353,7 +347,7 @@ fn (mut p Parser) def_decl() ast.Node {
 		def_pos_out: pos_out
 	})
 	meta.put_ti(types.new_sum_ti([ti.kind]))
-	o := p.node_function(meta, 'def', [
+	return p.node_function(meta, [
 		p.node(meta, name, ast_args),
 		node_block,
 	], ast.Function{
@@ -365,9 +359,6 @@ fn (mut p Parser) def_decl() ast.Node {
 		return_ti: meta.ti
 		is_private: is_private
 	})
-
-	return o
-
 	// stmts: stmts
 	// ti: types.new_sum_ti(sum_kind)
 	// arity: args_overfn

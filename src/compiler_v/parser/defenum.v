@@ -29,12 +29,12 @@ module parser
 // 			p.error_pos_out = p.tok.pos
 // 			p.log_d('ERROR', 'The value `${value}` of enum `${t.name}` is not valid. Please use one of ${t.values}`',
 // 				'', '', '')
-// 			exit(0)
+// 			exit(1)
 // 		}
 // 	} else {
 // 		p.error_pos_out = p.tok.pos
 // 		p.log_d('ERROR', 'The enum `{fun_name.lit}` is not defined.`', '', '', '')
-// 		exit(0)
+// 		exit(1)
 // 	}
 // }
 

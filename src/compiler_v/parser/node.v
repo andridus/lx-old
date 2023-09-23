@@ -41,21 +41,39 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 				}
 			}
 		}
+		int {
+			ast.NodeKind(ast.Integer{})
+		}
+		f64 {
+			ast.NodeKind(ast.Float{})
+		}
+		ast.Atom {
+			ast.NodeKind(left)
+		}
 		ast.Node {
 			left.kind
 		}
 	}
+	mut left0 := left
+	if left is string {
+		s := left as string
+		left0 = ast.NodeLeft(ast.Atom{
+			name: s
+		})
+	}
 	return ast.Node{
-		left: left
+		left: left0
 		kind: kind
 		meta: meta
 		nodes: nodes
 	}
 }
 
-pub fn (p Parser) node_function(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty ast.Function) ast.Node {
+pub fn (p Parser) node_function(meta ast.Meta, nodes []ast.Node, ty ast.Function) ast.Node {
 	return ast.Node{
-		left: left
+		left: ast.NodeLeft(ast.Atom{
+			name: 'def'
+		})
 		kind: ast.NodeKind(ty)
 		meta: meta
 		nodes: nodes
@@ -63,8 +81,15 @@ pub fn (p Parser) node_function(meta ast.Meta, left ast.NodeLeft, nodes []ast.No
 }
 
 pub fn (p Parser) node_function_caller(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty ast.FunctionCaller) ast.Node {
+	mut left0 := left
+	if left is string {
+		atom := left as string
+		left0 = ast.NodeLeft(ast.Atom{
+			name: atom
+		})
+	}
 	return ast.Node{
-		left: left
+		left: left0
 		kind: ast.NodeKind(ty)
 		meta: meta
 		nodes: nodes
@@ -84,7 +109,9 @@ pub fn (p Parser) node_var(meta ast.Meta, left string, nodes []ast.Node) ast.Nod
 
 pub fn (p Parser) node_assign(meta ast.Meta, ident string, node ast.Node) ast.Node {
 	return ast.Node{
-		left: ast.NodeLeft('=')
+		left: ast.NodeLeft(ast.Atom{
+			name: '='
+		})
 		kind: ast.NodeKind(ast.Ast{
 			lit: 'assign'
 		})
@@ -95,7 +122,9 @@ pub fn (p Parser) node_assign(meta ast.Meta, ident string, node ast.Node) ast.No
 
 pub fn (p Parser) node_match(meta ast.Meta, left ast.Node, right ast.Node) ast.Node {
 	return ast.Node{
-		left: ast.NodeLeft('=')
+		left: ast.NodeLeft(ast.Atom{
+			name: '='
+		})
 		kind: ast.NodeKind(ast.Ast{
 			lit: 'match'
 		})
@@ -104,10 +133,25 @@ pub fn (p Parser) node_match(meta ast.Meta, left ast.Node, right ast.Node) ast.N
 	}
 }
 
+pub fn (p Parser) node_bang(meta ast.Meta, node ast.Node) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: '!'
+		})
+		kind: ast.NodeKind(ast.Ast{
+			lit: 'bang'
+		})
+		meta: meta
+		nodes: [node]
+	}
+}
+
 pub fn (p Parser) node_atom(mut meta ast.Meta, atom string) ast.Node {
 	meta.put_ti(types.atom_ti)
 	return ast.Node{
-		left: ast.NodeLeft(atom)
+		left: ast.NodeLeft(ast.Atom{
+			name: atom
+		})
 		kind: ast.NodeKind(ast.Atom{})
 		meta: meta
 	}
@@ -122,10 +166,24 @@ pub fn (p Parser) node_string(mut meta ast.Meta, str string) ast.Node {
 	}
 }
 
+pub fn (p Parser) node_string_concat(mut meta ast.Meta, left ast.Node, right ast.Node) ast.Node {
+	meta.put_ti(types.string_ti)
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: '<>'
+		})
+		kind: ast.NodeKind(ast.Ast{
+			lit: 'string_concat'
+		})
+		meta: meta
+		nodes: [left, right]
+	}
+}
+
 pub fn (p Parser) node_integer(mut meta ast.Meta, val int) ast.Node {
 	meta.put_ti(types.integer_ti)
 	return ast.Node{
-		left: ast.NodeLeft(val.str())
+		left: ast.NodeLeft(val)
 		kind: ast.NodeKind(ast.Integer{})
 		meta: meta
 	}
@@ -134,7 +192,7 @@ pub fn (p Parser) node_integer(mut meta ast.Meta, val int) ast.Node {
 pub fn (p Parser) node_float(mut meta ast.Meta, val f64) ast.Node {
 	meta.put_ti(types.float_ti)
 	return ast.Node{
-		left: ast.NodeLeft(val.str())
+		left: ast.NodeLeft(val)
 		kind: ast.NodeKind(ast.Float{})
 		meta: meta
 	}
@@ -158,7 +216,9 @@ pub fn (p Parser) node_list(meta ast.Meta, nodes []ast.Node) ast.Node {
 
 pub fn (p Parser) node_atomic(atom string) ast.Node {
 	return ast.Node{
-		left: ast.NodeLeft(atom)
+		left: ast.NodeLeft(ast.Atom{
+			name: atom
+		})
 		kind: ast.NodeKind(ast.Atomic{})
 		nodes: []
 	}
@@ -166,7 +226,9 @@ pub fn (p Parser) node_atomic(atom string) ast.Node {
 
 pub fn (p Parser) node_boolean(meta ast.Meta, atom string) ast.Node {
 	return ast.Node{
-		left: ast.NodeLeft(atom)
+		left: ast.NodeLeft(ast.Atom{
+			name: atom
+		})
 		kind: ast.NodeKind(ast.Boolean{})
 		meta: meta
 		nodes: []

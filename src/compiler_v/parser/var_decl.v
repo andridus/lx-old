@@ -23,7 +23,7 @@ fn (mut p Parser) var_decl() ast.Node {
 		}
 		if ti.kind != ti1.kind {
 			println('Var type not accept functions returns!')
-			exit(0)
+			exit(1)
 		}
 	} else {
 		p.read_first_token()

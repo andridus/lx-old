@@ -75,7 +75,7 @@ pub fn (mut g VGen) save() !string {
 	// read native functions
 	native := os.read_file('src/compiler_v/gen/vlang/native.v.source') or {
 		eprintln("the file 'native.v.source' not found in dir 'src/compiler_v/gen/vlang' ")
-		exit(0)
+		exit(1)
 	}
 	mut bin := []u8{}
 	mut order := g.program.compile_order.clone()
@@ -120,113 +120,8 @@ fn (mut g VGen) endln(modl string) {
 	g.writeln(modl, '')
 }
 
-// fn (mut g VGen) get_args_concat(node ast.Expr) []string {
-// 	mut args := []string{}
-// 	match node {
-// 		ast.StringLiteral {
-// 			args << "\"${node.val}\""
-// 		}
-// 		ast.Ident {
-// 			if v := g.local_vars_binding[node.name] {
-// 				args << v
-// 			} else {
-// 				args << node.name
-// 			}
-// 		}
-// 		ast.StringConcatExpr {
-// 			args0 := g.get_args_concat(node.left)
-// 			args.insert(args.len, args0)
-// 			args1 := g.get_args_concat(node.right)
-// 			args.insert(args.len, args1)
-// 		}
-// 		else {}
-// 	}
-// 	return args
-// }
-
-// fn (mut g VGen) stmt(modl string, node ast.Stmt) {
-// 	g.parent_deep = 0
-// 	match node {
-// 		ast.Module {
-// 			module0 := g.program.modules[modl]
-// 			g.writeln(modl, '// MODULE \'${module0.name}\'.ex')
-// 			g.stmt(modl, node.stmt)
-// 			g.mount_fns(modl)
-// 			g.mount_main()
-// 		}
-// 		ast.Block {
-// 			g.writeln(modl, '// -------- --------')
-// 			for stmt in node.stmts {
-// 				g.stmt(modl, stmt)
-// 			}
-// 		}
-// 		ast.StructDecl {
-// 			g.writeln(modl, 'struct ${node.name.to_upper()} {')
-// 			for field in node.fields {
-// 				g.writeln(modl, '\t${parse_field(field)}')
-// 			}
-// 			g.writeln(modl, '}')
-// 		}
-// 		ast.EnumDecl {
-// 			g.writeln(modl, 'enum ${node.name.to_upper()} {')
-// 			mut i := 0
-// 			for val in node.values {
-// 				g.writeln(modl, '\t__${val.to_lower()}__')
-// 				i++
-// 			}
-// 			g.writeln(modl, '}')
-// 		}
-// 		ast.FnDecl {
-// 			g.fn_agg[node.name] << node
-// 		}
-// 		ast.ExprStmt {
-// 			g.expr(modl, node.expr)
-// 			g.endln(modl)
-// 		}
-// 		ast.VarDecl {
-// 			g.in_var_decl = true
-// 			g.var_name = node.name
-// 			g.var_ti = node.ti
-// 			g.expr(modl, node.expr)
-// 			g.endln(modl)
-// 		}
-// 		ast.CaseDecl {
-// 			mut i := 0
-// 			for i = 0; i < node.clauses.len; i++ {
-// 				g.in_function_args = true
-// 				if node.clauses[i].is_underscore() {
-// 					g.write(modl, 'else {')
-// 					g.expr(modl, node.exprs[i])
-// 					g.writeln(modl, '}')
-// 				} else {
-// 					if i > 0 {
-// 						g.write(modl, 'else ')
-// 					}
-// 					g.write(modl, 'if is_match(')
-// 					g.expr(modl, node.eval)
-// 					g.write(modl, ',')
-// 					g.expr(modl, node.clauses[i])
-// 					g.write(modl, ') {')
-// 					g.expr(modl, node.exprs[i])
-// 					g.writeln(modl, '}')
-// 				}
-// 				g.in_function_args = false
-// 			}
-// 		}
-// 		else {
-// 			// println(node)
-// 		}
-// 	}
-// }
-
-fn (mut g VGen) parse_many_nodes(modl string, nodes []ast.Node) {
-	for node in nodes {
-		g.parse_node(modl, node)
-	}
-}
-
 fn parse_function_name(str string) string {
-	return str.replace(':', '')
+	return str.replace(':', '').replace('.', '_')
 }
 
 fn defer_return(node ast.Node) bool {
@@ -240,6 +135,13 @@ fn defer_return(node ast.Node) bool {
 		else {
 			false
 		}
+	}
+}
+
+fn (mut g VGen) parse_many_nodes(modl string, nodes []ast.Node) {
+	for node in nodes {
+		g.parse_node(modl, node)
+		g.write(modl, '\n')
 	}
 }
 
@@ -279,6 +181,13 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.parse_node(modl, node.nodes[1])
 					}
 				}
+				'string_concat' {
+					if node.nodes.len == 2 {
+						g.parse_node(modl, node.nodes[0])
+						g.write(modl, ' + ')
+						g.parse_node(modl, node.nodes[1])
+					}
+				}
 				'match' {
 					mut tmp_ := '_'
 					g.defer_return = true
@@ -300,6 +209,10 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					}
 					g.defer_return = false
 				}
+				'bang' {
+					g.write(modl, '!')
+					g.parse_node(modl, node.nodes[0])
+				}
 				else {}
 			}
 		}
@@ -311,16 +224,16 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 			g.write(modl, "Atom{val: \"${node.left.atomic_str()}\"}")
 		}
 		ast.String {
-			g.write(modl, "\"${node.left.atomic_str()}\"")
+			g.write(modl, "\"${node.left.str()}\"")
 		}
 		ast.Boolean {
 			g.write(modl, '${node.left.atomic_str()}')
 		}
 		ast.Integer {
-			g.write(modl, '${node.left.atomic_str()}')
+			g.write(modl, '${node.left.str()}')
 		}
 		ast.Float {
-			g.write(modl, '${node.left.atomic_str()}')
+			g.write(modl, '${node.left.str()}')
 		}
 		ast.Function {
 			// g.parent_node = node
@@ -340,7 +253,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.write(modl, '(')
 					}
 					g.parse_node(modl, node.nodes[0])
-					g.write(modl, '${parse_function_name(node.left.str())}')
+					g.write(modl, ' ${parse_function_name(node.left.str())} ')
 					g.parse_node(modl, node.nodes[1])
 					if node.is_inside_parens() {
 						g.write(modl, ')')
@@ -348,8 +261,8 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 				}
 			} else {
 				mut fn_name := parse_function_name(ty.module_name + '_' + ty.name)
-				if fn_name.starts_with('FFI.v_') {
-					fn_name = fn_name.replace('FFI.v_', '')
+				if ty.module_name.starts_with('FFI.v') {
+					fn_name = fn_name.replace('FFI_v_', '')
 				} else {
 					mut arity := ''
 					if ty.arity.len > 0 {
@@ -416,25 +329,14 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 	g.parent_deep++
 // 	g.mount_var_decl(modl, node)
 // 	match node {
-// 		ast.IntegerLiteral {
-// 			g.write(modl, node.val.str())
-// 		}
 // 		ast.NilLiteral {
 // 			g.write(modl, 'Nil{}')
-// 		}
-// 		ast.FloatLiteral {
-// 			g.write(modl, node.val.str())
 // 		}
 // 		ast.UnaryExpr {
 // 			g.expr(modl, node.left)
 // 			g.write(modl, ' ${node.op} ')
 // 		}
-// 		ast.Atom {
-// 			g.write(modl, "Atom{val: \"${node.val}\"}")
-// 		}
-// 		ast.StringLiteral {
-// 			g.write(modl, "\"${node.val}\"")
-// 		}
+
 // 		ast.TupleLiteral {
 // 			g.write(modl, '"tuple"')
 // 		}
@@ -467,22 +369,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 			g.expr(modl, node.right)
 // 			g.in_binary_exp = false
 // 		}
-// 		ast.MatchExpr {
-// 			mut tmp_ := '_'
-// 			type0 := parse_type(node.left_ti.kind)
-// 			if node.is_used || g.is_last_statement {
-// 				tmp_ = g.temp_var(modl, node.left_ti)
-// 				g.write(modl, '${tmp_} := ')
-// 			}
-// 			g.write(modl, 'lx_to_${type0}(lx_match(')
-// 			g.expr(modl, node.left)
-// 			g.write(modl, ', ')
-// 			g.expr(modl, node.right)
-// 			g.writeln(modl, '))')
-// 			if node.is_used || g.is_last_statement {
-// 				g.writeln(modl, 'dreturn ${tmp_}')
-// 			}
-// 		}
+
 // 		ast.CaseClauseExpr {
 // 			g.expr(modl, node.expr)
 // 		}
@@ -551,13 +438,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 				g.write(modl, node.name)
 // 			}
 // 		}
-// 		ast.BoolLiteral {
-// 			if node.val == true {
-// 				g.write(modl, 'true')
-// 			} else {
-// 				g.write(modl, 'false')
-// 			}
-// 		}
 // 		ast.IfExpr {
 // 			g.endln(modl)
 // 			g.write(modl, 'if (')
@@ -581,29 +461,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 		}
 // 	}
 // 	g.parent_deep--
-// }
-
-// fn (mut g VGen) mount_var_decl(modl string, node ast.Node) {
-// 	if g.in_var_decl {
-// 		var := g.var_name
-// 		g.var_count++
-// 		tmp_var := 'var_${g.var_count}'
-// 		arg1 := parse_type_ti(g.var_ti)
-// 		g.out_expr_type[arg1] << tmp_var
-// 		g.local_vars_binding[var] = tmp_var
-// 		g.local_vars_binding_t[var] = arg1
-// 		g.write(modl, '${tmp_var} := ')
-// 		g.var_name = ''
-// 		g.var_ti = types.void_ti
-// 		g.in_var_decl = false
-// 	}
-// 	if g.in_function_args {
-// 	} else {
-// 		// if g.parent_deep == 1 && !g.is_last_statement && !ast.get_is_used(node)
-// 		// 	&& ast.get_ti(node).kind != .void_ {
-// 		// 	g.write(modl, '_ := ')
-// 		// }
-// 	}
 // }
 
 fn (mut g VGen) temp_var(modl string, type0 types.TypeIdent) string {
@@ -652,8 +509,6 @@ fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata a
 		g.fn_main_ti = fdata.return_ti
 	}
 
-	// mut total := node1.nodes.len
-	// mut current := 0
 	if total_arities > 0 {
 		g.write(modl, 'fn ${module_name}_${fun_name}_${fdata.arity}('.to_lower())
 		mut i0 := 0
@@ -700,7 +555,6 @@ fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata a
 	g.in_function_decl = false
 	g.writeln(modl, g.out_function.str())
 	g.local_vars.clear()
-	// g.out_exprs.clear()
 	g.writeln(modl, '}')
 }
 

@@ -37,8 +37,8 @@ pub fn do_match(left AnyType, right AnyType) AnyType {
 		if left == right {
 			return left
 		} else {
-				eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression \033[97m`$left`\033[0m doesn`t match with right expression \033[97m`$right`\033[0m !')
-				exit(0)
+				eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression `$left` doesn`t match with right expression `$right`')
+				exit(1)
 				}
 	} else {
 		panic('broken')
@@ -60,7 +60,7 @@ pub fn any_to_string(value AnyType) string {
 		string { value }
 		else {
 			eprintln("to_string: invalid conversion")
-			exit(0)
+			exit(1)
 		}
 	}
 }
@@ -75,7 +75,16 @@ pub fn any_to_int(value AnyType) int {
 		}
 		else {
 			eprintln("\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion")
-			exit(0)
+			exit(1)
+		}
+	}
+}
+pub fn any_to_f64(value AnyType) f64 {
+	return match value {
+		f64 { value}
+		else {
+			eprintln("\033[31m**(RuntimeError::InvalidConversion)\033[0m to_f64 conversion")
+			exit(1)
 		}
 	}
 }

@@ -11,7 +11,7 @@ import compiler_v.color
 pub fn execute(mut gen vlang.VGen) string {
 	builded_file := gen.save() or {
 		println(err.msg())
-		exit(0)
+		exit(1)
 	}
 
 	root := os.abs_path('')

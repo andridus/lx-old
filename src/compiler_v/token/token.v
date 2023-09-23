@@ -14,7 +14,7 @@ pub union LiteralValue {
 pub:
 	sval string
 	ival int
-	fval f32
+	fval f64
 }
 
 pub enum Kind {
