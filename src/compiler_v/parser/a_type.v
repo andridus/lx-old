@@ -5,7 +5,7 @@ module parser
 // that can be found in the LICENSE file.
 import compiler_v.types
 
-pub fn (mut p Parser) parse_list_ti() types.TypeIdent {
+fn (mut p Parser) parse_list_ti() types.TypeIdent {
 	p.check(.lsbr)
 	// fixed list
 	if p.tok.kind in [.integer, .float] {
@@ -28,7 +28,7 @@ pub fn (mut p Parser) parse_list_ti() types.TypeIdent {
 	return types.new_ti(.list_, name, idx)
 }
 
-pub fn (mut p Parser) parse_map_ti() types.TypeIdent {
+fn (mut p Parser) parse_map_ti() types.TypeIdent {
 	p.next_token()
 	p.check(.lsbr)
 	key_ti := p.parse_ti()
@@ -38,7 +38,7 @@ pub fn (mut p Parser) parse_map_ti() types.TypeIdent {
 	return types.new_ti(.map_, name, idx)
 }
 
-pub fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
+fn (mut p Parser) parse_ti_name(name string) types.TypeIdent {
 	mut name0 := name
 	mut is_enum := false
 	if name == 'enum_' {
@@ -155,6 +155,5 @@ pub fn (mut p Parser) parse_ti() types.TypeIdent {
 		p.check(.amp)
 		nr_muls++
 	}
-	// name := p.tok.lit
 	return p.parse_ti_name('')
 }

@@ -312,12 +312,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 			// 	// g.parse_many_nodes(modl, node.nodes)
 			// }
 		}
-		// types.Block {
-		// 	g.writeln(modl, '// -------- --------')
-		// 	for stmt in node.stmts {
-		// 		g.stmt(modl, stmt)
-		// 	}
-		// }
 		else {
 			eprintln('\n\nOTHER NODE ${node.kind} ${node.left} ${node.meta.ti}')
 			exit(1)
@@ -337,39 +331,9 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 			g.write(modl, ' ${node.op} ')
 // 		}
 
-// 		ast.TupleLiteral {
-// 			g.write(modl, '"tuple"')
-// 		}
-// 		ast.NotExpr {
-// 			g.write(modl, '!')
-// 			g.expr(modl, node.expr)
-// 		}
 // 		ast.CharlistLiteral {
 // 			g.write(modl, '${node.val}')
 // 		}
-// 		ast.StringConcatExpr {
-// 			// 3, "Hello, ", var_1, "!")
-// 			// tmpvar := g.temp_var(modl, types.string_ti)
-// 			args := g.get_args_concat(node)
-// 			g.write(modl, '[')
-// 			for i := 0; i < args.len; i++ {
-// 				g.write(modl, args[i])
-// 				if i + 1 < args.len {
-// 					g.write(modl, ',')
-// 				}
-// 			}
-// 			g.write(modl, "].join('')")
-// 		}
-// 		ast.BinaryExpr {
-// 			g.in_binary_exp = true
-// 			g.expr(modl, node.left)
-// 			g.write(modl, ' ')
-// 			g.write(modl, node.op.str())
-// 			g.write(modl, ' ')
-// 			g.expr(modl, node.right)
-// 			g.in_binary_exp = false
-// 		}
-
 // 		ast.CaseClauseExpr {
 // 			g.expr(modl, node.expr)
 // 		}
@@ -430,13 +394,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 				}
 // 			}
 // 			g.write(modl, ')')
-// 		}
-// 		ast.Ident {
-// 			if v := g.local_vars_binding[node.name] {
-// 				g.write(modl, v)
-// 			} else {
-// 				g.write(modl, node.name)
-// 			}
 // 		}
 // 		ast.IfExpr {
 // 			g.endln(modl)

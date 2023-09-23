@@ -11,7 +11,6 @@ import compiler_v.docs
 import compiler_v.color
 
 pub fn (mut p Parser) call_expr() ?ast.Node {
-	// mut return_ti := types.void_ti
 	if p.tok.kind == .modl {
 		return p.call_from_module_node(.modl)!
 	}
@@ -92,15 +91,6 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		for p.tok.kind != .rpar {
 			e := p.expr_node(0)
-			// match e {
-			// 	ast.Ident {
-			// 		mut a := e as ast.Ident
-			// 		a.set_pointer()
-			// 		e = ast.Expr(a)
-			// 		ti = a.ti
-			// 	}
-			// 	else {}
-			// }
 			arity_num++
 			arity_args << e.meta.ti.name
 			arg_nodes << e
@@ -178,8 +168,6 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 	}
 	p.check(.rpar)
 
-	// {{:., [line: 3], [{:__aliases__, [line: 3], [:B]}, :one]}, [line: 3], []}
-
 	if p.tok.kind == .typedef {
 		p.check(.typedef)
 		return_ti = p.parse_ti()
@@ -194,32 +182,13 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 	for an in arg_nodes {
 		arities << an.meta.ti.str()
 	}
-	node := p.node_function_caller(meta, p.node_left(fun_node), arg_nodes, ast.FunctionCaller{
+	return p.node_function_caller(meta, p.node_left(fun_node), arg_nodes, ast.FunctionCaller{
 		name: fun_name.lit
 		return_ti: return_ti
 		module_name: module_name
 		args: arg_nodes
 		arity: arities
 	})
-	// println(node.kind)
-
-	// node := ast.CallExpr{
-	// 	name: fun_name.lit
-	// 	arity: arity_name
-	// 	args: arg_nodes
-	// 	is_unknown: is_unknown
-	// 	tok: tok
-	// 	is_external: is_external
-	// 	module_path: module_path
-	// 	module_name: module_name
-	// 	is_c_module: is_c_module
-	// 	is_v_module: is_v_module
-	// 	ti: return_ti
-	// }
-	// if is_unknown {
-	// 	p.program.table.unknown_calls << node
-	// }
-	return node
 }
 
 fn module_name0(tokens []token.Token) string {
@@ -229,19 +198,6 @@ fn module_name0(tokens []token.Token) string {
 	}
 	return name.join('.')
 }
-
-// pub fn (mut p Parser) call_args() []ast.Expr {
-// 	mut args := []ast.Expr{}
-// 	for p.tok.kind != .rpar {
-// 		e, _ := p.expr(0)
-// 		args << e
-// 		if p.tok.kind != .rpar {
-// 			p.check(.comma)
-// 		}
-// 	}
-// 	p.check(.rpar)
-// 	return args // ,types.void_ti
-// }
 
 fn (mut p Parser) def_decl() ast.Node {
 	mut meta := p.meta()
@@ -359,24 +315,4 @@ fn (mut p Parser) def_decl() ast.Node {
 		return_ti: meta.ti
 		is_private: is_private
 	})
-	// stmts: stmts
-	// ti: types.new_sum_ti(sum_kind)
-	// arity: args_overfn
-	// args: ast_args
-	// is_private: is_private
-	// receiver: ast.Field{
-	// 	name: rec_name
-	// 	ti: rec_ti
-	// }
-	// }
 }
-
-// pub fn (p &Parser) check_fn_calls() {
-// 	println('check fn calls2')
-// 	for call in p.program.table.unknown_calls {
-// 		p.program.table.find_fn(call.name, '') or {
-// 			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
-// 			return
-// 		}
-// 	}
-// }
