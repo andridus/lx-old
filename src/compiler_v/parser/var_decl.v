@@ -10,6 +10,14 @@ fn (mut p Parser) var_decl() ast.Node {
 	p.in_var_expr = true
 	name := p.tok.lit
 	mut ti := types.void_ti
+	existent_var := p.program.table.find_var(name, p.context) or {
+		table.Var{
+			name: name
+			ti: ti
+			expr: p.node_default()
+		}
+		// p.error('rebinding of `${name}`')
+	}
 	mut node := p.node_default()
 	if p.peek_tok.kind == .typedef {
 		mut ti1 := types.void_ti
@@ -20,7 +28,15 @@ fn (mut p Parser) var_decl() ast.Node {
 		node = p.expr_node(token.lowest_prec)
 		if CompilerOptions.ensure_left_type in p.compiler_options {
 			ti = ti1
+		} else {
+			if existent_var.is_valid {
+				ti = existent_var.expr.meta.ti
+			} else {
+				ti = ti1
+			}
 		}
+		println('var: ${existent_var.expr.meta.ti}')
+		println('ti1: ${ti.kind}. ti2: ${ti1.kind}')
 		if ti.kind != ti1.kind {
 			println('Var type not accept functions returns!')
 			exit(1)
@@ -30,17 +46,12 @@ fn (mut p Parser) var_decl() ast.Node {
 		node = p.expr_node(token.lowest_prec)
 		ti = node.meta.ti
 	}
-	if _ := p.program.table.find_var(name, p.context) {
-		p.error('rebinding of `${name}`')
-	}
+
 	p.program.table.register_var(table.Var{
-		name: name
+		...existent_var
+		is_valid: true
 		ti: ti
-		is_mut: false
-		// expr: ast.ExprStmt{
-		// 	expr: expr
-		// 	ti: ti
-		// }
+		expr: node
 	})
 	p.compiler_options = []
 	p.in_var_expr = false

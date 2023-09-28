@@ -27,13 +27,14 @@ pub:
 
 pub struct Var {
 pub:
-	name    string
-	ti      types.TypeIdent
-	is_mut  bool
-	is_arg  bool
-	type_   types.Type
-	context []string = ['root']
-	expr    ast.Node
+	name     string
+	ti       types.TypeIdent
+	is_mut   bool
+	is_arg   bool
+	type_    types.Type
+	context  []string = ['root']
+	expr     ast.Node
+	is_valid bool
 }
 
 pub struct Alias {

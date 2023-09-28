@@ -120,7 +120,9 @@ pub fn (p Parser) node_function_caller(meta ast.Meta, left ast.NodeLeft, nodes [
 
 pub fn (p Parser) node_var(meta ast.Meta, left string, nodes []ast.Node) ast.Node {
 	return ast.Node{
-		left: ast.NodeLeft(left)
+		left: ast.NodeLeft(ast.Atom{
+			name: left
+		})
 		kind: ast.NodeKind(ast.Ast{
 			lit: 'var'
 		})
