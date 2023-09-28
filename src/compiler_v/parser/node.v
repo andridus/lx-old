@@ -245,7 +245,8 @@ pub fn (p Parser) node_default() ast.Node {
 
 pub fn (p Parser) meta() ast.Meta {
 	return ast.Meta{
-		line: p.tok.line_nr
+		line: p.lexer.current_line
+		start_pos: p.tok.pos
 		inside_parens: p.inside_parens
 	}
 }

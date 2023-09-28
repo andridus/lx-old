@@ -25,6 +25,7 @@ mut:
 	current_module     string
 	in_var_expr        bool
 	tok_inline         int
+	error_line         int
 	error_pos_inline   int
 	error_pos_in       int
 	error_pos_out      int

@@ -5,11 +5,12 @@ import compiler_v.token
 pub struct Lexer {
 	input []u8
 pub mut:
-	lines      int = 1
-	pos        int
-	pos_inline int
-	total      int
-	tokens     []token.Token
+	lines        int
+	current_line int = 1
+	pos          int
+	pos_inline   int
+	total        int
+	tokens       []token.Token
 }
 
 fn (mut l Lexer) parse_token() token.Token {
@@ -22,6 +23,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.skip_space()
 		}
 		10 {
+			l.current_line++
 			l.new_token_new_line()
 		}
 		`_` {

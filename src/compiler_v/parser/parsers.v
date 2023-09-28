@@ -20,7 +20,16 @@ pub fn (mut p Parser) parse_block() ast.Node {
 
 	if p.tok.kind != .key_end {
 		for {
-			stmts << p.stmt()
+			mut stmt := p.stmt()
+			stmt.mark_with_is_main_expr()
+
+			// if is last statement
+			if p.tok.kind in [.eof, .key_end] {
+				stmt.mark_with_last_expr()
+				meta.put_ti(stmt.meta.ti)
+			}
+			p.check_node(mut stmt)
+			stmts << stmt
 
 			// p.warn('after stmt(): tok=$p.tok.str()')
 			if p.tok.kind in [.eof, .key_end] {
@@ -38,16 +47,16 @@ pub fn (mut p Parser) parse_block() ast.Node {
 
 	if stmts.len == 1 {
 		/// set last return
-		mut stmts0 := stmts[0]
-		stmts0.put_last_stmt()
-		meta.put_ti(stmts0.meta.ti)
-		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts0])])
+		// mut stmts0 := stmts[0]
+		// stmts0.mark_with_last_stmt()
+		// meta.put_ti(stmts0.meta.ti)
+		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts[0]])])
 	} else {
 		/// set last return
-		mut stmts0 := stmts.pop()
-		stmts0.put_last_stmt()
-		stmts << stmts0
-		meta.put_ti(stmts0.meta.ti)
+		// mut stmts0 := stmts.pop()
+		// stmts0.mark_with_last_stmt()
+		// stmts << stmts0
+		// meta.put_ti(stmts0.meta.ti)
 		return p.node_list(p.meta(), [
 			p.node_tuple(p.meta(), [
 				p.node_atomic('do'),

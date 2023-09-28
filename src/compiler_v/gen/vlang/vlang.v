@@ -146,8 +146,11 @@ fn (mut g VGen) parse_many_nodes(modl string, nodes []ast.Node) {
 }
 
 fn (mut g VGen) parse_node(modl string, node ast.Node) {
-	if node.meta.is_last_stmt && !defer_return(node) {
+	if node.meta.is_last_expr && !defer_return(node) {
 		g.write(modl, 'return ')
+	}
+	if node.meta.is_unused && !node.meta.is_last_expr {
+		g.write(modl, '_ = ')
 	}
 	match node.kind {
 		ast.Module {
@@ -194,7 +197,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					left := node.nodes[0]
 					right := node.nodes[1]
 					type0 := parse_type(left.meta.ti.kind)
-					if node.meta.is_last_stmt {
+					if node.meta.is_last_expr {
 						tmp_ = g.temp_var(modl, left.meta.ti)
 						g.write(modl, '${tmp_} := ')
 					}
@@ -204,7 +207,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					g.parse_node(modl, right)
 					g.writeln(modl, '))')
 
-					if node.meta.is_last_stmt {
+					if node.meta.is_last_expr {
 						g.writeln(modl, 'return ${tmp_}')
 					}
 					g.defer_return = false
@@ -236,14 +239,8 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 			g.write(modl, '${node.left.str()}')
 		}
 		ast.Function {
-			// g.parent_node = node
-			// atom node
 			node0 := node.nodes[0]
 			g.fn_agg_node[node0.left.str()] << node
-			// g.writeln(modl, 'fn ${node0.atom}()')
-			// block node
-			// node1 := node.nodes[1]
-			// g.parse_node(modl,node1)
 		}
 		ast.FunctionCaller {
 			ty := node.kind as ast.FunctionCaller
@@ -300,17 +297,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					}
 				}
 			}
-			// if node.nodes.len == 2 && node.nodes[0].atom == "do" && g.parent_node.kind is types.Module {
-			// 	println("tuple directly inside module ")
-			// 	g.parse_node(modl, node.nodes[1])
-			// } if node.nodes.len == 2 && node.nodes[0].atom == "do"{
-			// 	println("${node.nodes[1].kind} tuple directly inside block ")
-			// 	g.writeln(modl, '{')
-			// 		g.parse_node(modl, node.nodes[1])
-			// 	g.writeln(modl, '}')
-			// } else {
-			// 	// g.parse_many_nodes(modl, node.nodes)
-			// }
 		}
 		else {
 			eprintln('\n\nOTHER NODE ${node.kind} ${node.left} ${node.meta.ti}')

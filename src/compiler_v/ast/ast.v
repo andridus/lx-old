@@ -46,18 +46,38 @@ pub struct Meta {
 pub mut:
 	ti            types.TypeIdent
 	line          int
+	start_pos     int
+	end_pos       int
 	inside_parens int
-	is_last_stmt  bool
+	is_main_expr  bool
+	is_unused     bool
+	is_last_expr  bool
 }
 
 pub fn (mut m Meta) put_ti(ti types.TypeIdent) {
 	m.ti = ti
 }
 
-pub fn (mut n Node) put_last_stmt() {
+pub fn (mut n Node) mark_with_last_expr() {
 	meta := n.meta
 	n.meta = Meta{
 		...meta
-		is_last_stmt: true
+		is_last_expr: true
+	}
+}
+
+pub fn (mut n Node) mark_with_is_main_expr() {
+	meta := n.meta
+	n.meta = Meta{
+		...meta
+		is_main_expr: true
+	}
+}
+
+pub fn (mut n Node) mark_with_is_unused() {
+	meta := n.meta
+	n.meta = Meta{
+		...meta
+		is_unused: true
 	}
 }

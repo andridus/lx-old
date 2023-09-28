@@ -65,6 +65,9 @@ fn (mut l Lexer) get_token_comment(bt u8) token.Token {
 		current = l.input[pos]
 		pos++
 	}
+	if current == 10 {
+		l.current_line++
+	}
 	str := l.input[start_pos..pos - 1].bytestr()
 	return l.new_token(str, token.Kind.line_comment, str.len)
 }
@@ -74,6 +77,9 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 		l.pos += delim_start.len
 		start_pos := l.pos
 		mut current := l.input[l.pos]
+		if current == 10 {
+			l.current_line++
+		}
 		for (l.pos < l.total) {
 			mut m := 0
 			if current == delim_end[0] {
@@ -88,6 +94,7 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 					break
 				}
 			}
+
 			current = l.input[l.pos]
 			l.pos++
 		}

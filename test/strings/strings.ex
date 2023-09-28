@@ -20,12 +20,12 @@ defmodule StringsTest do
     name = "Fulano"
     "Hello, " <> name <> "!"
 
-    ### Interpolation
-    "Hello, #{name}"
+    # ### Interpolation
+    # "Hello, #{name}"
 
-    ### Scape Sequences
-    # "Here is a double quote -> \" <-"
-    # "C:\\Users\\Lx"
+    # ### Scape Sequences
+    # # "Here is a double quote -> \" <-"
+    # # "C:\\Users\\Lx"
     :ok
   end
 end
