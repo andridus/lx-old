@@ -181,10 +181,22 @@ fn (mut p Parser) string_expr() ast.Node {
 
 	mut node := p.node_string(mut meta, p.tok.lit)
 	if p.peek_tok.kind != .hash {
-		// TODO: interpolate string
-		p.next_token()
+		if p.lexer.inside_interpolation {
+			p.next_token()
+			// the first interpolate expression
+			mut node0 := p.expr_node(0)
+			node0 = p.node_caller_to_string(meta, node0)
+			// the rest of string with maybe other interpolations
+			node1 := p.expr_node(0)
+			node2 := p.node_string_concat(mut meta, node0, node1)
+			node = p.node_string_concat(mut meta, node, node2)
+		} else {
+			p.next_token()
+		}
+
 		return node
 	}
+
 	for p.tok.kind == .str {
 		p.next_token()
 		if p.tok.kind != .hash {

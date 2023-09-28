@@ -308,6 +308,14 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 		// .lcbr {
 		// 	node, ti = p.tuple_expr()
 		// }
+		.lcbr {
+			p.check(.lcbr)
+			node = p.expr_node(0)
+		}
+		.rcbr {
+			p.check(.rcbr)
+			node = p.expr_node(0)
+		}
 		.lpar {
 			p.check(.lpar)
 			p.inside_parens++

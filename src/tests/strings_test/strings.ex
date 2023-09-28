@@ -1,7 +1,5 @@
 defmodule StringsTest do
-
   def main() do
-
     ## String literal
     "Hello Lx"
     "Hello
@@ -18,14 +16,13 @@ defmodule StringsTest do
     ### Concatenation
     "name:" <> "Fulano"
     name = "Fulano"
-    "Hello, " <> name <> "!"
+    "Hello, Fulano!" = "Hello, " <> name <> "!"
 
-    # ### Interpolation
-    # "Hello, #{name}"
+    ### Interpolation
+    "Hello, Fulano!" = "Hello, #{name}!"
 
-    # ### Scape Sequences
-    # # "Here is a double quote -> \" <-"
-    # # "C:\\Users\\Lx"
-    :ok
+    ### Scape Sequences
+   "Here is a double quote -> \" <-"
+    "C:\\Users\\Lx"
   end
 end

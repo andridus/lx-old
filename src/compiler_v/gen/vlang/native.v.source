@@ -58,6 +58,9 @@ pub fn any_to_string(value AnyType) string {
 	return match value {
 		Atom { value.val }
 		string { value }
+		int { value.str() }
+		f64 { value.str() }
+		bool { value.str() }
 		else {
 			eprintln("to_string: invalid conversion")
 			exit(1)

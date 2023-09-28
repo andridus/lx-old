@@ -80,6 +80,28 @@ pub fn (p Parser) node_function(meta ast.Meta, nodes []ast.Node, ty ast.Function
 	}
 }
 
+pub fn (p Parser) node_caller_to_string(meta ast.Meta, node ast.Node) ast.Node {
+	module_name := 'FFI.v'
+	fun_name := 'any_to_string'
+	fun_node := p.node(meta, '.', [
+		p.node(meta, '__aliases__', [p.node_atomic(module_name)]),
+		p.node_atomic(fun_name),
+	])
+	arg_nodes := [node]
+
+	mut arities := []string{}
+	for an in arg_nodes {
+		arities << an.meta.ti.str()
+	}
+	return p.node_function_caller(meta, p.node_left(fun_node), arg_nodes, ast.FunctionCaller{
+		name: fun_name
+		return_ti: types.string_ti
+		module_name: module_name
+		args: arg_nodes
+		arity: arities
+	})
+}
+
 pub fn (p Parser) node_function_caller(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node, ty ast.FunctionCaller) ast.Node {
 	mut left0 := left
 	if left is string {
@@ -170,7 +192,7 @@ pub fn (p Parser) node_string_concat(mut meta ast.Meta, left ast.Node, right ast
 	meta.put_ti(types.string_ti)
 	return ast.Node{
 		left: ast.NodeLeft(ast.Atom{
-			name: '<>'
+			name: '<<>>'
 		})
 		kind: ast.NodeKind(ast.Ast{
 			lit: 'string_concat'

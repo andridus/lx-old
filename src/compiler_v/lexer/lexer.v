@@ -5,12 +5,14 @@ import compiler_v.token
 pub struct Lexer {
 	input []u8
 pub mut:
-	lines        int
-	current_line int = 1
-	pos          int
-	pos_inline   int
-	total        int
-	tokens       []token.Token
+	lines                          int
+	current_line                   int = 1
+	inside_interpolation           bool
+	inside_interpolation_end_delim string
+	pos                            int
+	pos_inline                     int
+	total                          int
+	tokens                         []token.Token
 }
 
 fn (mut l Lexer) parse_token() token.Token {
@@ -250,7 +252,12 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token('{', .lcbr, 1)
 		}
 		`}` {
-			l.new_token('}', .rcbr, 1)
+			if l.inside_interpolation == true {
+				l.inside_interpolation = false
+				l.get_text_delim(token.Kind.multistring, '}', l.inside_interpolation_end_delim)
+			} else {
+				l.new_token('}', .rcbr, 1)
+			}
 		}
 		`[` {
 			l.new_token('[', .lsbr, 1)

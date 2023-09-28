@@ -205,7 +205,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					g.parse_node(modl, left)
 					g.write(modl, ', ')
 					g.parse_node(modl, right)
-					g.writeln(modl, '))')
+					g.write(modl, '))')
 
 					if node.meta.is_last_expr {
 						g.writeln(modl, 'return ${tmp_}')
@@ -278,7 +278,7 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 						g.write(modl, ',')
 					}
 				}
-				g.writeln(modl, ')')
+				g.write(modl, ')')
 			}
 		}
 		ast.Tuple {
