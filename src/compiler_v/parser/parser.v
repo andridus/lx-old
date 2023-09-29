@@ -212,9 +212,9 @@ pub fn (mut p Parser) stmt() ast.Node {
 		// 	p.program.table.register_alias(last, module_name_0)
 		// 	return p.stmt()
 		// }
-		// .key_defstruct, .key_defstructp {
-		// 	return p.defstruct_decl()
-		// }
+		.key_defstruct, .key_defstructp {
+			return p.defstruct_decl()
+		}
 		// .key_defenum, .key_defenump {
 		// 	return p.defenum_decl()
 		// }
@@ -246,16 +246,14 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 	mut node := p.node(meta, 'nil', [])
 	// Prefix
 	match p.tok.kind {
-		// .mod {
-		// 	if p.peek_tok.kind == .modl {
-		// 		node1, ti1 := p.defstruct_init()
-		// 		node = ast.Expr(node1)
-		// 		ti = ti1
-		// 	} else {
-		// 		p.next_token()
-		// 		node, ti = p.expr(0)
-		// 	}
-		// }
+		.mod {
+			if p.peek_tok.kind == .modl {
+				node = p.defstruct_init()
+			} else {
+				p.next_token()
+				node = p.expr_node(0)
+			}
+		}
 		// .underscore {
 		// 	node, ti = p.underscore_expr()
 		// }

@@ -45,8 +45,33 @@ fn (mut p Parser) ident_expr() ast.Node {
 		}
 		mut ti := var.ti
 		p.next_token()
-		// if p.tok.kind == .dot {
-		// 	p.check(.dot)
+
+		/// get from struct flow
+		if p.tok.kind == .dot {
+			p.check(.dot)
+			match var.expr.kind {
+				ast.Struct {
+					stct := var.expr.kind as ast.Struct
+					field_name := p.tok.lit
+
+					// check if field exists, shoudl be a tuple
+					if stct.fields[field_name].kind is ast.Tuple {
+						p.check(.ident)
+						fld := stct.exprs[field_name]
+						meta.put_ti(fld.meta.ti)
+						return p.node(meta, '.', [
+							p.node_var(meta, ident, []),
+							p.node_atomic(field_name),
+						])
+					} else {
+						p.error_pos_out = field_name.len
+						p.log_d('ERROR', 'The field `${field_name}` not exists in struct `${stct.name}`. Try one of ${stct.fields.keys()}',
+							'', '', field_name)
+					}
+				}
+				else {}
+			}
+		}
 		// 	if p.tok.kind == .ident {
 		// 		expr := var.expr.expr
 		// 		type0 := var.type_

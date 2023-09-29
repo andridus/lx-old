@@ -31,6 +31,11 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 						lit: '.'
 					})
 				}
+				'%{}' {
+					ast.NodeKind(ast.Ast{
+						lit: '%{}'
+					})
+				}
 				'__block__' {
 					ast.NodeKind(ast.Ast{
 						lit: 'block'
@@ -66,6 +71,42 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 		kind: kind
 		meta: meta
 		nodes: nodes
+	}
+}
+
+pub fn (p Parser) node_struct_field(meta ast.Meta, name string) ast.Node {
+	name0 := p.node_atomic(name)
+	type_ := p.node_atomic(meta.ti.kind.str())
+	return p.node_tuple(meta, [name0, type_])
+}
+
+pub fn (p Parser) node_struct(meta ast.Meta, ty ast.Struct) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: 'defstruct'
+		})
+		kind: ast.NodeKind(ty)
+		meta: meta
+		nodes: ty.fields.values()
+	}
+}
+
+pub fn (p Parser) node_caller_struct(meta ast.Meta, ty ast.Struct) ast.Node {
+	mut fields := []ast.Node{}
+	for key, value in ty.exprs {
+		fld := ty.fields[key].nodes[0]
+		fields << p.node_tuple(meta, [fld, value])
+	}
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: '%'
+		})
+		kind: ast.NodeKind(ty)
+		meta: meta
+		nodes: [
+			p.node(meta, '__aliases__', [p.node_atomic(ty.name)]),
+			p.node(meta, '%{}', fields),
+		]
 	}
 }
 
@@ -272,5 +313,14 @@ pub fn (p Parser) meta() ast.Meta {
 		line: p.lexer.current_line
 		start_pos: p.tok.pos
 		inside_parens: p.inside_parens
+	}
+}
+
+pub fn (p Parser) meta_w_ti(ti types.TypeIdent) ast.Meta {
+	return ast.Meta{
+		line: p.lexer.current_line
+		start_pos: p.tok.pos
+		inside_parens: p.inside_parens
+		ti: ti
 	}
 }

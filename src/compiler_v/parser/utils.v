@@ -8,7 +8,7 @@ pub fn filename_without_extension(filename string) string {
 	return filename[0..filename.len - os.file_ext(filename).len]
 }
 
-fn (mut p Parser) check_modl_name() string {
+fn (mut p Parser) check_modl_name() (string, string) {
 	mut name := ''
 	if p.tok.kind == .modl {
 		name = p.tok.lit
@@ -21,7 +21,7 @@ fn (mut p Parser) check_modl_name() string {
 			name = p.current_module
 		}
 	}
-	return name.replace('.', '_').to_lower()
+	return name.replace('.', '_').to_lower(), name
 }
 
 fn (mut p Parser) get_mdl_name() string {

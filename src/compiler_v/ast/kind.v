@@ -85,17 +85,14 @@ pub struct Struct {
 pub:
 	idx        int
 	parent_idx int
+	internal   string
 	name       string
+	is_def     bool
 pub mut:
-	fields  []Field
-	methods []Field
-}
-
-pub struct Field {
-pub:
-	name     string
-	type_idx int
-	ti       types.TypeIdent
+	fields map[string]Node
+	exprs  map[string]Node
+	is_pub bool
+	ti     types.TypeIdent
 }
 
 pub struct Integer {

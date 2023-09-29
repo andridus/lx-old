@@ -3,7 +3,7 @@ module table
 import compiler_v.types
 import compiler_v.ast
 
-pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Field) (int, string) {
+pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields map[string]ast.Node) (int, string) {
 	name := 'struct_${elem_ti.name}'
 	// existing
 	existing_idx := t.type_idxs[name]
@@ -14,11 +14,11 @@ pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Fiel
 	idx := t.types.len
 	mut struct_type := types.Type(types.Void{})
 	mut fields0 := []types.Field{}
-	for field in fields {
+	for _, field in fields {
 		fields0 << types.Field{
-			name: field.name
+			name: field.nodes[0].left.atomic_str()
 			type_idx: idx
-			ti: field.ti
+			ti: field.meta.ti
 		}
 	}
 	struct_type = types.Struct{

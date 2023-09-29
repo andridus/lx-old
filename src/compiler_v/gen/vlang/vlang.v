@@ -216,7 +216,32 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 					g.write(modl, '!')
 					g.parse_node(modl, node.nodes[0])
 				}
+				'.' {
+					g.parse_node(modl, node.nodes[0])
+					g.write(modl, '.')
+					g.write(modl, node.nodes[1].left.atomic_str())
+				}
 				else {}
+			}
+		}
+		ast.Struct {
+			if node.kind.is_def {
+				g.writeln(modl, 'struct ${node.kind.internal.to_upper()}{')
+				for key, node0 in node.kind.fields {
+					g.write(modl, '\t${key} ')
+					g.writeln(modl, '${parse_type(node0.meta.ti.kind)} ')
+				}
+				g.writeln(modl, '}')
+			} else {
+				g.writeln(modl, '${node.kind.internal.to_upper()}{')
+				for node0 in node.nodes[1].nodes {
+					field := node0.nodes[0].left.atomic_str()
+					value := node0.nodes[1]
+					g.write(modl, '\t${field}: ')
+					g.parse_node(modl, value)
+					g.writeln(modl, '')
+				}
+				g.writeln(modl, '}')
 			}
 		}
 		ast.List {
