@@ -17,6 +17,7 @@ defmodule StringsTest do
     "name:" <> "Fulano"
     name = "Fulano"
     "Hello, Fulano!" = "Hello, " <> name <> "!"
+    "Fulano, Hello" = name <> ", Hello"
 
     ### Interpolation
     "Hello, Fulano!" = "Hello, #{name}!"

@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved.
+// Use of this source code is governed by an MIT license
+// that can be found in the LICENSE file.
 module parser
 
 import compiler_v.ast
@@ -46,24 +49,14 @@ pub fn (mut p Parser) parse_block() ast.Node {
 	}
 
 	if stmts.len == 1 {
-		/// set last return
-		// mut stmts0 := stmts[0]
-		// stmts0.mark_with_last_stmt()
-		// meta.put_ti(stmts0.meta.ti)
 		return p.node_list(meta, [p.node_tuple(meta, [p.node_atomic('do'), stmts[0]])])
 	} else {
-		/// set last return
-		// mut stmts0 := stmts.pop()
-		// stmts0.mark_with_last_stmt()
-		// stmts << stmts0
-		// meta.put_ti(stmts0.meta.ti)
 		return p.node_list(p.meta(), [
 			p.node_tuple(p.meta(), [
 				p.node_atomic('do'),
 				p.node(meta, '__block__', stmts),
 			]),
 		])
-		// p.node(meta, 'do', p.node(meta, '__block__', stmts))
 	}
 }
 
@@ -94,9 +87,6 @@ fn (mut p Parser) infix_expr(left ast.Node) ast.Node {
 	p.next_token()
 	next_precedence := ast.precedence(p.tok.lit)
 	right := p.expr_node(next_precedence)
-	// if op.is_relational() {
-	// 	ti = types.bool_ti
-	// }
 	node := p.parse_operations(mut meta, left, op, op_precedence, right, p.inside_parens > 0)
 	return node
 }
@@ -316,12 +306,6 @@ fn (mut p Parser) block_expr(is_top_stmt bool) ast.Node {
 		stmts << p.stmt()
 	}
 	p.check(.key_end)
-	// return ast.Block{
-	// 	name: filename_without_extension(p.file_name)
-	// 	stmts: stmts
-	// 	is_top_stmt: is_top_stmt
-	// 	is_used: p.in_var_expr
-	// }
 	if stmts.len == 0 {
 		return p.node_list(meta, []ast.Node{})
 	} else if stmts.len == 1 {
@@ -339,16 +323,6 @@ fn (mut p Parser) block_expr(is_top_stmt bool) ast.Node {
 			]),
 		])
 	}
-
-	// return p.node("defmodule", [
-	// 	p.node("__aliases__", [
-	// 		p.node_atomic(p.module_name)
-	// 	])
-	// 	p.node_tuple([
-	// 		p.node("do", []),
-	// 		block
-	// 	])
-	// ])
 }
 
 fn (mut p Parser) module_decl() ast.Node {

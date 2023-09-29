@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
 module vlang
 
 import strings
@@ -351,20 +354,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 		ast.UnderscoreExpr {
 // 			g.writeln(modl, 'Underscore{}')
 // 		}
-// 		ast.StructInit {
-// 			if g.in_var_decl {
-// 				if node.ti != g.var_ti {
-// 					panic('error type ident wrong')
-// 				}
-// 			}
-// 			g.writeln(modl, '${node.name.to_upper()}{')
-// 			for i, field in node.fields {
-// 				g.write(modl, '\t${field}: ')
-// 				g.expr(modl, node.exprs[i])
-// 				g.writeln(modl, '')
-// 			}
-// 			g.writeln(modl, '}')
-// 		}
 // 		ast.CallEnum {
 // 			if g.in_var_decl {
 // 				// g.write(modl, '${g.var_ti} ${g.var_name} = ')
@@ -372,39 +361,6 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 // 			} else {
 // 				g.writeln(modl, '${node.name.to_upper()}.__${node.val.to_lower()}__')
 // 			}
-// 		}
-// 		ast.CallField {
-// 			mut path := node.parent_path.clone()
-// 			path << node.name
-// 			g.write(modl, '${path.join('.')}')
-// 		}
-// 		ast.StructField {
-// 			vname := g.local_vars_binding[node.var_name]
-// 			g.write(modl, '${vname}.${node.name}')
-// 		}
-// 		ast.CallExpr {
-// 			module_name := node.module_name.replace('.', '_')
-// 			if node.is_external {
-// 				if !node.is_c_module {
-// 					g.write(modl, '\t${module_name}_'.to_lower())
-// 				}
-// 			}
-// 			if node.is_c_module {
-// 				g.write(modl, '${node.name}('.to_lower())
-// 			} else if node.is_v_module {
-// 				g.write(modl, '${node.name}('.to_lower())
-// 			} else {
-// 				g.write(modl, '${node.name}_${node.arity}('.to_lower())
-// 			}
-
-// 			for i, expr in node.args {
-// 				g.expr(modl, expr)
-
-// 				if i != node.args.len - 1 {
-// 					g.write(modl, ', ')
-// 				}
-// 			}
-// 			g.write(modl, ')')
 // 		}
 // 		ast.IfExpr {
 // 			g.endln(modl)

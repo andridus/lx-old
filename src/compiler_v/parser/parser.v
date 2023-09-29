@@ -143,33 +143,6 @@ pub fn (mut p Parser) parse_ast() ast.Node {
 	}
 }
 
-// pub fn (mut p Parser) top_stmt() ast.Stmt {
-// 	match p.tok.kind {
-// 		.line_comment {
-// 			p.next_token()
-// 			return p.top_stmt()
-// 		}
-// 		.key_defmodule {
-// 			return p.module_decl()
-// 		}
-// 		// .modl {
-// 		// 	return p.call_expr()
-// 		// }
-// 		.lsbr {
-// 			p.next_token()
-// 			p.check(.ident)
-// 			p.check(.rsbr)
-// 			return ast.Module{}
-// 		}
-// 		.key_do {
-// 			return p.block_expr(true)
-// 		}
-// 		else {
-// 			return p.expr_stmt()
-// 		}
-// 	}
-// }
-
 pub fn (mut p Parser) stmt() ast.Node {
 	match p.tok.kind {
 		// .line_comment {
@@ -261,11 +234,11 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 			node = p.atom_expr()
 		}
 		.ident {
-			// if p.peek_tok.kind == .string_concat {
-			// 	node = p.string_concat_expr()
-			// } else {
-			node = p.ident_expr()
-			// }
+			if p.peek_tok.kind == .string_concat {
+				node = p.string_concat_expr()
+			} else {
+				node = p.ident_expr()
+			}
 		}
 		// .key_nil {
 		// 	node, ti = p.parse_nil_literal()
@@ -370,140 +343,3 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 	}
 	return node
 }
-
-// pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
-// 	mut ti := types.void_ti
-// 	mut node := ast.Expr(ast.EmptyExpr{})
-// 	// Prefix
-// 	match p.tok.kind {
-// 		.mod {
-// 			if p.peek_tok.kind == .modl {
-// 				node1, ti1 := p.defstruct_init()
-// 				node = ast.Expr(node1)
-// 				ti = ti1
-// 			} else {
-// 				p.next_token()
-// 				node, ti = p.expr(0)
-// 			}
-// 		}
-// 		.underscore {
-// 			node, ti = p.underscore_expr()
-// 		}
-// 		// .atom {
-// 		// 	node, ti = p.atom_expr()
-// 		// }
-// 		.ident {
-// 			if p.peek_tok.kind == .string_concat {
-// 				node, ti = p.string_concat_expr()
-// 			} else {
-// 				// node, ti = p.ident_expr()
-// 			}
-// 		}
-// 		.key_nil {
-// 			node, ti = p.parse_nil_literal()
-// 		}
-// 		.key_keyword {
-// 			node, ti = p.keyword_list_expr()
-// 		}
-// 		.key_if {
-// 			node, ti = p.if_expr()
-// 		}
-// 		// .multistring {
-// 		// 	node, ti = p.string_expr()
-// 		// }
-// 		// .str {
-// 		// 	if p.peek_tok.kind == .string_concat {
-// 		// 		node, ti = p.string_concat_expr()
-// 		// 	} else if p.peek_tok.kind == .colon_space {
-// 		// 		node, ti = p.keyword_list_expr()
-// 		// 	} else {
-// 		// 		node, ti = p.string_expr()
-// 		// 	}
-// 		// }
-// 		.key_true, .key_false {
-// 			node, ti = p.parse_boolean()
-// 		}
-// 		.bang {
-// 			node, ti = p.not_expr()
-// 		}
-// 		// .integer {
-// 		// 	node, ti = p.parse_number_literal()
-// 		// }
-// 		// .float {
-// 		// 	node, ti = p.parse_number_literal()
-// 		// }
-// 		.charlist {
-// 			node, ti = p.charlist_expr()
-// 		}
-// 		.lcbr {
-// 			node, ti = p.tuple_expr()
-// 		}
-// 		.lpar {
-// 			p.check(.lpar)
-// 			p.inside_parens++
-// 			node, ti = p.expr(0)
-// 			p.check(.rpar)
-// 			p.inside_parens--
-// 		}
-// 		.modl {
-// 			mut num := 1
-// 			mut nt := p.peek_next_token(num)
-// 			if p.tok.kind == .modl {
-// 				for nt.kind == .dot {
-// 					num++
-// 					nt = p.peek_next_token(num)
-// 					if nt.kind == .modl {
-// 						num++
-// 						nt = p.peek_next_token(num)
-// 					} else {
-// 						break
-// 					}
-// 				}
-// 				num++
-// 			}
-// 			nt = p.peek_next_token(num)
-
-// 			if nt.kind == .arrob {
-// 				node1, ti1 := p.call_enum() or {
-// 					p.warn('Error')
-// 					exit(1)
-// 				}
-// 				node = ast.Expr(node1)
-// 				ti = ti1
-// 			} else {
-// 				// node1, ti1 := p.call_from_module(.modl) or {
-// 				// 	p.warn('Error')
-// 				// 	exit(1)
-// 				// }
-// 				// ti = ti1
-// 				// node = ast.Expr(node1)
-// 			}
-// 		}
-// 		else {
-// 			p.error_pos_in = p.tok.lit.len
-// 			p.error_pos_out = p.lexer.pos_inline
-// 			p.log_d('ERROR', 'Bad token `${p.tok.str()}`', '', '', p.tok.lit)
-// 			exit(1)
-// 		}
-// 	}
-
-// // Infix
-// for precedence < p.tok.precedence() {
-// 	if p.tok.kind.is_infix() {
-// 		node = p.infix_expr(node)
-// 		return node
-// 	}
-// 	// Postfix
-// 	else if p.tok.kind in [.inc, .dec] {
-// 		node = ast.PostfixExpr{
-// 			op: p.tok.kind
-// 			expr: node
-// 		}
-// 		p.next_token()
-// 		return node, ti
-// 	} else {
-// 		return node, ti
-// 	}
-// }
-// 	return node, ti
-// }

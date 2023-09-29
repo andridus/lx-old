@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved.
+// Use of this source code is governed by an MIT license
+// that can be found in the LICENSE file.
 module parser
 
 import compiler_v.ast
@@ -57,9 +60,4 @@ fn (mut p Parser) var_decl() ast.Node {
 	p.in_var_expr = false
 	meta.put_ti(ti)
 	return p.node_assign(meta, name, node)
-	// {
-	// 	name: name
-	// 	expr: expr
-	// 	ti: ti
-	// }
 }
