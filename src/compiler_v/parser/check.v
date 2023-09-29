@@ -6,7 +6,8 @@ pub fn (mut p Parser) check_node(mut node ast.Node) {
 	if !node.meta.is_last_expr {
 		match node.kind {
 			ast.Ast {
-				if node.kind.lit in ['assign', 'def'] {
+				// NOTE: match should be or not inside this list
+				if node.kind.lit in ['match', 'assign', 'def'] {
 					return
 				}
 			}

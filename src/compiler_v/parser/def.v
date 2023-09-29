@@ -105,6 +105,7 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
 
+		println('finded ${f}')
 		if finded > 0 {
 			a := f.arities[finded]
 			if a.is_valid {
@@ -237,10 +238,12 @@ fn (mut p Parser) def_decl() ast.Node {
 		}
 		for arg_name in arg_names {
 			typ0 := p.program.table.find_type(ti.str()) or { types.type_from_ti(ti) }
+			mut meta0 := p.meta()
 			arg := table.Var{
 				name: arg_name
 				ti: ti
 				type_: typ0
+				expr: p.node_atom(mut meta0, arg_name)
 			}
 			args << arg
 			p.program.table.register_var(arg)
@@ -280,15 +283,24 @@ fn (mut p Parser) def_decl() ast.Node {
 			}
 		}
 	}
+
 	mut final_args := []table.Var{}
 	mut args_overfn := '${args.len}'
 	for a in args {
-		// var := p.program.table.find_var(a.name) or { a }
+		var0 := p.program.table.find_var(a.name, p.context) or { a }
 		mut meta0 := p.meta()
-		meta0.put_ti(a.ti)
-		var := p.node_var(meta0, a.name, [])
 
-		final_args << a
+		// NOTE: check this. it`s necessary check if var (on table) and arg has equals ti, if a.ti != .void_ ?
+		if a.ti.kind == .void_ {
+			meta0.put_ti(var0.ti)
+		} else {
+			meta0.put_ti(a.ti)
+		}
+		var := p.node_var(meta0, a.name, [])
+		final_args << table.Var{
+			...a
+			ti: var0.ti
+		}
 		ast_args << var
 		args_overfn += '_${var.meta.ti.name}'
 	}

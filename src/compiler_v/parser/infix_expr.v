@@ -50,8 +50,8 @@ fn (mut p Parser) parse_operations(mut meta ast.Meta, left ast.Node, op string, 
 
 fn (mut p Parser) node_infix(mut meta ast.Meta, left ast.Node, op string, right ast.Node) ast.Node {
 	mut ti := types.get_default_type(op, left.meta.ti)
-	mut left0 := left
-	mut right0 := right
+
+	mut left0, mut right0 := p.maybe_update_two_nodes_with_ti(left, right, ti)
 	if ast.is_need_to_promote(left, right) {
 		left0 = ast.maybe_promote_integer_to_float(left, right)
 		right0 = ast.maybe_promote_integer_to_float(right, left)
@@ -62,33 +62,15 @@ fn (mut p Parser) node_infix(mut meta ast.Meta, left ast.Node, op string, right 
 			ti = left0.get_ti()
 		}
 	}
-	// println()
-	meta.put_ti(ti)
+	if ti.kind == .integer_ && left0.meta.ti.kind in [.integer_, .float_] {
+		meta.put_ti(left0.meta.ti)
+	} else {
+		meta.put_ti(ti)
+	}
 	a := p.node_function_caller(meta, op, [left0, right0], ast.FunctionCaller{
 		infix: true
 		arity: [left.get_ti().kind.str(), left.get_ti().kind.str()]
 	})
-	// if left0 is ast.Ident {
-	// 	c := left0 as ast.Ident
-	// 	// try locate var
-	// 	var := p.program.table.find_var(c.name, p.context) or {
-	// 		println('not found var')
-	// 		exit(1)
-	// 	}
-	// 	if var.ti.kind == .void_ {
-	// 		p.program.table.update_var_ti(var, ti)
-	// 	}
-	// }
-	// if right0 is ast.Ident {
-	// 	c := left0 as ast.Ident
-	// 	// try locate var
-	// 	var := p.program.table.find_var(c.name, p.context) or {
-	// 		println('not found var')
-	// 		exit(1)
-	// 	}
-	// 	if var.ti.kind == .void_ {
-	// 		p.program.table.update_var_ti(var, ti)
-	// 	}
-	// }
+
 	return a
 }
