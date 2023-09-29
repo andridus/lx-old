@@ -94,6 +94,37 @@ pub fn (p Parser) node_struct(meta ast.Meta, ty ast.Struct) ast.Node {
 	}
 }
 
+pub fn (p Parser) node_enum(meta ast.Meta, nodes []ast.Node, ty ast.Enum) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: 'defenum'
+		})
+		kind: ast.NodeKind(ty)
+		meta: meta
+		nodes: [p.node_list(meta, nodes)]
+	}
+}
+
+pub fn (p Parser) node_caller_enum(mut meta ast.Meta, value string, ty ast.Enum) ast.Node {
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: '@'
+		})
+		kind: ast.NodeKind(ty)
+		meta: meta
+		nodes: [
+			p.node(meta, '__aliases__', [p.node_atomic(ty.name)]),
+			ast.Node{
+				left: ast.NodeLeft(ast.Atom{
+					name: value
+				})
+				kind: ast.NodeKind(ast.Atom{})
+				meta: meta
+			},
+		]
+	}
+}
+
 pub fn (p Parser) node_caller_struct(meta ast.Meta, ty ast.Struct) ast.Node {
 	mut fields := []ast.Node{}
 	for key, value in ty.exprs {
@@ -221,6 +252,17 @@ pub fn (p Parser) node_atom(mut meta ast.Meta, atom string) ast.Node {
 			name: atom
 		})
 		kind: ast.NodeKind(ast.Atom{})
+		meta: meta
+	}
+}
+
+pub fn (p Parser) node_nil() ast.Node {
+	meta := p.meta_w_ti(types.nil_ti)
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: 'nil'
+		})
+		kind: ast.NodeKind(ast.Nil{})
 		meta: meta
 	}
 }

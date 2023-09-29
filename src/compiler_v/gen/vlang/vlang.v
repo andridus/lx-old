@@ -150,7 +150,13 @@ fn (mut g VGen) parse_many_nodes(modl string, nodes []ast.Node) {
 
 fn (mut g VGen) parse_node(modl string, node ast.Node) {
 	if node.meta.is_last_expr && !defer_return(node) {
-		g.write(modl, 'return ')
+		if node.meta.ti.kind == .void_ {
+			defer {
+				g.writeln(modl, '\nreturn Nil{}')
+			}
+		} else {
+			g.write(modl, 'return ')
+		}
 	}
 	if node.meta.is_unused && !node.meta.is_last_expr {
 		g.write(modl, '_ = ')
@@ -227,6 +233,18 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 				else {}
 			}
 		}
+		ast.Enum {
+			if node.kind.is_def {
+				g.writeln(modl, 'enum ${node.kind.internal.to_upper()}{')
+				for value in node.kind.values {
+					g.writeln(modl, '\t_${value}_ ')
+				}
+				g.writeln(modl, '}')
+			} else {
+				g.write(modl, '${node.kind.internal.to_upper()}.')
+				g.writeln(modl, '_${node.nodes[1].left.atomic_str()}_')
+			}
+		}
 		ast.Struct {
 			if node.kind.is_def {
 				g.writeln(modl, 'struct ${node.kind.internal.to_upper()}{')
@@ -246,6 +264,9 @@ fn (mut g VGen) parse_node(modl string, node ast.Node) {
 				}
 				g.writeln(modl, '}')
 			}
+		}
+		ast.Nil {
+			g.write(modl, 'Nil{}')
 		}
 		ast.List {
 			g.parse_many_nodes(modl, node.nodes)
@@ -447,7 +468,7 @@ fn (mut g VGen) write_fn_node(modl string, node ast.Node, arity_idx int, fdata a
 
 			g.write(modl, '${var_name} ')
 			if arg0.meta.ti.kind == .enum_ {
-				g.write(modl, '${type0.to_upper()}')
+				g.write(modl, '${arg0.meta.ti.str().to_upper()}')
 			} else {
 				g.write(modl, '${type0}')
 			}

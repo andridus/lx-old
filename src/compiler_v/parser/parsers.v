@@ -60,13 +60,11 @@ pub fn (mut p Parser) parse_block() ast.Node {
 	}
 }
 
-// fn (mut p Parser) parse_nil_literal() (ast.Expr, types.TypeIdent) {
-// 	node := ast.Expr(ast.NilLiteral{
-// 		is_used: p.in_var_expr
-// 	})
-// 	p.next_token()
-// 	return node, types.nil_ti
-// }
+fn (mut p Parser) parse_nil_literal() ast.Node {
+	node := p.node_nil()
+	p.next_token()
+	return node
+}
 
 fn (mut p Parser) parse_number_literal() ast.Node {
 	mut meta := p.meta()

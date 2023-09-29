@@ -188,9 +188,9 @@ pub fn (mut p Parser) stmt() ast.Node {
 		.key_defstruct, .key_defstructp {
 			return p.defstruct_decl()
 		}
-		// .key_defenum, .key_defenump {
-		// 	return p.defenum_decl()
-		// }
+		.key_defenum, .key_defenump {
+			return p.defenum_decl()
+		}
 		.key_def, .key_defp {
 			return p.def_decl()
 		}
@@ -240,9 +240,9 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 				node = p.ident_expr()
 			}
 		}
-		// .key_nil {
-		// 	node, ti = p.parse_nil_literal()
-		// }
+		.key_nil {
+			node = p.parse_nil_literal()
+		}
 		// .key_keyword {
 		// 	node, ti = p.keyword_list_expr()
 		// }
@@ -311,19 +311,17 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 				num++
 			}
 			nt = p.peek_next_token(num)
-			// if nt.kind == .arrob {
-			// 	node1, ti1 := p.call_enum() or {
-			// 		p.warn('Error')
-			// 		exit(1)
-			// 	}
-			// 	node = ast.Expr(node1)
-			// 	ti = ti1
-			// } else {
-			node = p.call_from_module_node(.modl) or {
-				p.warn('Error')
-				exit(1)
+			if nt.kind == .arrob {
+				node = p.call_enum() or {
+					p.warn('Error')
+					exit(1)
+				}
+			} else {
+				node = p.call_from_module_node(.modl) or {
+					p.warn('Error')
+					exit(1)
+				}
 			}
-			// }
 		}
 		else {
 			p.error_pos_in = p.tok.lit.len

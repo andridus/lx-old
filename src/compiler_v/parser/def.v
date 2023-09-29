@@ -105,7 +105,6 @@ pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
 
-		println('finded ${f}')
 		if finded > 0 {
 			a := f.arities[finded]
 			if a.is_valid {

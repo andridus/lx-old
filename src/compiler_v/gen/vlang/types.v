@@ -9,8 +9,8 @@ fn parse_type(kind types.Kind) string {
 	return match kind {
 		.atom_ { 'Atom' }
 		.void_ { 'Nil' }
-		.nil_ { 'void *' }
-		.any_ { 'void *' }
+		.nil_ { 'Nil' }
+		.any_ { 'AnyType' }
 		.pointer_ { 'void *' }
 		.enum_ { 'enum' }
 		.struct_ { 'struct' }

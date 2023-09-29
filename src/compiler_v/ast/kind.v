@@ -76,9 +76,12 @@ pub:
 
 pub struct Enum {
 pub:
-	idx    int
-	name   string
-	values []string
+	is_def   bool
+	name     string
+	internal string
+	values   []string
+	is_pub   bool
+	ti       types.TypeIdent
 }
 
 pub struct Struct {
