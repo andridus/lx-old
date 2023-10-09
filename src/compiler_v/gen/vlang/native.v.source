@@ -32,6 +32,10 @@ pub fn (t AnyType) str() string {
 
 pub fn (a Atom) str() string { return ':${a.val}' }
 
+fn dont_match_error(left AnyType) {
+	eprintln('\033[31m**(RuntimeError::MatchError)\033[0m The left expression `$left` doesn`t match with anything')
+	exit(1)
+}
 pub fn do_match(left AnyType, right AnyType) AnyType {
 	if typeof(left).name == typeof(right).name {
 		if left == right {

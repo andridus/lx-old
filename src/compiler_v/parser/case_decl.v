@@ -3,112 +3,96 @@
 // that can be found in the LICENSE file.
 module parser
 
-// fn (mut p Parser) case_decl() ast.CaseDecl {
-// 	p.in_var_expr = true
-// 	ref := p.add_context('case')
-// 	name := p.tok.lit
-// 	p.check(.key_case)
-// 	mut clauses := []ast.CaseClauseExpr{}
-// 	mut exprs := []ast.Expr{}
-// 	mut expr_ti := types.void_ti
-// 	mut first_clause := true
-// 	mut first_expr := true
-// 	mut eval, mut cl_ti := p.expr(0)
+import compiler_v.ast
+import compiler_v.types
 
-// 	p.check(.key_do)
-// 	for p.tok.kind != .key_end {
-// 		p.error_pos_in = p.tok.pos - p.tok.lit.len
-// 		p.inside_clause = true
-// 		p.inside_clause_eval = eval
-// 		mut cl, ti0 := p.case_clause(cl_ti, true)
-// 		p.inside_clause = false
-// 		if ti0 != cl_ti {
-// 			if first_clause {
-// 				cl_ti = ti0
-// 			} else {
-// 				p.error_pos_out = p.tok.pos
-// 				p.log_d('ERROR', ' Clauses should be the same type of `${cl_ti}`, instead `${ti0}`',
-// 					'', '', p.tok.lit)
-// 			}
-// 		}
-// 		first_clause = false
-// 		clauses << cl
+fn (mut p Parser) case_decl() ast.Node {
+	meta := p.meta()
+	// p.in_var_expr = true
+	ref := p.add_context('case')
+	name := p.tok.lit
+	p.check(.key_case)
+	mut clauses := []ast.Node{}
+	mut exprs := []ast.Node{}
+	mut expr_ti := types.void_ti
+	mut first_clause := true
+	mut first_expr := true
+	mut eval_node := p.expr_node(0)
 
-// 		p.check(.right_arrow)
-// 		mut ex, ti1 := p.case_expr()
-// 		if ti1 != expr_ti {
-// 			if first_expr {
-// 				expr_ti = ti1
-// 			} else if ex is ast.UnderscoreExpr {
-// 				// ignore if is underscore and update ti
-// 				un := ex as ast.UnderscoreExpr
-// 				ex = ast.UnderscoreExpr{
-// 					...un
-// 					ti: expr_ti
-// 				}
-// 			} else {
-// 				p.error_pos_out = p.tok.pos
-// 				p.log_d('ERROR', ' Returned expressions should be the same type of `${expr_ti}`, instead `${ti1}`',
-// 					'', '', p.tok.lit)
-// 			}
-// 		}
-// 		first_expr = false
-// 		exprs << ex
-// 	}
-// 	p.check(.key_end)
+	p.check(.key_do)
+	for p.tok.kind != .key_end {
+		// meta0 := p.meta()
+		p.inside_clause = true
+		p.inside_clause_eval = eval_node
+		mut clause_node := p.case_clause(eval_node.meta.ti, true)
+		p.inside_clause = false
+		if clause_node.meta.ti != eval_node.meta.ti {
+			if first_clause {
+				// put the clause  ti from eval node
+			} else {
+				p.log_d('ERROR', ' Clauses should be the same type of `${clause_node.meta.ti}`, instead `${eval_node.meta.ti}`',
+					'', '', p.tok.lit)
+			}
+		}
+		first_clause = false
+		clauses << clause_node
 
-// 	p.context.delete(0)
-// 	p.drop_context()
-// 	return ast.CaseDecl{
-// 		name: name
-// 		ref: ref
-// 		eval: eval
-// 		clauses: clauses
-// 		exprs: exprs
-// 		ti: expr_ti
-// 	}
-// }
+		p.check(.right_arrow)
+		mut expr_node := p.expr_node(0)
+		if expr_node.meta.ti != expr_ti {
+			if first_expr {
+				expr_ti = expr_node.meta.ti
+			} else {
+				p.error_pos_out = p.tok.pos
+				p.log_d('ERROR', ' Returned expressions should be the same type of `${expr_ti}`, instead `${expr_node.meta.ti}`',
+					'', '', p.tok.lit)
+			}
+		}
+		first_expr = false
+		exprs << expr_node
+	}
+	p.check(.key_end)
 
-// pub fn (mut p Parser) case_clause(ti0 types.TypeIdent, accept_or bool) (ast.CaseClauseExpr, types.TypeIdent) {
-// 	mut expr := ast.Expr(ast.EmptyExpr{})
-// 	mut or_expr := []ast.Expr{}
-// 	mut guard := ast.Expr(ast.EmptyExpr{})
-// 	mut ti := types.void_ti
-// 	expr, ti = p.expr(0)
-// 	if expr is ast.UnderscoreExpr {
-// 		// ignore if is underscore and update ti
-// 		un := expr as ast.UnderscoreExpr
-// 		ti = ti0
-// 		expr = ast.UnderscoreExpr{
-// 			...un
-// 			ti: ti0
-// 		}
-// 	}
-// 	for p.tok.kind == .pipe {
-// 		p.check(.pipe)
-// 		or_expr0, _ := p.case_clause(ti0, false)
-// 		or_expr << or_expr0
-// 	}
-// 	if p.tok.kind == .key_when {
-// 		p.check(.key_when)
-// 		guard, _ = p.expr(0)
-// 	}
-// 	if p.tok.kind == .comma {
-// 		p.check(.comma)
-// 		guard, _ = p.expr(0)
-// 	}
+	p.context.delete(0)
+	p.drop_context()
+	return p.node_case(meta, ast.Case{
+		name: name
+		ref: ref
+		eval: eval_node
+		clauses: clauses
+		exprs: exprs
+		ti: expr_ti
+	})
+}
 
-// 	// evaluate guards
-// 	//
-// 	return ast.CaseClauseExpr{
-// 		expr: expr
-// 		or_expr: or_expr
-// 		guard: guard
-// 		ti: ti
-// 	}, ti
-// }
+pub fn (mut p Parser) case_clause(ti0 types.TypeIdent, accept_or bool) ast.Node {
+	mut or_expr := []ast.Node{}
+	mut expr := p.expr_node(0)
+	if expr.kind is ast.Underscore {
+		// ignore if is underscore and update ti
+		expr.meta.put_ti(ti0)
+	}
 
-// pub fn (mut p Parser) case_expr() (ast.Expr, types.TypeIdent) {
-// 	expr, ti := p.expr(0)
-// 	return expr, ti
-// }
+	if p.tok.kind == .key_when {
+		p.check(.key_when)
+		guard := p.expr_node(0)
+		expr = p.node(expr.meta, 'when', [expr, guard])
+	}
+	if p.tok.kind == .comma {
+		p.check(.comma)
+		guard := p.expr_node(0)
+		expr = p.node(expr.meta, 'when', [expr, guard])
+	}
+
+	for p.tok.kind == .pipe {
+		p.check(.pipe)
+		or_expr << expr
+		or_expr0 := p.case_clause(ti0, false)
+		or_expr << or_expr0
+	}
+	if or_expr.len > 0 {
+		expr = p.node(expr.meta, '|', or_expr)
+	}
+
+	return expr
+}

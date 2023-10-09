@@ -17,29 +17,36 @@ fn (mut p Parser) ident_expr() ast.Node {
 			exit(1)
 		}
 		return node1
-		// } else if p.inside_clause {
-		// 	p.error_pos_out = p.tok.lit.len
-		// 	mut ti := types.void_ti
-		// 	if p.inside_clause_eval is ast.Ident {
-		// 		l := p.inside_clause_eval as ast.Ident
-		// 		var := p.program.table.find_var(l.name, p.context) or {
-		// 			p.log_d('ERROR', 'undefined variable `${l.name}`', '', '', p.tok.lit)
-		// 			table.Var{}
-		// 		}
-		// 		ti = var.ti
-		// 		p.program.table.register_var(table.Var{
-		// 			...var
-		// 			name: p.tok.lit
-		// 			context: p.context
-		// 		})
-		// 	}
-		// 	a := expr0 as ast.Ident
-		// 	node = ast.Expr(ast.Ident{
-		// 		...a
-		// 		ti: ti
-		// 	})
-		// 	p.next_token()
-		// 	return node, a.ti
+	} else if p.inside_clause {
+		if p.inside_clause_eval.kind is ast.Ast {
+			a := p.inside_clause_eval.kind as ast.Ast
+			if a.lit == 'var' {
+				name0 := p.inside_clause_eval.left.atomic_str()
+				// find var from eval
+				var := p.program.table.find_var(name0, p.context) or {
+					p.log_d('ERROR', 'undefined variable `${name0}`', '', '', p.tok.lit)
+					table.Var{}
+				}
+				// register new context var from clause
+				p.program.table.register_var(table.Var{
+					...var
+					name: p.tok.lit
+					context: p.context
+				})
+				p.next_token()
+				meta.put_ti(var.ti)
+				return p.node_var(meta, ident, [])
+			}
+		}
+		// a := expr0 as ast.Ident
+		// node = ast.Expr(ast.Ident{
+		// 	...a
+		// 	ti: ti
+		// })
+
+		// return node, a.ti
+		p.log_d('ERROR', 'wrong expression', '', '', ident)
+		exit(1)
 	} else {
 		p.error_pos_out = p.tok.lit.len
 		var := p.program.table.find_var(p.tok.lit, p.context) or {

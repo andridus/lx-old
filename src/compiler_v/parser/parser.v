@@ -194,9 +194,9 @@ pub fn (mut p Parser) stmt() ast.Node {
 		.key_def, .key_defp {
 			return p.def_decl()
 		}
-		// .key_case {
-		// 	return p.case_decl()
-		// }
+		.key_case {
+			return p.case_decl()
+		}
 		// .lsbr {
 		// 	p.next_token()
 		// 	p.check(.ident)
@@ -227,9 +227,9 @@ pub fn (mut p Parser) expr_node(precedence int) ast.Node {
 				node = p.expr_node(0)
 			}
 		}
-		// .underscore {
-		// 	node, ti = p.underscore_expr()
-		// }
+		.underscore {
+			node = p.underscore_expr()
+		}
 		.atom {
 			node = p.atom_expr()
 		}

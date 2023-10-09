@@ -10,6 +10,7 @@ pub type NodeKind = Alias
 	| Atom
 	| Atomic
 	| Boolean
+	| Case
 	| Char
 	| Enum
 	| Float
@@ -26,6 +27,7 @@ pub type NodeKind = Alias
 	| String
 	| Struct
 	| Tuple
+	| Underscore
 
 pub struct Function {
 pub:
@@ -58,6 +60,20 @@ pub struct Record {}
 pub struct Port {}
 
 pub struct Nil {}
+
+pub struct Underscore {
+	name string
+}
+
+pub struct Case {
+pub:
+	ref     string
+	name    string
+	eval    Node
+	clauses []Node
+	exprs   []Node
+	ti      types.TypeIdent
+}
 
 pub struct Void {}
 

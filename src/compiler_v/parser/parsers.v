@@ -97,22 +97,18 @@ fn (mut p Parser) not_expr() ast.Node {
 	return p.node_bang(meta, node)
 }
 
-// fn (mut p Parser) underscore_expr() (ast.Expr, types.TypeIdent) {
-// 	p.check(.underscore)
-// 	ti := types.void_ti
-// 	mut name := ''
-// 	if p.tok.kind == .ident {
-// 		name = p.tok.lit
-// 		p.check(.ident)
-// 	}
+fn (mut p Parser) underscore_expr() ast.Node {
+	meta := p.meta()
+	p.check(.underscore)
+	// ti := types.void_ti
+	mut name := ''
+	if p.tok.kind == .ident {
+		name = p.tok.lit
+		p.check(.ident)
+	}
 
-// 	node := ast.Expr(ast.UnderscoreExpr{
-// 		name: name
-// 		is_used: p.in_var_expr
-// 	})
-
-// 	return node, ti
-// }
+	return p.node_underscore(meta, name)
+}
 
 fn (mut p Parser) parse_boolean() ast.Node {
 	mut meta := p.meta()

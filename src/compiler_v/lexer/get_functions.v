@@ -134,6 +134,9 @@ fn (l Lexer) get_word(cch u8) (string, bool) {
 			pos += 1
 			current_ch = l.input[pos]
 		}
+		if pos < l.total && is_symbol(l.input[pos]) {
+			pos++
+		}
 		return l.input[start_pos..pos].bytestr(), is_first_capital
 	}
 	return '', false

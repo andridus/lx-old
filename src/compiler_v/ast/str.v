@@ -127,3 +127,31 @@ fn (m Meta) str() string {
 	}
 	return '[${mets.join(',')}]'
 }
+
+pub fn (k NodeKind) str() string {
+	return match k {
+		String { 'string' }
+		Tuple { 'tuple' }
+		Boolean { 'boolean' }
+		Atomic { 'atom' }
+		Atom { 'atom' }
+		Integer { 'integer' }
+		Float { 'float' }
+		List { 'list' }
+		ListFixed { 'list_fixed' }
+		Alias { 'alias' }
+		Ast { k.lit }
+		Case { 'case' }
+		Char { 'char' }
+		Enum { 'enum' }
+		Function { 'function' }
+		FunctionCaller { 'function_caller' }
+		Map { 'map' }
+		Module { 'module' }
+		Nil { 'nil' }
+		Port { 'port' }
+		Record { 'record' }
+		Struct { 'struct' }
+		Underscore { 'underscore' }
+	}
+}

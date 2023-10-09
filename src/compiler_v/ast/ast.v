@@ -10,9 +10,10 @@ pub type NodeLeft = Atom | Node | f64 | int | string
 pub struct Node {
 pub:
 	left  NodeLeft
-	kind  NodeKind
+	kind  NodeKind = Nil{}
 	nodes []Node
 pub mut:
+	idx  int
 	meta Meta
 }
 
@@ -80,4 +81,32 @@ pub fn (mut n Node) mark_with_is_unused() {
 		...meta
 		is_unused: true
 	}
+}
+
+pub fn (n Node) get_deep_nth_children(us []int) !Node {
+	if us.len > 1 {
+		node := n.get_nth_children(us[0])!
+		return node.get_deep_nth_children(us[1..us.len])!
+	} else if us.len == 1 {
+		return n.get_nth_children(us[0])!
+	}
+	return error('ast not have the elements')
+}
+
+pub fn (n Node) get_nth_children(u int) !Node {
+	if u < n.nodes.len {
+		return n.nodes[u]
+	}
+	return error('the node `<${n.kind.str().to_upper()}> ${n.left.atomic_str()}` not have the ${u +
+		1}th element, only ${n.nodes.len} elment(s)')
+}
+
+fn (mut n Node) next() ?Node {
+	if n.idx >= n.nodes.len {
+		return none
+	}
+	defer {
+		n.idx++
+	}
+	return n.nodes[n.idx]
 }

@@ -203,6 +203,7 @@ fn (mut p Parser) def_decl() ast.Node {
 	mut meta := p.meta()
 	pos_in := p.tok.pos
 	mut pos_out := p.tok.pos
+	mut ignore_var := false
 	is_private := p.tok.kind == .key_defp
 
 	p.program.table.clear_vars()
@@ -221,7 +222,17 @@ fn (mut p Parser) def_decl() ast.Node {
 	for p.tok.kind != .rpar {
 		mut is_nil := false
 		is_nil = p.tok.kind == .key_nil
-		mut arg_names := [p.check_name()]
+		mut arg_name0 := 'anonymous'
+		if p.tok.kind == .underscore {
+			ignore_var = true
+			p.next_token()
+			if p.tok.kind == .ident {
+				arg_name0 = '_' + p.check_name()
+			}
+		} else {
+			arg_name0 = p.check_name()
+		}
+		mut arg_names := [arg_name0]
 		for p.tok.kind == .comma {
 			p.check(.comma)
 			arg_names << p.check_name()
@@ -242,6 +253,7 @@ fn (mut p Parser) def_decl() ast.Node {
 				name: arg_name
 				ti: ti
 				type_: typ0
+				is_ignored: ignore_var
 				expr: p.node_atom(mut meta0, arg_name)
 			}
 			args << arg

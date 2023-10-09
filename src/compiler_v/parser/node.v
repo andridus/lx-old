@@ -26,12 +26,22 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 						lit: 'def'
 					})
 				}
+				'when' {
+					ast.NodeKind(ast.Ast{
+						lit: 'when'
+					})
+				}
 				'__aliases__' {
 					ast.NodeKind(ast.Alias{})
 				}
 				'.' {
 					ast.NodeKind(ast.Ast{
 						lit: '.'
+					})
+				}
+				'|' {
+					ast.NodeKind(ast.Ast{
+						lit: 'or_match'
 					})
 				}
 				'%{}' {
@@ -74,6 +84,51 @@ pub fn (p Parser) node(meta ast.Meta, left ast.NodeLeft, nodes []ast.Node) ast.N
 		kind: kind
 		meta: meta
 		nodes: nodes
+	}
+}
+
+pub fn (p Parser) node_underscore(meta ast.Meta, name string) ast.Node {
+	return ast.Node{
+		left: ast.Atom{
+			name: '_${name}'
+		}
+		kind: ast.NodeKind(ast.Underscore{
+			name: name
+		})
+		meta: meta
+		nodes: []
+	}
+}
+
+pub fn (p Parser) node_case(meta ast.Meta, ty ast.Case) ast.Node {
+	mut clauses0 := []ast.Node{}
+	for n := 0; n < ty.clauses.len; n++ {
+		clause0 := ty.clauses[n]
+		expr0 := ty.exprs[n]
+		clauses0 << ast.Node{
+			left: ast.NodeLeft(ast.Atom{
+				name: '->'
+			})
+			kind: ast.NodeKind(ast.Ast{
+				lit: 'case_clause'
+			})
+			meta: meta
+			nodes: [p.node_list(meta, [clause0]), expr0]
+		}
+	}
+
+	return ast.Node{
+		left: ast.NodeLeft(ast.Atom{
+			name: 'case'
+		})
+		kind: ty
+		meta: meta
+		nodes: [
+			ty.eval,
+			p.node_list(meta, [
+				p.node_tuple(meta, [p.node_atomic('do'), p.node_list(meta, clauses0)]),
+			]),
+		]
 	}
 }
 

@@ -38,8 +38,6 @@ fn (mut p Parser) var_decl() ast.Node {
 				ti = ti1
 			}
 		}
-		println('var: ${existent_var.expr.meta.ti}')
-		println('ti1: ${ti.kind}. ti2: ${ti1.kind}')
 		if ti.kind != ti1.kind {
 			println('Var type not accept functions returns!')
 			exit(1)
