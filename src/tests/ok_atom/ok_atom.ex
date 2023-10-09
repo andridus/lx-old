@@ -1,4 +1,4 @@
-defmodule HelloWorld do
+defmodule OkAtom do
   def main() do
     :ok
   end

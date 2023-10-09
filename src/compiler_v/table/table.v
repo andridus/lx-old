@@ -1,7 +1,6 @@
 // Copyright (c) 2023 Helder de Sousa. All rights reserved/
 // Use of this source code is governed by a MIT license
 // that can be found in the LICENSE file
-
 module table
 
 import compiler_v.types
@@ -15,7 +14,7 @@ pub mut:
 	global_aliases map[string]string
 	atoms          []Atom
 	fns            map[string]Fn
-	unknown_calls  []ast.CallExpr
+	unknown_calls  []ast.Node
 	tmp_cnt        int
 }
 
@@ -27,13 +26,15 @@ pub:
 
 pub struct Var {
 pub:
-	name    string
-	ti      types.TypeIdent
-	is_mut  bool
-	is_arg  bool
-	type_   types.Type
-	context []string = ['root']
-	expr    ast.ExprStmt
+	name       string
+	ti         types.TypeIdent
+	is_mut     bool
+	is_arg     bool
+	is_ignored bool
+	type_      types.Type
+	context    []string = ['root']
+	expr       ast.Node
+	is_valid   bool
 }
 
 pub struct Alias {
@@ -77,4 +78,8 @@ pub fn new_table() &Table {
 	t.types << types.Void{}
 	t.type_idxs['dummy_type_at_idx'] = 0
 	return t
+}
+
+pub fn (v Var) str() string {
+	return v.expr.str()
 }

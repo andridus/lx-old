@@ -9,38 +9,40 @@ import compiler_v.types
 // import compiler_v.token
 // import compiler_v.docs
 
-fn (mut p Parser) call_enum() !(ast.CallEnum, types.TypeIdent) {
-	p.error_pos_in = p.tok.pos - p.tok.lit.len
+fn (mut p Parser) call_enum() !ast.Node {
+	mut meta := p.meta()
+	name := p.tok.lit
 	ti := p.parse_ti_name('enum_')
-	mut value := ''
+	meta.put_ti(ti)
 	p.check(.arrob)
-	value = p.tok.lit
+	value := p.tok.lit
 	p.check(.ident)
 	idx, name0 := p.program.table.find_type_name(ti)
 	t := p.program.table.types[idx]
 	if t is types.Enum {
 		if value in t.values {
-			return ast.CallEnum{
-				name: name0
-				val: value
+			return p.node_caller_enum(mut meta, value, ast.Enum{
+				internal: name0
+				name: name
+				values: t.values
+				is_def: false
 				ti: ti
-			}, ti
+			})
 		} else {
 			p.error_pos_out = p.tok.pos
 			p.log_d('ERROR', 'The value `${value}` of enum `${t.name}` is not valid. Please use one of ${t.values}`',
 				'', '', '')
-			exit(0)
+			exit(1)
 		}
 	} else {
 		p.error_pos_out = p.tok.pos
 		p.log_d('ERROR', 'The enum `{fun_name.lit}` is not defined.`', '', '', '')
-		exit(0)
+		exit(1)
 	}
 }
 
-fn (mut p Parser) defenum_decl() ast.EnumDecl {
-	// pos_in := p.tok.pos
-	// mut pos_out := p.tok.pos
+fn (mut p Parser) defenum_decl() ast.Node {
+	mut meta := p.meta()
 	is_private := p.tok.kind == .key_defenump
 	if is_private {
 		p.check(.key_defenump)
@@ -48,28 +50,34 @@ fn (mut p Parser) defenum_decl() ast.EnumDecl {
 		p.check(.key_defenum)
 	}
 
-	name := p.check_modl_name()
+	internal, name := p.check_modl_name()
 	p.check(.lsbr)
 
-	// GET values
-	mut values := []string{}
+	mut values := []ast.Node{}
+	mut values_for_table := []string{}
 
 	for p.tok.kind != .rsbr {
-		values << p.check_atom()
+		atom := p.check_atom()
+		values_for_table << atom
+		values << p.node_atomic(atom)
+
 		for p.tok.kind == .comma {
 			p.check(.comma)
-			values << p.check_atom()
+			atom0 := p.check_atom()
+			values_for_table << atom0
+			values << p.node_atomic(atom0)
 		}
 	}
 
 	p.check(.rsbr)
-	ti := types.new_enum('${name}')
-	p.program.table.register_enum(ti, values)
-	return ast.EnumDecl{
-		name: 'enum_${name}'
-		values: values
-		ti: ti
-		// size:
+	ti := types.new_enum(internal)
+	_, name0 := p.program.table.register_enum(ti, values_for_table)
+	return p.node_enum(meta, values, ast.Enum{
+		internal: name0
+		name: name
+		values: values_for_table
+		is_def: true
 		is_pub: !is_private
-	}
+		ti: ti
+	})
 }

@@ -1,9 +1,12 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved.
+// Use of this source code is governed by an MIT license
+// that can be found in the LICENSE file.
 module table
 
 import compiler_v.types
 import compiler_v.ast
 
-pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Field) (int, string) {
+pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields map[string]ast.Node) (int, string) {
 	name := 'struct_${elem_ti.name}'
 	// existing
 	existing_idx := t.type_idxs[name]
@@ -14,11 +17,11 @@ pub fn (mut t Table) register_struct(elem_ti &types.TypeIdent, fields []ast.Fiel
 	idx := t.types.len
 	mut struct_type := types.Type(types.Void{})
 	mut fields0 := []types.Field{}
-	for field in fields {
+	for _, field in fields {
 		fields0 << types.Field{
-			name: field.name
+			name: field.nodes[0].left.atomic_str()
 			type_idx: idx
-			ti: field.ti
+			ti: field.meta.ti
 		}
 	}
 	struct_type = types.Struct{
@@ -64,7 +67,6 @@ pub fn (mut t Table) register_or_update_fn(arity string, args []Var, ti types.Ty
 		return_ti: ti
 		is_valid: true
 	}
-
 	if fn0.name == new_fn.name {
 		mut tis := []types.TypeIdent{}
 		l := fn0.arities.len
@@ -73,6 +75,7 @@ pub fn (mut t Table) register_or_update_fn(arity string, args []Var, ti types.Ty
 		for a in fn0.arities {
 			tis << a.return_ti
 		}
+
 		fn0.return_tis = tis
 		t.fns[idx_name] = fn0
 	} else {

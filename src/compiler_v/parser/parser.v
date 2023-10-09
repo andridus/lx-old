@@ -24,10 +24,12 @@ mut:
 	return_ti          types.TypeIdent
 	current_module     string
 	in_var_expr        bool
+	tok_inline         int
+	error_line         int
 	error_pos_inline   int
 	error_pos_in       int
 	error_pos_out      int
-	inside_clause_eval ast.Expr
+	inside_clause_eval ast.Node
 	inside_clause      bool
 	context            []string = ['root']
 	context_num        int
@@ -55,7 +57,7 @@ pub fn (mut p Parser) drop_context() {
 	}
 }
 
-pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
+pub fn parse_stmt(text string, prog &table.Program) ast.Node {
 	l := lexer.new(text)
 	mut p := unsafe {
 		Parser{
@@ -70,24 +72,25 @@ pub fn parse_stmt(text string, prog &table.Program) ast.Stmt {
 
 pub fn parse_files(prog &table.Program) {
 	mut prog0 := unsafe { prog }
+	mut nodes := []ast.Node{}
 	for modl in prog0.compile_order {
 		if modl.starts_with('@') {
 			mut core_module := prog0.core_modules[modl.trim_left('@')]
-			stmts := parse_file(core_module, prog)
-			core_module.put_stmts(stmts)
+			nodes << parse_file(core_module, prog)
+			core_module.put_ast(nodes)
 			prog0.modules[modl] = core_module
 			// prog0.modules[modl].put_stmts(stmts)
 		} else {
-			stmts := parse_file(prog0.modules[modl], prog)
+			nodes << parse_file(prog0.modules[modl], prog)
 
-			prog0.modules[modl].put_stmts(stmts)
+			prog0.modules[modl].put_ast(nodes)
 		}
 	}
 }
 
-fn parse_file(modl table.Module, prog &table.Program) []ast.Stmt {
+fn parse_file(modl table.Module, prog &table.Program) []ast.Node {
 	text := os.read_file(modl.path) or { panic(err) }
-	mut stmts := []ast.Stmt{}
+	mut nodes := []ast.Node{}
 	mut l := lexer.new(text)
 	mut p := unsafe {
 		Parser{
@@ -103,16 +106,16 @@ fn parse_file(modl table.Module, prog &table.Program) []ast.Stmt {
 		if p.tok.kind == .eof {
 			break
 		}
-		stmts << p.top_stmt()
+		nodes << p.parse_ast()
 	}
-	return stmts
+	return nodes
 }
 
-pub fn (mut p Parser) top_stmt() ast.Stmt {
+pub fn (mut p Parser) parse_ast() ast.Node {
 	match p.tok.kind {
 		.line_comment {
 			p.next_token()
-			return p.top_stmt()
+			return ast.Node{}
 		}
 		.key_defmodule {
 			return p.module_decl()
@@ -124,59 +127,64 @@ pub fn (mut p Parser) top_stmt() ast.Stmt {
 			p.next_token()
 			p.check(.ident)
 			p.check(.rsbr)
-			return ast.Module{}
+
+			return ast.Node{}
 		}
 		.key_do {
-			return p.block_expr(true)
+			p.next_token()
+			// return p.block_expr(true)
+			return ast.Node{}
 		}
 		else {
-			return p.expr_stmt()
+			p.next_token()
+			// return p.expr_stmt()
+			return ast.Node{}
 		}
 	}
 }
 
-pub fn (mut p Parser) stmt() ast.Stmt {
+pub fn (mut p Parser) stmt() ast.Node {
 	match p.tok.kind {
-		.line_comment {
-			p.next_token()
-			return p.stmt()
-		}
-		.atom {
-			if p.peek_tok.kind != .newline {
-				return p.expr_stmt()
-			} else {
-				match p.tok.lit {
-					'COMPILER__disable_type_match__' {
-						p.compiler_options << .disable_type_match
-					}
-					'COMPILER__ensure_left_type__' {
-						p.compiler_options << .ensure_left_type
-					}
-					else {
-						return p.expr_stmt()
-					}
-				}
-				p.next_token()
-				return p.stmt()
-			}
-		}
-		.key_alias {
-			mut module_name := []string{}
-			p.check(.key_alias)
-			module_name << p.tok.lit
-			p.check(.modl)
-			for p.tok.kind == .dot {
-				p.check(.dot)
-				if p.tok.kind == .modl {
-					module_name << p.tok.lit
-					p.check(.modl)
-				}
-			}
-			module_name_0 := module_name.join('.')
-			last := module_name.reverse().first()
-			p.program.table.register_alias(last, module_name_0)
-			return p.stmt()
-		}
+		// .line_comment {
+		// 	p.next_token()
+		// 	return p.stmt()
+		// }
+		// .atom {
+		// 	if p.peek_tok.kind != .newline {
+		// 		return p.expr_stmt()
+		// 	} else {
+		// 		match p.tok.lit {
+		// 			'COMPILER__disable_type_match__' {
+		// 				p.compiler_options << .disable_type_match
+		// 			}
+		// 			'COMPILER__ensure_left_type__' {
+		// 				p.compiler_options << .ensure_left_type
+		// 			}
+		// 			else {
+		// 				return p.expr_stmt()
+		// 			}
+		// 		}
+		// 		p.next_token()
+		// 		return p.stmt()
+		// 	}
+		// }
+		// .key_alias {
+		// 	mut module_name := []string{}
+		// 	p.check(.key_alias)
+		// 	module_name << p.tok.lit
+		// 	p.check(.modl)
+		// 	for p.tok.kind == .dot {
+		// 		p.check(.dot)
+		// 		if p.tok.kind == .modl {
+		// 			module_name << p.tok.lit
+		// 			p.check(.modl)
+		// 		}
+		// 	}
+		// 	module_name_0 := module_name.join('.')
+		// 	last := module_name.reverse().first()
+		// 	p.program.table.register_alias(last, module_name_0)
+		// 	return p.stmt()
+		// }
 		.key_defstruct, .key_defstructp {
 			return p.defstruct_decl()
 		}
@@ -189,93 +197,100 @@ pub fn (mut p Parser) stmt() ast.Stmt {
 		.key_case {
 			return p.case_decl()
 		}
-		.lsbr {
-			p.next_token()
-			p.check(.ident)
-			p.check(.rsbr)
-			return ast.Module{}
-		}
+		// .lsbr {
+		// 	p.next_token()
+		// 	p.check(.ident)
+		// 	p.check(.rsbr)
+		// 	return ast.Module{}
+		// }
 		else {
 			if p.peek_tok.kind in [.assign, .typedef] {
 				return p.pattern_matching()
 			} else {
-				return p.expr_stmt()
+				return p.expr_node(0)
 			}
 		}
 	}
 }
 
-pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
-	mut ti := types.void_ti
-	mut node := ast.Expr(ast.EmptyExpr{})
+pub fn (mut p Parser) expr_node(precedence int) ast.Node {
+	meta := p.meta()
+	// mut ti := types.void_ti
+	mut node := p.node(meta, 'nil', [])
 	// Prefix
 	match p.tok.kind {
 		.mod {
 			if p.peek_tok.kind == .modl {
-				node1, ti1 := p.defstruct_init()
-				node = ast.Expr(node1)
-				ti = ti1
+				node = p.defstruct_init()
 			} else {
 				p.next_token()
-				node, ti = p.expr(0)
+				node = p.expr_node(0)
 			}
 		}
 		.underscore {
-			node, ti = p.underscore_expr()
+			node = p.underscore_expr()
 		}
 		.atom {
-			node, ti = p.atom_expr()
+			node = p.atom_expr()
 		}
 		.ident {
 			if p.peek_tok.kind == .string_concat {
-				node, ti = p.string_concat_expr()
+				node = p.string_concat_expr()
 			} else {
-				node, ti = p.ident_expr()
+				node = p.ident_expr()
 			}
 		}
 		.key_nil {
-			node, ti = p.parse_nil_literal()
+			node = p.parse_nil_literal()
 		}
-		.key_keyword {
-			node, ti = p.keyword_list_expr()
-		}
-		.key_if {
-			node, ti = p.if_expr()
-		}
+		// .key_keyword {
+		// 	node, ti = p.keyword_list_expr()
+		// }
+		// .key_if {
+		// 	node, ti = p.if_expr()
+		// }
 		.multistring {
-			node, ti = p.string_expr()
+			node = p.string_expr()
 		}
 		.str {
 			if p.peek_tok.kind == .string_concat {
-				node, ti = p.string_concat_expr()
-			} else if p.peek_tok.kind == .colon_space {
-				node, ti = p.keyword_list_expr()
+				node = p.string_concat_expr()
+				// } else if p.peek_tok.kind == .colon_space {
+				// 	node, ti = p.keyword_list_expr()
 			} else {
-				node, ti = p.string_expr()
+				node = p.string_expr()
 			}
 		}
 		.key_true, .key_false {
-			node, ti = p.parse_boolean()
+			node = p.parse_boolean()
 		}
 		.bang {
-			node, ti = p.not_expr()
+			node = p.not_expr()
 		}
 		.integer {
-			node, ti = p.parse_number_literal()
+			node = p.parse_number_literal()
 		}
 		.float {
-			node, ti = p.parse_number_literal()
+			node = p.parse_number_literal()
 		}
-		.charlist {
-			node, ti = p.charlist_expr()
-		}
+		// .charlist {
+		// 	node, ti = p.charlist_expr()
+		// }
+		// .lcbr {
+		// 	node, ti = p.tuple_expr()
+		// }
 		.lcbr {
-			node, ti = p.tuple_expr()
+			p.check(.lcbr)
+			node = p.expr_node(0)
+		}
+		.rcbr {
+			p.check(.rcbr)
+			node = p.expr_node(0)
 		}
 		.lpar {
 			p.check(.lpar)
 			p.inside_parens++
-			node, ti = p.expr(0)
+			node = p.expr_node(0)
 			p.check(.rpar)
 			p.inside_parens--
 		}
@@ -296,48 +311,33 @@ pub fn (mut p Parser) expr(precedence int) (ast.Expr, types.TypeIdent) {
 				num++
 			}
 			nt = p.peek_next_token(num)
-
 			if nt.kind == .arrob {
-				node1, ti1 := p.call_enum() or {
+				node = p.call_enum() or {
 					p.warn('Error')
-					exit(0)
+					exit(1)
 				}
-				node = ast.Expr(node1)
-				ti = ti1
 			} else {
-				node1, ti1 := p.call_from_module(.modl) or {
+				node = p.call_from_module_node(.modl) or {
 					p.warn('Error')
-					exit(0)
+					exit(1)
 				}
-				ti = ti1
-				node = ast.Expr(node1)
 			}
 		}
 		else {
 			p.error_pos_in = p.tok.lit.len
 			p.error_pos_out = p.lexer.pos_inline
 			p.log_d('ERROR', 'Bad token `${p.tok.str()}`', '', '', p.tok.lit)
-			exit(0)
+			exit(1)
 		}
 	}
-
 	// Infix
 	for precedence < p.tok.precedence() {
 		if p.tok.kind.is_infix() {
-			node, ti = p.infix_expr(node)
-			return node, ti
-		}
-		// Postfix
-		else if p.tok.kind in [.inc, .dec] {
-			node = ast.PostfixExpr{
-				op: p.tok.kind
-				expr: node
-			}
-			p.next_token()
-			return node, ti
+			node = p.infix_expr(node)
+			return node
 		} else {
-			return node, ti
+			return node
 		}
 	}
-	return node, ti
+	return node
 }

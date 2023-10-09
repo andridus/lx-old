@@ -1,12 +1,15 @@
 defmodule Lx.IO do
 
-  def puts(a :: int) do
-   :_v_.println(a)
+  def puts(a :: int) :: atom do
+   :FFI.v.println(a)
+   :ok
   end
-  def puts(a :: float) do
-   :_v_.println(a)
+  def puts(a :: float) :: atom do
+   :FFI.v.println(a)
+   :ok
   end
-  def puts(a :: string) do
-   :_v_.println(a)
+  def puts(a :: string) :: atom do
+   :FFI.v.println(a)
+   :ok
   end
 end

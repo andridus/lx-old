@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
 module lexer
 
 import compiler_v.token
@@ -44,7 +47,7 @@ fn (mut l Lexer) new_token(lit string, kind token.Kind, forward int) token.Token
 		}
 	} else if kind == .float {
 		value = token.LiteralValue{
-			fval: lit.f32()
+			fval: lit.f64()
 		}
 	} else if kind in [.float, .atom] {
 		value = token.LiteralValue{

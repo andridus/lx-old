@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved.
+// Use of this source code is governed by an MIT license
+// that can be found in the LICENSE file.
 module types
 
 pub fn (ti &TypeIdent) str() string {
@@ -65,57 +68,57 @@ pub fn (k Kind) str() string {
 	return k_str
 }
 
-pub fn (kinds []Kind) str() string {
-	mut kinds_str := ''
-	for i, k in kinds {
-		kinds_str += k.str()
-		if i < kinds.len - 1 {
-			kinds_str += '_'
-		}
-	}
-	return kinds_str
-}
+// pub fn (kinds []Kind) str() string {
+// 	mut kinds_str := ''
+// 	for i, k in kinds {
+// 		kinds_str += k.str()
+// 		if i < kinds.len - 1 {
+// 			kinds_str += '_'
+// 		}
+// 	}
+// 	return kinds_str
+// }
 
-pub fn (t Nil) str() string {
-	return 'nil'
-}
+// pub fn (t Nil) str() string {
+// 	return 'nil'
+// }
 
-pub fn (t Void) str() string {
-	return 'void'
-}
+// pub fn (t Void) str() string {
+// 	return 'void'
+// }
 
-pub fn (t Enum) str() string {
-	return t.name
-}
+// pub fn (t Enum) str() string {
+// 	return t.name
+// }
 
-pub fn (t Struct) str() string {
-	return t.name
-}
+// pub fn (t Struct) str() string {
+// 	return t.name
+// }
 
-pub fn (t Integer) str() string {
-	return if t.is_unsigned { 'u${t.bit_size}' } else { 'i${t.bit_size}' }
-}
+// pub fn (t Integer) str() string {
+// 	return if t.is_unsigned { 'u${t.bit_size}' } else { 'i${t.bit_size}' }
+// }
 
-pub fn (t Float) str() string {
-	return 'f${t.bit_size}'
-}
+// pub fn (t Float) str() string {
+// 	return 'f${t.bit_size}'
+// }
 
-pub fn (t String) str() string {
-	return 'string'
-}
+// pub fn (t String) str() string {
+// 	return 'string'
+// }
 
-pub fn (t Char) str() string {
-	return 'char'
-}
+// pub fn (t Char) str() string {
+// 	return 'char'
+// }
 
-pub fn (t List) str() string {
-	return t.name
-}
+// pub fn (t List) str() string {
+// 	return t.name
+// }
 
-pub fn (t ListFixed) str() string {
-	return t.name
-}
+// pub fn (t ListFixed) str() string {
+// 	return t.name
+// }
 
-pub fn (t Map) str() string {
-	return t.name
-}
+// pub fn (t Map) str() string {
+// 	return t.name
+// }

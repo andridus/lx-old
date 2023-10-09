@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
 module lexer
 
 import compiler_v.token
@@ -65,6 +68,9 @@ fn (mut l Lexer) get_token_comment(bt u8) token.Token {
 		current = l.input[pos]
 		pos++
 	}
+	if current == 10 {
+		l.current_line++
+	}
 	str := l.input[start_pos..pos - 1].bytestr()
 	return l.new_token(str, token.Kind.line_comment, str.len)
 }
@@ -74,9 +80,18 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 		l.pos += delim_start.len
 		start_pos := l.pos
 		mut current := l.input[l.pos]
+
+		if current == 10 {
+			l.current_line++
+		}
 		for (l.pos < l.total) {
 			mut m := 0
-			if current == delim_end[0] {
+			if l.pos < l.total && current == `#` && l.input[l.pos] == `{` {
+				l.inside_interpolation = true
+				l.inside_interpolation_end_delim = delim_end
+				break
+			}
+			if current == delim_end[0] && l.input[l.pos - 2] != `\\` {
 				mut x := 1
 				for x < delim_end.len {
 					if delim_end[x] == l.input[l.pos + x - 1] {
@@ -88,14 +103,13 @@ fn (mut l Lexer) get_text_delim(kind token.Kind, delim_start string, delim_end s
 					break
 				}
 			}
+
 			current = l.input[l.pos]
 			l.pos++
 		}
-		str := l.input[start_pos..(l.pos - delim_end.len)].bytestr().trim(' ').replace('\n',
-			'\\n')
+		str := l.input[start_pos..(l.pos - delim_end.len)].bytestr().replace('\n', '\\n')
 		return l.new_token(str, kind, 0)
 	} else {
-		println('ignore ${l.input[l.pos]}')
 		return l.new_token('', .ignore, 1)
 	}
 }
@@ -119,6 +133,9 @@ fn (l Lexer) get_word(cch u8) (string, bool) {
 		for is_alpha(current_ch) && pos < l.total {
 			pos += 1
 			current_ch = l.input[pos]
+		}
+		if pos < l.total && is_symbol(l.input[pos]) {
+			pos++
 		}
 		return l.input[start_pos..pos].bytestr(), is_first_capital
 	}

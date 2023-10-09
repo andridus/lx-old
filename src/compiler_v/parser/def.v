@@ -10,42 +10,27 @@ import compiler_v.token
 import compiler_v.docs
 import compiler_v.color
 
-pub fn (mut p Parser) call_expr() !ast.ExprStmt {
-	mut args := ast.CallExpr{}
-	mut return_ti := types.void_ti
+pub fn (mut p Parser) call_expr() ?ast.Node {
 	if p.tok.kind == .modl {
-		args, return_ti = p.call_from_module(.modl)!
+		return p.call_from_module_node(.modl)!
 	}
-
-	return ast.ExprStmt{
-		expr: args
-		ti: return_ti
-	}
+	return none
 }
 
-pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.TypeIdent) {
-	mut is_external := true
+pub fn (mut p Parser) call_from_module_node(kind token.Kind) !ast.Node {
+	mut meta := p.meta()
+	mut is_external := false
+	mut is_ffi := false
 	mut is_local := false
-	mut is_unknown := false
-	mut is_c_module := false
-	mut is_v_module := false
-	mut tok := p.tok
-	mut arg_exprs := []ast.Expr{}
+	// mut is_unknown := false
+	// mut tok := p.tok
+	mut arg_nodes := []ast.Node{}
 	mut arity_num := 0
 	mut arity_args := []string{}
 	mut arity_name := ''
 	mut fun_name := token.Token{}
 	mut module_ref := [p.tok]
 	mut return_ti := types.void_ti
-	// Check if is a C module
-	if p.tok.lit == '_c_' {
-		is_c_module = true
-		module_ref = []
-	}
-	if p.tok.lit == '_v_' {
-		is_c_module = true
-		module_ref = []
-	}
 	// Initial lexer position for stmt
 	p.error_pos_in = p.tok.pos - p.tok.lit.len
 
@@ -54,7 +39,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			// should be a var, check
 			p.error_pos_out = p.tok.pos
 			p.log_d('ERROR', '`${p.tok.lit}` is not a var', '', '', p.tok.lit)
-			exit(0)
+			exit(1)
 		} else {
 			fun_name = p.tok
 			is_local = true
@@ -77,11 +62,14 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		} else {
 			p.error_pos_inline = p.lexer.pos_inline
 			p.error('The token `${p.tok.str()}` is not a Module. \n Module starts with a capital letter.')
-			exit(0)
+			exit(1)
 		}
 		p.next_token()
 	}
 	mut module_name := module_name0(module_ref)
+	if module_name.starts_with('FFI.') {
+		is_ffi = true
+	}
 	// Check if is a local function
 	if is_local {
 		module_name = p.current_module
@@ -92,7 +80,7 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		module_name = aliased_name
 	}
 	// get module path
-	module_path := module_name.to_lower()
+	// module_path := module_name.to_lower()
 	// If module placed with anything
 	if fun_name.kind == .ignore {
 		p.warn('Module ${module_name} is orphan')
@@ -102,30 +90,21 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 
 	if f := p.program.table.find_fn(fun_name.lit, module_name) {
 		for p.tok.kind != .rpar {
-			mut e, mut ti := p.expr(0)
-			match e {
-				ast.Ident {
-					mut a := e as ast.Ident
-					a.set_pointer()
-					e = ast.Expr(a)
-					ti = a.ti
-				}
-				else {}
-			}
+			e := p.expr_node(0)
 			arity_num++
-			arity_args << ti.name
-			arg_exprs << e
+			arity_args << e.meta.ti.name
+			arg_nodes << e
 			if p.tok.kind != .rpar {
 				p.check(.comma)
 			}
 		}
-
 		arity_name = '${arity_num}_${arity_args.join('_')}'
 		if arity_name == '0_' {
 			arity_name = '0'
 		}
 		finded := f.idx_arity_by_args[arity_name]
 		mut valid_arity := false
+
 		if finded > 0 {
 			a := f.arities[finded]
 			if a.is_valid {
@@ -160,46 +139,30 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 			p.error('too many arguments in call to `${fun_name}`')
 		}
 	} else {
-		if is_c_module == false && is_v_module == false {
-			is_unknown = true
-			p.error_pos_out = p.tok.pos
-			if is_local {
-				// // should be a local function, check
-				p.log_d('ERROR', 'The `${fun_name}` is undefined local function', docs.local_function_desc,
-					docs.local_function_url, p.tok.lit)
-			} else {
-				if is_external {
-					// call from external module (perhaps alias?)
-					p.log_d('WARN', 'unknown function `${fun_name.lit}` from module `${module_name}`',
-						'', '', fun_name.lit)
-				} else {
-					p.log_d('WARN', 'unknown function `${fun_name.lit}`', '', '', fun_name.lit)
-				}
-			}
+		// if is_c_module == false && is_v_module == false {
+		// is_unknown = true
+		p.error_pos_out = p.tok.pos
+		if is_local {
+			// // should be a local function, check
+			p.log_d('ERROR', 'The `${fun_name}` is undefined local function', docs.local_function_desc,
+				docs.local_function_url, p.tok.lit)
 		} else {
-			for p.tok.kind != .rpar {
-				mut e, ti := p.expr(0)
-				arity_num++
-				arity_args << ti.name
-				match e {
-					ast.Ident {
-						mut a := e as ast.Ident
-						c := p.program.table.find_var(a.name, p.context) or { table.Var{} }
-						ex := c.expr.expr
-						match ex {
-							ast.EmptyExpr {}
-							else {
-								a.set_pointer()
-								e = ast.Expr(a)
-							}
-						}
-					}
-					else {}
-				}
-				arg_exprs << e
-				if p.tok.kind != .rpar {
-					p.check(.comma)
-				}
+			if is_external {
+				// call from external module (perhaps alias?)
+				p.log_d('WARN', 'unknown function `${fun_name.lit}` from module `${module_name}`',
+					'', '', fun_name.lit)
+			} else if is_ffi {
+			} else {
+				p.log_d('WARN', 'unknown function `${fun_name.lit}`', '', '', fun_name.lit)
+			}
+		}
+		for p.tok.kind != .rpar {
+			e := p.expr_node(0)
+			arity_num++
+			arity_args << e.meta.ti.name
+			arg_nodes << e
+			if p.tok.kind != .rpar {
+				p.check(.comma)
 			}
 		}
 	}
@@ -209,29 +172,23 @@ pub fn (mut p Parser) call_from_module(kind token.Kind) !(ast.CallExpr, types.Ty
 		p.check(.typedef)
 		return_ti = p.parse_ti()
 	}
-	node := ast.CallExpr{
+
+	meta.put_ti(return_ti)
+	fun_node := p.node(meta, '.', [
+		p.node(meta, '__aliases__', [p.node_atomic(module_name)]),
+		p.node_atomic(fun_name.lit),
+	])
+	mut arities := []string{}
+	for an in arg_nodes {
+		arities << an.meta.ti.str()
+	}
+	return p.node_function_caller(meta, p.node_left(fun_node), arg_nodes, ast.FunctionCaller{
 		name: fun_name.lit
-		arity: arity_name
-		args: arg_exprs
-		is_unknown: is_unknown
-		tok: tok
-		is_external: is_external
-		module_path: module_path
+		return_ti: return_ti
 		module_name: module_name
-		is_c_module: is_c_module
-		is_v_module: is_v_module
-		ti: return_ti
-	}
-	if is_c_module {
-		p.program.c_dependencies << module_name
-	}
-	if is_v_module {
-		p.program.v_dependencies << module_name
-	}
-	if is_unknown {
-		p.program.table.unknown_calls << node
-	}
-	return node, return_ti
+		args: arg_nodes
+		arity: arities
+	})
 }
 
 fn module_name0(tokens []token.Token) string {
@@ -242,27 +199,12 @@ fn module_name0(tokens []token.Token) string {
 	return name.join('.')
 }
 
-pub fn (mut p Parser) call_args() []ast.Expr {
-	mut args := []ast.Expr{}
-	for p.tok.kind != .rpar {
-		e, _ := p.expr(0)
-		args << e
-		if p.tok.kind != .rpar {
-			p.check(.comma)
-		}
-	}
-	p.check(.rpar)
-	return args // ,types.void_ti
-}
-
-fn (mut p Parser) def_decl() ast.FnDecl {
+fn (mut p Parser) def_decl() ast.Node {
+	mut meta := p.meta()
 	pos_in := p.tok.pos
 	mut pos_out := p.tok.pos
+	mut ignore_var := false
 	is_private := p.tok.kind == .key_defp
-	mut rec_name := ''
-	mut sum_kind := []types.Kind{}
-	// mut is_method := false
-	mut rec_ti := types.void_ti
 
 	p.program.table.clear_vars()
 	if is_private {
@@ -275,12 +217,22 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 
 	// GET Args
 	mut args := []table.Var{}
-	mut ast_args := []ast.Arg{}
+	mut ast_args := []ast.Node{}
 
 	for p.tok.kind != .rpar {
 		mut is_nil := false
 		is_nil = p.tok.kind == .key_nil
-		mut arg_names := [p.check_name()]
+		mut arg_name0 := 'anonymous'
+		if p.tok.kind == .underscore {
+			ignore_var = true
+			p.next_token()
+			if p.tok.kind == .ident {
+				arg_name0 = '_' + p.check_name()
+			}
+		} else {
+			arg_name0 = p.check_name()
+		}
+		mut arg_names := [arg_name0]
 		for p.tok.kind == .comma {
 			p.check(.comma)
 			arg_names << p.check_name()
@@ -296,10 +248,13 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		}
 		for arg_name in arg_names {
 			typ0 := p.program.table.find_type(ti.str()) or { types.type_from_ti(ti) }
+			mut meta0 := p.meta()
 			arg := table.Var{
 				name: arg_name
 				ti: ti
 				type_: typ0
+				is_ignored: ignore_var
+				expr: p.node_atom(mut meta0, arg_name)
 			}
 			args << arg
 			p.program.table.register_var(arg)
@@ -326,27 +281,40 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		p.return_ti = ti
 		from_type = true
 	}
-	stmts := p.parse_block()
+	node_block := p.parse_block()
 	// Try get type from body inference
 	if from_type == false {
-		if stmts.len > 0 {
-			ti = stmts[stmts.len - 1].ti
+		if node_block.kind is ast.List {
+			n0 := node_block.nodes[0]
+			if n0.kind is ast.Tuple {
+				value := n0.nodes[0].left.str()
+				if value == ':do' {
+					ti = n0.nodes[1].meta.ti
+				}
+			}
 		}
 	}
-	sum_kind << ti.kind
+
 	mut final_args := []table.Var{}
 	mut args_overfn := '${args.len}'
 	for a in args {
-		// var := p.program.table.find_var(a.name) or { a }
-		var := ast.Arg{
-			ti: a.ti
-			name: a.name
-		}
-		final_args << a
-		ast_args << var
-		args_overfn += '_${var.ti.name}'
-	}
+		var0 := p.program.table.find_var(a.name, p.context) or { a }
+		mut meta0 := p.meta()
 
+		// NOTE: check this. it`s necessary check if var (on table) and arg has equals ti, if a.ti != .void_ ?
+		if a.ti.kind == .void_ {
+			meta0.put_ti(var0.ti)
+		} else {
+			meta0.put_ti(a.ti)
+		}
+		var := p.node_var(meta0, a.name, [])
+		final_args << table.Var{
+			...a
+			ti: var0.ti
+		}
+		ast_args << var
+		args_overfn += '_${var.meta.ti.name}'
+	}
 	pos_out = p.tok.pos
 	p.program.table.register_or_update_fn(args_overfn, final_args, ti, table.Fn{
 		name: name
@@ -357,26 +325,17 @@ fn (mut p Parser) def_decl() ast.FnDecl {
 		def_pos_in: pos_in
 		def_pos_out: pos_out
 	})
-	return ast.FnDecl{
+	meta.put_ti(types.new_sum_ti([ti.kind]))
+	return p.node_function(meta, [
+		p.node(meta, name, ast_args),
+		node_block,
+	], ast.Function{
 		name: name
-		stmts: stmts
-		ti: types.new_sum_ti(sum_kind)
+		module_name: p.module_name
 		arity: args_overfn
 		args: ast_args
+		is_main: name == 'main'
+		return_ti: meta.ti
 		is_private: is_private
-		receiver: ast.Field{
-			name: rec_name
-			ti: rec_ti
-		}
-	}
-}
-
-pub fn (p &Parser) check_fn_calls() {
-	println('check fn calls2')
-	for call in p.program.table.unknown_calls {
-		p.program.table.find_fn(call.name, '') or {
-			p.error_at_line('unknown function `${call.name}`', call.tok.line_nr)
-			return
-		}
-	}
+	})
 }

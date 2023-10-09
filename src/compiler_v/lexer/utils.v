@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
 module lexer
 
 import compiler_v.token
@@ -8,6 +11,9 @@ pub fn (mut l Lexer) generate_tokens() {
 		if tok.kind !in [.newline, .ignore] {
 			l.tokens << tok
 		}
+		// if tok.kind == .newline {
+		// 	l.lines++
+		// }
 	}
 
 	if l.tokens.len > 0 {

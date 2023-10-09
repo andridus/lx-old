@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved.
+// Use of this source code is governed by an MIT license
+// that can be found in the LICENSE file.
 module token
 
 pub struct Token {
@@ -14,7 +17,7 @@ pub union LiteralValue {
 pub:
 	sval string
 	ival int
-	fval f32
+	fval f64
 }
 
 pub enum Kind {

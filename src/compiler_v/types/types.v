@@ -3,8 +3,6 @@
 // that can be found in the LICENSE file
 module types
 
-import compiler_v.token
-
 pub enum Kind {
 	void_
 	any_
@@ -40,6 +38,12 @@ pub type Type = Atom
 	| Struct
 	| Tuple
 	| Void
+
+pub struct Arg {
+pub:
+	name string
+	ti   TypeIdent
+}
 
 pub struct TypeIdent {
 pub:
@@ -167,66 +171,60 @@ pub const (
 	atom_ti     = new_builtin_ti(.atom_, false)
 )
 
-pub fn get_default_type(kind token.Kind) TypeIdent {
-	return match kind {
-		.plus {
+pub fn get_default_type(lit string, ti TypeIdent) TypeIdent {
+	return match lit {
+		'+' {
 			types.integer_ti
 		}
-		.minus {
+		'-' {
 			types.integer_ti
 		}
-		.mul {
+		'*' {
 			types.integer_ti
 		}
-		.div {
+		'/' {
 			types.integer_ti
 		}
-		.mod {
-			types.integer_ti
+		'|' {
+			ti
 		}
-		.xor {
-			types.integer_ti
-		}
-		.pipe {
-			types.integer_ti
-		}
-		.eq {
+		'==' {
 			types.bool_ti
 		}
-		.seq {
+		'===' {
 			types.bool_ti
 		}
-		.eqt {
+		'~=' {
 			types.bool_ti
 		}
-		.ne {
+		'!=' {
 			types.bool_ti
 		}
-		.sne {
+		'!==' {
 			types.bool_ti
 		}
-		.gt {
+		'>' {
 			types.bool_ti
 		}
-		.lt {
+		'<' {
 			types.bool_ti
 		}
-		.ge {
+		'>=' {
 			types.bool_ti
 		}
-		.le {
+		'<=' {
 			types.bool_ti
 		}
-		.and {
+		'&&' {
 			types.bool_ti
 		}
-		.logical_or {
+		'||' {
 			types.bool_ti
 		}
-		.key_and {
+		'and' {
 			types.bool_ti
 		}
-		.key_or {
+		'or' {
 			types.bool_ti
 		}
 		else {

@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Helder de Sousa. All rights reserved/
+// Use of this source code is governed by a MIT license
+// that can be found in the LICENSE file
 module lexer
 
 import compiler_v.token
@@ -5,11 +8,14 @@ import compiler_v.token
 pub struct Lexer {
 	input []u8
 pub mut:
-	lines      int = 1
-	pos        int
-	pos_inline int
-	total      int
-	tokens     []token.Token
+	lines                          int
+	current_line                   int = 1
+	inside_interpolation           bool
+	inside_interpolation_end_delim string
+	pos                            int
+	pos_inline                     int
+	total                          int
+	tokens                         []token.Token
 }
 
 fn (mut l Lexer) parse_token() token.Token {
@@ -22,6 +28,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.skip_space()
 		}
 		10 {
+			l.current_line++
 			l.new_token_new_line()
 		}
 		`_` {
@@ -236,7 +243,7 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token(',', .comma, 1)
 		}
 		`/` {
-			l.new_token(',', .div, 1)
+			l.new_token('/', .div, 1)
 		}
 		`(` {
 			l.new_token('(', .lpar, 1)
@@ -248,7 +255,12 @@ fn (mut l Lexer) parse_token() token.Token {
 			l.new_token('{', .lcbr, 1)
 		}
 		`}` {
-			l.new_token('}', .rcbr, 1)
+			if l.inside_interpolation == true {
+				l.inside_interpolation = false
+				l.get_text_delim(token.Kind.multistring, '}', l.inside_interpolation_end_delim)
+			} else {
+				l.new_token('}', .rcbr, 1)
+			}
 		}
 		`[` {
 			l.new_token('[', .lsbr, 1)
